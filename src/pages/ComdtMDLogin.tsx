@@ -15,8 +15,8 @@ export default function ComdtMDLogin() {
   if (!isLoggedIn) {
     return (
       <LoginForm
-        title="Comdt & MD"
-        subtitle="Commandant & Managing Director Dashboard"
+        title="Section Incharge"
+        subtitle="Section Incharge Dashboard"
         onLoginSuccess={() => setIsLoggedIn(true)}
       />
     )
@@ -37,8 +37,8 @@ export default function ComdtMDLogin() {
               </button>
               <div className="h-8 w-px bg-gray-300"></div>
               <div>
-                <div className="text-sm font-semibold text-gray-900">Comdt & MD</div>
-                <div className="text-xs text-gray-600">Commandant & Managing Director</div>
+                <div className="text-sm font-semibold text-gray-900">Section Incharge</div>
+                <div className="text-xs text-gray-600">Section Incharge</div>
               </div>
             </div>
             <div className="flex items-center gap-3">
