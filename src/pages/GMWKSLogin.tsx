@@ -2405,12 +2405,12 @@ export default function GMWKSLogin() {
                     {/* Graph: Types of Defects */}
                     <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
                       <h3 className="text-2xl font-bold text-gray-900 mb-6">Types of Defects Occurring</h3>
-                      <div className="flex items-end justify-around h-96 border-l-2 border-b-2 border-gray-400 pl-4 pb-4">
+                      <div className="flex items-end justify-around h-96 border-l-2 border-b-2 border-gray-400 pl-4 pb-4 mt-4">
                         {defectTypeData.map((data) => (
                           <div key={data.type} className="flex flex-col items-center gap-2">
                             <div
                               className="w-28 bg-gradient-to-t from-orange-600 to-orange-400 flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg hover:from-orange-700 hover:to-orange-500 transition-all"
-                              style={{ height: `${(data.count / maxDefectTypeCount) * 350}px`, minHeight: '30px' }}
+                              style={{ height: `${(data.count / maxDefectTypeCount) * 320}px`, minHeight: '30px' }}
                             >
                               {data.count}
                             </div>
