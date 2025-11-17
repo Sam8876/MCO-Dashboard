@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import LoginForm from '../LoginForm'
 
 interface Notification {
   id: number
@@ -15,7 +14,6 @@ interface Notification {
 
 export default function DGMMTRLLogin() {
   const navigate = useNavigate()
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [selectedCard, setSelectedCard] = useState<string | null>(null)
   const [lmWoPlacedTab, setLmWoPlacedTab] = useState<'scaled' | 'non-scaled'>('scaled')
   const [lpSoPlacedTab, setLpSoPlacedTab] = useState<'scaled' | 'non-scaled'>('scaled')
@@ -27,42 +25,32 @@ export default function DGMMTRLLogin() {
   const [chatInput, setChatInput] = useState('')
   const [isNotificationOpen, setIsNotificationOpen] = useState(false)
   const [notifications, setNotifications] = useState<Notification[]>([])
+  const [showSrbPopup, setShowSrbPopup] = useState(false)
+  const [selectedSectionForSrb, setSelectedSectionForSrb] = useState<string>('')
 
-  // Load notifications on component mount and when logged in
+  // Load notifications on component mount
   useEffect(() => {
-    if (isLoggedIn) {
-      // Load notifications from localStorage
-      const storedNotifications = JSON.parse(localStorage.getItem('notifications_DGM WKS MTRL') || '[]')
-      
-      // Add dummy notification from GM WKS MTRL if no notifications exist
-      if (storedNotifications.length === 0) {
-        const dummyNotification: Notification = {
-          id: Date.now(),
-          from: 'GM WKS MTRL',
-          to: 'DGM WKS MTRL',
-          serial: 1,
-          itemName: 'SEAL PLAIN (CUP)',
-          action: 'Urgent action required',
-          message: 'LPR status update: Item SEAL PLAIN (CUP) has been pending for 95 days. Please review and expedite the procurement process. The current status shows delays in vendor response and requires immediate attention.',
-          timestamp: new Date().toISOString()
-        }
-        storedNotifications.push(dummyNotification)
-        localStorage.setItem('notifications_DGM WKS MTRL', JSON.stringify(storedNotifications))
+    // Load notifications from localStorage
+    const storedNotifications = JSON.parse(localStorage.getItem('notifications_DGM WKS MTRL') || '[]')
+    
+    // Add dummy notification from GM WKS MTRL if no notifications exist
+    if (storedNotifications.length === 0) {
+      const dummyNotification: Notification = {
+        id: Date.now(),
+        from: 'GM WKS MTRL',
+        to: 'DGM WKS MTRL',
+        serial: 1,
+        itemName: 'SEAL PLAIN (CUP)',
+        action: 'Urgent action required',
+        message: 'LPR status update: Item SEAL PLAIN (CUP) has been pending for 95 days. Please review and expedite the procurement process. The current status shows delays in vendor response and requires immediate attention.',
+        timestamp: new Date().toISOString()
       }
-      
-      setNotifications(storedNotifications)
+      storedNotifications.push(dummyNotification)
+      localStorage.setItem('notifications_DGM WKS MTRL', JSON.stringify(storedNotifications))
     }
-  }, [isLoggedIn])
-
-  if (!isLoggedIn) {
-  return (
-    <LoginForm
-        title="DGM WKS (MTRL)"
-        subtitle="Deputy General Manager Workshop Material Dashboard"
-        onLoginSuccess={() => setIsLoggedIn(true)}
-      />
-    )
-  }
+    
+    setNotifications(storedNotifications)
+  }, [])
 
   const cards = [
     { id: 'ct-issue', title: 'CT Issue', description: 'Component tracking and issue management', color: 'bg-green-500' },
@@ -238,10 +226,10 @@ export default function DGMMTRLLogin() {
                   Online
                 </div>
                 <button
-                  onClick={() => setIsLoggedIn(false)}
+                  onClick={() => navigate('/dgm-wks-mtrl-dashboard')}
                   className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-semibold transition-colors"
                 >
-                  Logout
+                  Back
                 </button>
               </div>
             </div>
@@ -1745,6 +1733,11 @@ export default function DGMMTRLLogin() {
                                       fill={colors[index % colors.length]}
                                       stroke="white"
                                       strokeWidth="2"
+                                      className="cursor-pointer hover:opacity-80 transition-opacity"
+                                      onClick={() => {
+                                        setSelectedSectionForSrb(data.section);
+                                        setShowSrbPopup(true);
+                                      }}
                                     />
                                   );
                                 });
@@ -1757,7 +1750,14 @@ export default function DGMMTRLLogin() {
                           {sectionDrData.map((data, index) => {
                             const colors = ['bg-blue-500', 'bg-green-500', 'bg-yellow-500', 'bg-red-500', 'bg-purple-500', 'bg-pink-500'];
                             return (
-                              <div key={data.section} className="border-l-4 border-gray-300 pl-4">
+                              <div 
+                                key={data.section} 
+                                className="border-l-4 border-gray-300 pl-4 cursor-pointer hover:bg-gray-50 transition-colors rounded-lg p-2"
+                                onClick={() => {
+                                  setSelectedSectionForSrb(data.section);
+                                  setShowSrbPopup(true);
+                                }}
+                              >
                                 <div className="flex items-center justify-between mb-2">
                                   <h4 className="font-bold text-lg">{data.section}</h4>
                                   <span className="text-2xl font-bold text-gray-700">{data.count}</span>
@@ -1840,6 +1840,221 @@ export default function DGMMTRLLogin() {
                         </table>
                       </div>
                     </div>
+
+                    {/* SRB Popup Modal */}
+                    {showSrbPopup && selectedSectionForSrb && (
+                      <div className="fixed inset-0 bg-black bg-opacity-40 z-50 flex items-center justify-center p-4">
+                        <div className="bg-white rounded-xl shadow-2xl max-w-7xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+                          {/* Header */}
+                          <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 flex items-center justify-between shadow-lg">
+                            <div>
+                              <h3 className="text-2xl font-bold">SRB Data - {selectedSectionForSrb} Section</h3>
+                              <p className="text-blue-100 text-sm mt-1">Spares Requirement Book for {selectedSectionForSrb}</p>
+                            </div>
+                            <button
+                              onClick={() => {
+                                setShowSrbPopup(false);
+                                setSelectedSectionForSrb('');
+                              }}
+                              className="text-white hover:text-blue-200 transition-colors p-2 rounded-full hover:bg-white hover:bg-opacity-20"
+                            >
+                              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
+
+                          {/* SRB Table Content */}
+                          <div className="flex-1 overflow-y-auto p-6">
+                            {(() => {
+                              // Generate SRB data for the selected section
+                              const sectionSrbData = [
+                                {
+                                  serNo: 1, ohsNo: 1, partNo: '5330-390235 (675-10-29-01)', nomenclature: 'SEAL PLAIN', aU: 'Nos', noOff: 1, scale: 80,
+                                  ohOutput: 59, depthReqd: 48,
+                                  virUnsv: 0, virDefi: 0, virRepairable: 0, virSer: 0, virTotal: 0,
+                                  newOrdRange: 0, newOrdDepth: 0,
+                                  newLPRange: 0, newLPDepth: 0,
+                                  newLMRange: 0, newLMDepth: 0,
+                                  newLRCRange: 0, newLRCDepth: 0,
+                                  retrievedRange: 0, retrievedDepth: 0,
+                                  repairedRange: 0, repairedDepth: 0,
+                                  reclaimedRange: 0, reclaimedDepth: 0,
+                                  rolloverRange: 0, rolloverDepth: 0,
+                                  totalRange: 48, totalDepth: 48,
+                                  reqmtVsIssue: 0,
+                                  percIncrDecr: 0,
+                                  changeInScaleAuth: 'No Change',
+                                  remarks: '-'
+                                },
+                                {
+                                  serNo: 2, ohsNo: 2, partNo: '5330-390228 (675-10-20-03)', nomenclature: 'RETAINER PACKING', aU: 'Nos', noOff: 1, scale: 80,
+                                  ohOutput: 59, depthReqd: 48,
+                                  virUnsv: 0, virDefi: 0, virRepairable: 0, virSer: 0, virTotal: 0,
+                                  newOrdRange: 0, newOrdDepth: 0,
+                                  newLPRange: 0, newLPDepth: 0,
+                                  newLMRange: 0, newLMDepth: 0,
+                                  newLRCRange: 0, newLRCDepth: 0,
+                                  retrievedRange: 0, retrievedDepth: 0,
+                                  repairedRange: 0, repairedDepth: 0,
+                                  reclaimedRange: 0, reclaimedDepth: 0,
+                                  rolloverRange: 0, rolloverDepth: 0,
+                                  totalRange: 48, totalDepth: 48,
+                                  reqmtVsIssue: 0,
+                                  percIncrDecr: 0,
+                                  changeInScaleAuth: 'No Change',
+                                  remarks: '-'
+                                },
+                                {
+                                  serNo: 3, ohsNo: 3, partNo: '4730-079089 (675-10-27)', nomenclature: 'ADAPTOR BUSHING', aU: 'Nos', noOff: 1, scale: 50,
+                                  ohOutput: 59, depthReqd: 30,
+                                  virUnsv: 0, virDefi: 0, virRepairable: 0, virSer: 0, virTotal: 0,
+                                  newOrdRange: 0, newOrdDepth: 0,
+                                  newLPRange: 12, newLPDepth: 12,
+                                  newLMRange: 0, newLMDepth: 0,
+                                  newLRCRange: 0, newLRCDepth: 0,
+                                  retrievedRange: 0, retrievedDepth: 0,
+                                  repairedRange: 0, repairedDepth: 0,
+                                  reclaimedRange: 0, reclaimedDepth: 0,
+                                  rolloverRange: 0, rolloverDepth: 0,
+                                  totalRange: 30, totalDepth: 30,
+                                  reqmtVsIssue: 0,
+                                  percIncrDecr: 0,
+                                  changeInScaleAuth: 'No Change',
+                                  remarks: '-'
+                                }
+                              ];
+
+                              return (
+                                <div className="overflow-x-auto">
+                                  <div className="mb-4">
+                                    <div className="text-center font-bold text-lg mb-2">Spares Requirement Book</div>
+                                    <div className="text-sm text-gray-600 mb-4 text-center">OH Output (59) : PY 2024-25 - {selectedSectionForSrb} SEC</div>
+                                  </div>
+                                  <table className="w-full border-collapse text-xs">
+                                    <thead>
+                                      {/* First Row - Main Headers */}
+                                      <tr className="bg-gray-200">
+                                        <th className="border border-gray-400 px-1 py-2 font-semibold" rowSpan={3}>Ser<br/>No</th>
+                                        <th className="border border-gray-400 px-1 py-2 font-semibold" rowSpan={3}>OHS<br/>No</th>
+                                        <th className="border border-gray-400 px-1 py-2 font-semibold" rowSpan={3}>Part<br/>No</th>
+                                        <th className="border border-gray-400 px-1 py-2 font-semibold" rowSpan={3}>Nomenclature</th>
+                                        <th className="border border-gray-400 px-1 py-2 font-semibold" rowSpan={3}>A/U</th>
+                                        <th className="border border-gray-400 px-1 py-2 font-semibold" rowSpan={3}>No<br/>off</th>
+                                        <th className="border border-gray-400 px-1 py-2 font-semibold" rowSpan={3}>Scale</th>
+                                        <th className="border border-gray-400 px-1 py-2 font-semibold" rowSpan={3}>OH Output<br/>(No of VEHS<br/>OH in PY)</th>
+                                        <th className="border border-gray-400 px-1 py-2 font-semibold" rowSpan={3}>Depth reqd<br/>for Tgt as<br/>per Scale</th>
+                                        <th className="border border-gray-400 px-1 py-2 font-semibold" colSpan={5}>VIR</th>
+                                        <th className="border border-gray-400 px-1 py-2 font-semibold" colSpan={18}>Issue Detl</th>
+                                        <th className="border border-gray-400 px-1 py-2 font-semibold" colSpan={3}>Revised Scale<br/>Recommendation</th>
+                                        <th className="border border-gray-400 px-1 py-2 font-semibold" rowSpan={3}>Remarks</th>
+                                      </tr>
+                                      {/* Second Row - VIR and Issue Detl Sub-headers */}
+                                      <tr className="bg-gray-100">
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Unsv</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Defi</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Repairable</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Ser</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Total</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs" colSpan={2}>New(Ord)</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs" colSpan={2}>New(LP)</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs" colSpan={2}>New(LM)</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs" colSpan={2}>New(LRC)</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs" colSpan={2}>Retrieved &<br/>Cannibalised</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs" colSpan={2}>Repaired</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs" colSpan={2}>Reclaimed</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs" colSpan={2}>Rollover</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs" colSpan={2}>Total</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Reqmt Vs<br/>Issue Details</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">% Incr/Decr<br/>in Scale= AF/H *100</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Change in<br/>Scale Auth</th>
+                                      </tr>
+                                      {/* Third Row - Range/Depth sub-columns */}
+                                      <tr className="bg-gray-100">
+                                        <th className="border border-gray-400 px-1 py-1"></th>
+                                        <th className="border border-gray-400 px-1 py-1"></th>
+                                        <th className="border border-gray-400 px-1 py-1"></th>
+                                        <th className="border border-gray-400 px-1 py-1"></th>
+                                        <th className="border border-gray-400 px-1 py-1"></th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Range</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Depth</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Range</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Depth</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Range</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Depth</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Range</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Depth</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Range</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Depth</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Range</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Depth</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Range</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Depth</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Range</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Depth</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Range</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Depth</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Range</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Depth</th>
+                                        <th className="border border-gray-400 px-1 py-1"></th>
+                                        <th className="border border-gray-400 px-1 py-1"></th>
+                                        <th className="border border-gray-400 px-1 py-1"></th>
+                                        <th className="border border-gray-400 px-1 py-1"></th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {sectionSrbData.map((item, index) => (
+                                        <tr 
+                                          key={item.serNo}
+                                          className={`${index % 2 === 0 ? 'bg-gray-50' : 'bg-white'} hover:bg-blue-50 transition-colors`}
+                                        >
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.serNo}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.ohsNo}</td>
+                                          <td className="border border-gray-300 px-1 py-1 font-mono text-xs">{item.partNo}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-xs">{item.nomenclature}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.aU}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.noOff}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.scale}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.ohOutput}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.depthReqd}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.virUnsv}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.virDefi}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.virRepairable}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.virSer}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.virTotal}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.newOrdRange}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.newOrdDepth}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.newLPRange}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.newLPDepth}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.newLMRange}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.newLMDepth}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.newLRCRange}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.newLRCDepth}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.retrievedRange}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.retrievedDepth}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.repairedRange}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.repairedDepth}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.reclaimedRange}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.reclaimedDepth}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.rolloverRange}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.rolloverDepth}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.totalRange}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.totalDepth}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.reqmtVsIssue}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.percIncrDecr}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-xs">{item.changeInScaleAuth}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-xs">{item.remarks}</td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              );
+                            })()}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </>
                 );
               })()}
@@ -3881,6 +4096,18 @@ export default function DGMMTRLLogin() {
 
       {/* Dashboard Content */}
       <div className="max-w-7xl mx-auto px-6 py-8">
+        {/* Back Button */}
+        <div className="mb-6">
+          <button
+            onClick={() => navigate('/dgm-wks-mtrl-dashboard')}
+            className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            <span>Back</span>
+          </button>
+        </div>
         <div className="mb-8">
           <h2 className="text-3xl font-bold text-gray-900 mb-6 text-center">Select Dashboard</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">

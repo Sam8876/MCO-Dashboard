@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 // Inter Office Note (ION) Display Component
 function IonForm() {
@@ -474,6 +475,7 @@ function LprFormESS() {
 
 // Main ESS Component
 export default function ESSLogin() {
+  const navigate = useNavigate()
   const [selectedSection, setSelectedSection] = useState('ion');
   const [showImportModal, setShowImportModal] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -502,6 +504,18 @@ export default function ESSLogin() {
   return (
     <div>
       <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 mb-6">
+        {/* Back Button */}
+        <div className="mb-6">
+          <button
+            onClick={() => navigate('/dgm-wks-mtrl-dashboard')}
+            className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            <span>Back</span>
+          </button>
+        </div>
         <h3 className="text-2xl font-bold text-gray-900 mb-6">ESS Dashboard</h3>
         {/* Section Selection Tabs */}
         <div className="mb-6 border-b border-gray-200">

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import LoginForm from '../LoginForm'
 
 interface LPRNotification {
   originatorNo: string
@@ -10,7 +9,6 @@ interface LPRNotification {
 
 export default function GMWKSLogin() {
   const navigate = useNavigate()
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [selectedCard, setSelectedCard] = useState<string | null>(null)
   const [selectedYear, setSelectedYear] = useState<string>('PY-2024-25')
   const [lmStatusTab, setLmStatusTab] = useState<'scaled' | 'non-scaled'>('scaled')
@@ -30,26 +28,14 @@ export default function GMWKSLogin() {
   const [showSrbPopup, setShowSrbPopup] = useState(false);
   const [selectedSectionForSrb, setSelectedSectionForSrb] = useState<string>('');
 
-  // Check for LPR notifications on component mount and when logged in
+  // Check for LPR notifications on component mount
   useEffect(() => {
-    if (isLoggedIn) {
-      const notifications = JSON.parse(localStorage.getItem('lprNotifications') || '[]');
-      if (notifications.length > 0) {
-        setLprNotifications(notifications);
-        setShowNotification(true);
-      }
+    const notifications = JSON.parse(localStorage.getItem('lprNotifications') || '[]');
+    if (notifications.length > 0) {
+      setLprNotifications(notifications);
+      setShowNotification(true);
     }
-  }, [isLoggedIn]);
-
-  if (!isLoggedIn) {
-    return (
-      <LoginForm
-        title="GM WKS (MTRL)"
-        subtitle="General Manager Workshop Material Dashboard"
-        onLoginSuccess={() => setIsLoggedIn(true)}
-      />
-    )
-  }
+  }, []);
 
   const cards = [
     { id: 'target', title: 'Target', description: 'View production targets and goals', color: 'bg-blue-500' },
@@ -63,6 +49,7 @@ export default function GMWKSLogin() {
     { id: 'dr-summary', title: 'DR Summary', description: 'Defect Report summary and analysis', color: 'bg-pink-500' },
     { id: 'ifa-cases', title: 'IFA Cases', description: 'Issue For Acknowledgement cases', color: 'bg-cyan-500' },
     { id: 'abc-analysis', title: 'ABC Analysis', description: 'ABC Analysis for MT Grant and ORD Grant', color: 'bg-slate-500' },
+    { id: 'srb', title: 'SRB', description: 'Spares Requirement Book summary', color: 'bg-rose-500' },
     { id: 'misc', title: 'MISC', description: 'Miscellaneous items and information', color: 'bg-gray-500' }
   ]
 
@@ -3607,7 +3594,7 @@ export default function GMWKSLogin() {
 
                     {/* SRB Popup Modal */}
                     {showSrbPopup && selectedSectionForSrb && (
-                      <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                      <div className="fixed inset-0 bg-black bg-opacity-40 z-50 flex items-center justify-center p-4">
                         <div className="bg-white rounded-xl shadow-2xl max-w-7xl w-full max-h-[90vh] overflow-hidden flex flex-col">
                           {/* Header */}
                           <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 flex items-center justify-between shadow-lg">
@@ -4034,6 +4021,271 @@ export default function GMWKSLogin() {
                 </div>
               </div>
             </div>
+          ) : selectedCard === 'srb' ? (
+            <div className="space-y-8">
+              {/* Back Button */}
+              <div className="mb-4">
+                <button
+                  onClick={handleBack}
+                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-semibold transition-colors flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                  </svg>
+                  Back to Dashboards
+                </button>
+              </div>
+
+              {/* SRB Summary Section */}
+              {(() => {
+                // SRB Data from MPO Dashboard
+                const srbData = [
+                  {
+                    serNo: 1, ohsNo: 1, partNo: '5330-390235 (675-10-29-01)', nomenclature: 'SEAL PLAIN', aU: 'Nos', noOff: 1, scale: 80,
+                    ohOutput: 59, depthReqd: 48,
+                    virUnsv: 0, virDefi: 0, virRepairable: 0, virSer: 0, virTotal: 0,
+                    newOrdRange: 0, newOrdDepth: 0,
+                    newLPRange: 0, newLPDepth: 0,
+                    newLMRange: 0, newLMDepth: 0,
+                    newLRCRange: 0, newLRCDepth: 0,
+                    retrievedRange: 0, retrievedDepth: 0,
+                    repairedRange: 0, repairedDepth: 0,
+                    reclaimedRange: 0, reclaimedDepth: 0,
+                    rolloverRange: 0, rolloverDepth: 0,
+                    totalRange: 48, totalDepth: 48,
+                    reqmtVsIssue: 0,
+                    percIncrDecr: 0,
+                    changeInScaleAuth: 'No Change',
+                    remarks: '-'
+                  },
+                  {
+                    serNo: 2, ohsNo: 2, partNo: '5330-390228 (675-10-20-03)', nomenclature: 'RETAINER PACKING', aU: 'Nos', noOff: 1, scale: 80,
+                    ohOutput: 59, depthReqd: 48,
+                    virUnsv: 0, virDefi: 0, virRepairable: 0, virSer: 0, virTotal: 0,
+                    newOrdRange: 0, newOrdDepth: 0,
+                    newLPRange: 0, newLPDepth: 0,
+                    newLMRange: 0, newLMDepth: 0,
+                    newLRCRange: 0, newLRCDepth: 0,
+                    retrievedRange: 0, retrievedDepth: 0,
+                    repairedRange: 0, repairedDepth: 0,
+                    reclaimedRange: 0, reclaimedDepth: 0,
+                    rolloverRange: 0, rolloverDepth: 0,
+                    totalRange: 48, totalDepth: 48,
+                    reqmtVsIssue: 0,
+                    percIncrDecr: 0,
+                    changeInScaleAuth: 'No Change',
+                    remarks: '-'
+                  },
+                  {
+                    serNo: 3, ohsNo: 3, partNo: '4730-079089 (675-10-27)', nomenclature: 'ADAPTOR BUSHING', aU: 'Nos', noOff: 1, scale: 50,
+                    ohOutput: 59, depthReqd: 30,
+                    virUnsv: 0, virDefi: 0, virRepairable: 0, virSer: 0, virTotal: 0,
+                    newOrdRange: 0, newOrdDepth: 0,
+                    newLPRange: 12, newLPDepth: 12,
+                    newLMRange: 0, newLMDepth: 0,
+                    newLRCRange: 0, newLRCDepth: 0,
+                    retrievedRange: 0, retrievedDepth: 0,
+                    repairedRange: 0, repairedDepth: 0,
+                    reclaimedRange: 0, reclaimedDepth: 0,
+                    rolloverRange: 0, rolloverDepth: 0,
+                    totalRange: 30, totalDepth: 30,
+                    reqmtVsIssue: 0,
+                    percIncrDecr: 0,
+                    changeInScaleAuth: 'No Change',
+                    remarks: '-'
+                  }
+                ];
+
+                // Calculate Summary Metrics
+                const totalItems = srbData.length;
+                const totalDepthReqd = srbData.reduce((sum, item) => sum + item.depthReqd, 0);
+                const totalVirItems = srbData.reduce((sum, item) => sum + item.virTotal, 0);
+                const totalIssueDepth = srbData.reduce((sum, item) => sum + item.totalDepth, 0);
+                const itemsWithScaleChange = srbData.filter(item => item.changeInScaleAuth !== 'No Change').length;
+                const totalNewLP = srbData.reduce((sum, item) => sum + item.newLPDepth, 0);
+                const totalNewLM = srbData.reduce((sum, item) => sum + item.newLMDepth, 0);
+                const totalRepaired = srbData.reduce((sum, item) => sum + item.repairedDepth, 0);
+                const totalReclaimed = srbData.reduce((sum, item) => sum + item.reclaimedDepth, 0);
+                const avgScale = Math.round(srbData.reduce((sum, item) => sum + item.scale, 0) / totalItems);
+
+                return (
+                  <>
+                    {/* Summary Cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                      <div className="bg-gradient-to-br from-rose-500 to-rose-600 rounded-xl shadow-lg p-6 text-white">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-rose-100 text-sm font-semibold mb-1">Total Items</p>
+                            <p className="text-3xl font-bold">{totalItems}</p>
+                          </div>
+                          <div className="bg-white bg-opacity-20 rounded-full p-3">
+                            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                            </svg>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-blue-100 text-sm font-semibold mb-1">Total Depth Required</p>
+                            <p className="text-3xl font-bold">{totalDepthReqd}</p>
+                          </div>
+                          <div className="bg-white bg-opacity-20 rounded-full p-3">
+                            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                            </svg>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-green-100 text-sm font-semibold mb-1">Total Issue Depth</p>
+                            <p className="text-3xl font-bold">{totalIssueDepth}</p>
+                          </div>
+                          <div className="bg-white bg-opacity-20 rounded-full p-3">
+                            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            </svg>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg p-6 text-white">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-purple-100 text-sm font-semibold mb-1">Avg Scale</p>
+                            <p className="text-3xl font-bold">{avgScale}</p>
+                          </div>
+                          <div className="bg-white bg-opacity-20 rounded-full p-3">
+                            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                            </svg>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Additional Summary Cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                      <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl shadow-lg p-6 text-white">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-orange-100 text-sm font-semibold mb-1">Total VIR Items</p>
+                            <p className="text-3xl font-bold">{totalVirItems}</p>
+                          </div>
+                          <div className="bg-white bg-opacity-20 rounded-full p-3">
+                            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-xl shadow-lg p-6 text-white">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-cyan-100 text-sm font-semibold mb-1">New LP Depth</p>
+                            <p className="text-3xl font-bold">{totalNewLP}</p>
+                          </div>
+                          <div className="bg-white bg-opacity-20 rounded-full p-3">
+                            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            </svg>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="bg-gradient-to-br from-teal-500 to-teal-600 rounded-xl shadow-lg p-6 text-white">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-teal-100 text-sm font-semibold mb-1">New LM Depth</p>
+                            <p className="text-3xl font-bold">{totalNewLM}</p>
+                          </div>
+                          <div className="bg-white bg-opacity-20 rounded-full p-3">
+                            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            </svg>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl shadow-lg p-6 text-white">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-indigo-100 text-sm font-semibold mb-1">Scale Changes</p>
+                            <p className="text-3xl font-bold">{itemsWithScaleChange}</p>
+                          </div>
+                          <div className="bg-white bg-opacity-20 rounded-full p-3">
+                            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                            </svg>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* SRB Summary Table */}
+                    <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
+                      <h3 className="text-2xl font-bold text-gray-900 mb-6">SRB Summary - PY 2024-25 (ARD SEC)</h3>
+                      <div className="mb-4 text-sm text-gray-600">
+                        <p>OH Output: 59 vehicles | Total Items: {totalItems}</p>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full border-collapse text-sm">
+                          <thead>
+                            <tr className="bg-gray-200">
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Ser No</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">OHS No</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Part No</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Nomenclature</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-center">Scale</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-center">Depth Reqd</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-center">VIR Total</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-center">New LP</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-center">New LM</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-center">Repaired</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-center">Reclaimed</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-center">Total Depth</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-center">Scale Change</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {srbData.map((item, index) => (
+                              <tr key={item.serNo} className={`${index % 2 === 0 ? 'bg-gray-50' : 'bg-white'} hover:bg-blue-50 transition-colors`}>
+                                <td className="border border-gray-300 px-3 py-2 text-center">{item.serNo}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center">{item.ohsNo}</td>
+                                <td className="border border-gray-300 px-3 py-2 font-mono text-xs">{item.partNo}</td>
+                                <td className="border border-gray-300 px-3 py-2">{item.nomenclature}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center">{item.scale}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center font-semibold">{item.depthReqd}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center">{item.virTotal}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center">{item.newLPDepth}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center">{item.newLMDepth}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center">{item.repairedDepth}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center">{item.reclaimedDepth}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center font-semibold text-blue-600">{item.totalDepth}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center text-xs">{item.changeInScaleAuth}</td>
+                              </tr>
+                            ))}
+                            {/* Grand Total Row */}
+                            <tr className="bg-gray-200 font-bold">
+                              <td className="border border-gray-400 px-3 py-2 text-center" colSpan={5}>Grand Total</td>
+                              <td className="border border-gray-400 px-3 py-2 text-center">{totalDepthReqd}</td>
+                              <td className="border border-gray-400 px-3 py-2 text-center">{totalVirItems}</td>
+                              <td className="border border-gray-400 px-3 py-2 text-center">{totalNewLP}</td>
+                              <td className="border border-gray-400 px-3 py-2 text-center">{totalNewLM}</td>
+                              <td className="border border-gray-400 px-3 py-2 text-center">{totalRepaired}</td>
+                              <td className="border border-gray-400 px-3 py-2 text-center">{totalReclaimed}</td>
+                              <td className="border border-gray-400 px-3 py-2 text-center text-blue-600">{totalIssueDepth}</td>
+                              <td className="border border-gray-400 px-3 py-2 text-center">-</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
           ) : selectedCard === 'misc' ? (
             <div className="space-y-8">
               {/* Back Button */}
@@ -4425,10 +4677,13 @@ export default function GMWKSLogin() {
         {/* Back Button */}
         <div className="mb-6">
           <button
-            onClick={() => navigate('/')}
-            className="px-6 py-2 bg-green-700 text-white rounded-lg hover:bg-green-800 transition flex items-center gap-2"
+            onClick={() => navigate('/gm-wks-mtrl-dashboard')}
+            className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
           >
-            <span>←</span> Back to Section Dashboard
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            <span>Back</span>
           </button>
         </div>
 

@@ -3243,6 +3243,18 @@ export default function DGMPurchaseLogin() {
 
       {/* Dashboard Content */}
       <div className="max-w-7xl mx-auto px-6 py-8">
+        {/* Back Button */}
+        <div className="mb-6">
+          <button
+            onClick={() => navigate('/dgm-purchase-dashboard')}
+            className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            <span>Back</span>
+          </button>
+        </div>
         <div className="mb-8">
           <h2 className="text-3xl font-bold text-gray-900 mb-6 text-center">Select Dashboard</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
