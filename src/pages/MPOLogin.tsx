@@ -91,10 +91,10 @@ export default function MPOLogin() {
               Select Financial Year
             </label>
             <div className="flex items-center gap-3">
-              <select
+            <select
                 id="year-select"
-                value={selectedTargetYear}
-                onChange={(e) => setSelectedTargetYear(e.target.value)}
+              value={selectedTargetYear}
+              onChange={(e) => setSelectedTargetYear(e.target.value)}
                 className="w-full md:w-64 px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm font-semibold"
               >
                 <option value="">-- Select a Year --</option>
@@ -102,7 +102,7 @@ export default function MPOLogin() {
                 <option value="PY-2024-25">PY-2024-25</option>
                 <option value="PY-2025-26">PY-2025-26</option>
                 <option value="PY-2026-27">PY-2026-27</option>
-              </select>
+            </select>
               {selectedTargetYear && (
                 <button
                   onClick={() => setSelectedTargetYear('')}
@@ -141,7 +141,7 @@ export default function MPOLogin() {
                       <div className="bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 rounded-lg p-6 shadow-sm">
                         <div className="text-blue-700 text-sm mb-1 font-semibold">Total VEH CT</div>
                         <div className="text-3xl font-bold text-blue-600">{vehData.total}</div>
-                      </div>
+            </div>
                       <div className="bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-200 rounded-lg p-6 shadow-sm">
                         <div className="text-green-700 text-sm mb-1 font-semibold">CF CT</div>
                         <div className="text-3xl font-bold text-green-600">{vehData.cfCt.total}</div>
@@ -387,15 +387,7 @@ export default function MPOLogin() {
                 return (
                   <>
                     {/* Summary Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                      <div className="bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 rounded-lg p-6 shadow-sm">
-                        <div className="text-blue-700 text-sm mb-1 font-semibold">CT Issued VEH</div>
-                        <div className="text-3xl font-bold text-blue-600">{ctIssuedData.veh.total}</div>
-                      </div>
-                      <div className="bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-200 rounded-lg p-6 shadow-sm">
-                        <div className="text-green-700 text-sm mb-1 font-semibold">CT Issued ENG</div>
-                        <div className="text-3xl font-bold text-green-600">{ctIssuedData.eng.total}</div>
-                      </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="bg-gradient-to-br from-purple-50 to-purple-100 border-2 border-purple-200 rounded-lg p-6 shadow-sm">
                         <div className="text-purple-700 text-sm mb-1 font-semibold">Target VEH</div>
                         <div className="text-3xl font-bold text-purple-600">{targetData.veh.ohI.bmpII + targetData.veh.ohI.iik + targetData.veh.ohII + targetData.veh.cmt + targetData.veh.vt72b}</div>
@@ -403,93 +395,6 @@ export default function MPOLogin() {
                       <div className="bg-gradient-to-br from-orange-50 to-orange-100 border-2 border-orange-200 rounded-lg p-6 shadow-sm">
                         <div className="text-orange-700 text-sm mb-1 font-semibold">Target ENG</div>
                         <div className="text-3xl font-bold text-orange-600">{targetData.eng.utd20 + targetData.eng.slk}</div>
-                      </div>
-                    </div>
-
-                    {/* CT Issued VEH Table */}
-                    <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
-                      <h2 className="text-3xl font-bold text-gray-900 mb-6">CT ISSUED IN 2024-25 - VEH (Vehicles)</h2>
-                      <div className="overflow-x-auto">
-                        <table className="w-full border-collapse text-xs">
-                          <thead>
-                            <tr className="bg-gray-200">
-                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left" rowSpan={2}>Category</th>
-                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left" colSpan={4}>Breakdown</th>
-                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left" rowSpan={2}>Total</th>
-                            </tr>
-                            <tr className="bg-gray-200">
-                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">BMP II</th>
-                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">IIK</th>
-                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">CMT</th>
-                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">OH-II</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            <tr className="bg-gray-50">
-                              <td className="border border-gray-300 px-3 py-2 font-semibold">CF CT</td>
-                              <td className="border border-gray-300 px-3 py-2 text-center">{ctIssuedData.veh.cfCt.bmpII}</td>
-                              <td className="border border-gray-300 px-3 py-2 text-center">{ctIssuedData.veh.cfCt.iik}</td>
-                              <td className="border border-gray-300 px-3 py-2 text-center">{ctIssuedData.veh.cfCt.cmt}</td>
-                              <td className="border border-gray-300 px-3 py-2 text-center">{ctIssuedData.veh.cfCt.ohII}</td>
-                              <td className="border border-gray-300 px-3 py-2 text-center font-bold">{ctIssuedData.veh.cfCt.total}</td>
-                            </tr>
-                            <tr className="bg-white">
-                              <td className="border border-gray-300 px-3 py-2 font-semibold">Fresh CT</td>
-                              <td className="border border-gray-300 px-3 py-2 text-center">{ctIssuedData.veh.freshCt.bmpII}</td>
-                              <td className="border border-gray-300 px-3 py-2 text-center">{ctIssuedData.veh.freshCt.iik}</td>
-                              <td className="border border-gray-300 px-3 py-2 text-center">{ctIssuedData.veh.freshCt.cmt}</td>
-                              <td className="border border-gray-300 px-3 py-2 text-center">{ctIssuedData.veh.freshCt.ohII}</td>
-                              <td className="border border-gray-300 px-3 py-2 text-center font-bold">{ctIssuedData.veh.freshCt.total}</td>
-                            </tr>
-                            <tr className="bg-gray-50">
-                              <td className="border border-gray-300 px-3 py-2 font-semibold">Output</td>
-                              <td className="border border-gray-300 px-3 py-2 text-center">{ctIssuedData.veh.output.bmpII}</td>
-                              <td className="border border-gray-300 px-3 py-2 text-center">{ctIssuedData.veh.output.iik}</td>
-                              <td className="border border-gray-300 px-3 py-2 text-center">{ctIssuedData.veh.output.cmt}</td>
-                              <td className="border border-gray-300 px-3 py-2 text-center">{ctIssuedData.veh.output.ohII}</td>
-                              <td className="border border-gray-300 px-3 py-2 text-center font-bold">{ctIssuedData.veh.output.total}</td>
-                            </tr>
-                          </tbody>
-                        </table>
-                      </div>
-                      <div className="mt-4 text-sm text-gray-600">
-                        <p><strong>Carry Forward in 2025-26:</strong> {carryFwdVehicles} VEHs</p>
-                      </div>
-                    </div>
-
-                    {/* CT Issued ENG Table */}
-                    <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
-                      <h2 className="text-3xl font-bold text-gray-900 mb-6">CT ISSUED IN 2024-25 - ENGs (Engines)</h2>
-                      <div className="overflow-x-auto">
-                        <table className="w-full border-collapse text-xs">
-                          <thead>
-                            <tr className="bg-gray-200">
-                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Category</th>
-                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">UTD-20</th>
-                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Total</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            <tr className="bg-gray-50">
-                              <td className="border border-gray-300 px-3 py-2 font-semibold">CF CT</td>
-                              <td className="border border-gray-300 px-3 py-2 text-center">{ctIssuedData.eng.cfCt.utd20}</td>
-                              <td className="border border-gray-300 px-3 py-2 text-center font-bold">{ctIssuedData.eng.cfCt.total}</td>
-                            </tr>
-                            <tr className="bg-white">
-                              <td className="border border-gray-300 px-3 py-2 font-semibold">Fresh CT</td>
-                              <td className="border border-gray-300 px-3 py-2 text-center">{ctIssuedData.eng.freshCt.utd20}</td>
-                              <td className="border border-gray-300 px-3 py-2 text-center font-bold">{ctIssuedData.eng.freshCt.total}</td>
-                            </tr>
-                            <tr className="bg-gray-50">
-                              <td className="border border-gray-300 px-3 py-2 font-semibold">Output</td>
-                              <td className="border border-gray-300 px-3 py-2 text-center">{ctIssuedData.eng.output.utd20}</td>
-                              <td className="border border-gray-300 px-3 py-2 text-center font-bold">{ctIssuedData.eng.output.total}</td>
-                            </tr>
-                          </tbody>
-                        </table>
-                      </div>
-                      <div className="mt-4 text-sm text-gray-600">
-                        <p><strong>Carry Forward in 2025-26:</strong> {carryFwdEngs} ENGs</p>
                       </div>
                     </div>
 
@@ -558,19 +463,10 @@ export default function MPOLogin() {
                       </div>
                     </div>
 
-                    {/* Graph: CT Issued vs Output */}
+                    {/* Graph: Output vs Target */}
                     <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
-                      <h3 className="text-2xl font-bold text-gray-900 mb-6">CT Issued vs Output vs Target - VEH</h3>
+                      <h3 className="text-2xl font-bold text-gray-900 mb-6">Output vs Target - VEH</h3>
                       <div className="flex items-end justify-around h-96 border-l-2 border-b-2 border-gray-400 pl-4 pb-4">
-                        <div className="flex flex-col items-center gap-2">
-                          <div
-                            className="w-24 bg-gradient-to-t from-blue-600 to-blue-400 flex items-start justify-center text-white font-bold text-sm pt-2 rounded-t-lg"
-                            style={{ height: `${(ctIssuedData.veh.total / 250) * 350}px`, minHeight: '30px' }}
-                          >
-                            {ctIssuedData.veh.total}
-                          </div>
-                          <span className="text-sm font-semibold text-gray-700 mt-2 text-center">CT Issued</span>
-                        </div>
                         <div className="flex flex-col items-center gap-2">
                           <div
                             className="w-24 bg-gradient-to-t from-green-600 to-green-400 flex items-start justify-center text-white font-bold text-sm pt-2 rounded-t-lg"
@@ -627,7 +523,7 @@ export default function MPOLogin() {
                 return (
                   <>
                     {/* Summary Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 rounded-lg p-6 shadow-sm">
                         <div className="text-blue-700 text-sm mb-1 font-semibold">Target VEH</div>
                         <div className="text-3xl font-bold text-blue-600">{targetData.veh.ohI.bmpII + targetData.veh.ohII.bmpII + targetData.veh.cmt + targetData.veh.vt72b + targetData.veh.gun30mm}</div>
@@ -635,14 +531,6 @@ export default function MPOLogin() {
                       <div className="bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-200 rounded-lg p-6 shadow-sm">
                         <div className="text-green-700 text-sm mb-1 font-semibold">Target ENG</div>
                         <div className="text-3xl font-bold text-green-600">{targetData.eng.utd20 + targetData.eng.baz + targetData.eng.slk}</div>
-                      </div>
-                      <div className="bg-gradient-to-br from-purple-50 to-purple-100 border-2 border-purple-200 rounded-lg p-6 shadow-sm">
-                        <div className="text-purple-700 text-sm mb-1 font-semibold">CT Issued VEH</div>
-                        <div className="text-3xl font-bold text-purple-600">{ctIssuedData.veh.cfCt.total + 55}</div>
-                      </div>
-                      <div className="bg-gradient-to-br from-orange-50 to-orange-100 border-2 border-orange-200 rounded-lg p-6 shadow-sm">
-                        <div className="text-orange-700 text-sm mb-1 font-semibold">CT Issued ENG</div>
-                        <div className="text-3xl font-bold text-orange-600">{ctIssuedData.eng.cfCt.utd20 + ctIssuedData.eng.freshCt.utd20 + ctIssuedData.eng.freshCt.baz}</div>
                       </div>
                     </div>
 
@@ -715,117 +603,6 @@ export default function MPOLogin() {
                       </div>
                     </div>
 
-                    {/* CT Issued Table */}
-                    <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
-                      <h2 className="text-3xl font-bold text-gray-900 mb-6">CT ISSUED IN PY 2025-26</h2>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <div>
-                          <h3 className="text-xl font-bold text-gray-800 mb-4">VEH (Vehicles)</h3>
-                          <div className="overflow-x-auto">
-                            <table className="w-full border-collapse text-xs">
-                              <thead>
-                                <tr className="bg-gray-200">
-                                  <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Category</th>
-                                  <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Type</th>
-                                  <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Quantity</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                <tr className="bg-gray-50">
-                                  <td className="border border-gray-300 px-3 py-2 font-semibold" rowSpan={4}>CF CT</td>
-                                  <td className="border border-gray-300 px-3 py-2">BMP II</td>
-                                  <td className="border border-gray-300 px-3 py-2 text-center">{ctIssuedData.veh.cfCt.bmpII}</td>
-                                </tr>
-                                <tr className="bg-gray-50">
-                                  <td className="border border-gray-300 px-3 py-2">IIK</td>
-                                  <td className="border border-gray-300 px-3 py-2 text-center">{ctIssuedData.veh.cfCt.iik}</td>
-                                </tr>
-                                <tr className="bg-gray-50">
-                                  <td className="border border-gray-300 px-3 py-2">CMT</td>
-                                  <td className="border border-gray-300 px-3 py-2 text-center">{ctIssuedData.veh.cfCt.cmt}</td>
-                                </tr>
-                                <tr className="bg-gray-50">
-                                  <td className="border border-gray-300 px-3 py-2">OH-II</td>
-                                  <td className="border border-gray-300 px-3 py-2 text-center">{ctIssuedData.veh.cfCt.ohII}</td>
-                                </tr>
-                                <tr className="bg-white">
-                                  <td className="border border-gray-300 px-3 py-2 font-semibold" rowSpan={4}>Fresh CT</td>
-                                  <td className="border border-gray-300 px-3 py-2">CMT</td>
-                                  <td className="border border-gray-300 px-3 py-2 text-center">{ctIssuedData.veh.freshCt.cmt}</td>
-                                </tr>
-                                <tr className="bg-white">
-                                  <td className="border border-gray-300 px-3 py-2">OH-II (BMP II)</td>
-                                  <td className="border border-gray-300 px-3 py-2 text-center">{ctIssuedData.veh.freshCt.ohII}</td>
-                                </tr>
-                                <tr className="bg-white">
-                                  <td className="border border-gray-300 px-3 py-2">OH-I (BMP II)</td>
-                                  <td className="border border-gray-300 px-3 py-2 text-center">{ctIssuedData.veh.freshCt.ohI}</td>
-                                </tr>
-                                <tr className="bg-white">
-                                  <td className="border border-gray-300 px-3 py-2">30mm Gun</td>
-                                  <td className="border border-gray-300 px-3 py-2 text-center">{ctIssuedData.veh.freshCt.gun30mm}</td>
-                                </tr>
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
-                        <div>
-                          <h3 className="text-xl font-bold text-gray-800 mb-4">ENGs (Engines)</h3>
-                          <div className="overflow-x-auto">
-                            <table className="w-full border-collapse text-xs">
-                              <thead>
-                                <tr className="bg-gray-200">
-                                  <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Category</th>
-                                  <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Type</th>
-                                  <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Quantity</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                <tr className="bg-gray-50">
-                                  <td className="border border-gray-300 px-3 py-2 font-semibold">CF CT</td>
-                                  <td className="border border-gray-300 px-3 py-2">UTD-20</td>
-                                  <td className="border border-gray-300 px-3 py-2 text-center">{ctIssuedData.eng.cfCt.utd20} ENGs</td>
-                                </tr>
-                                <tr className="bg-white">
-                                  <td className="border border-gray-300 px-3 py-2 font-semibold" rowSpan={2}>Fresh CT</td>
-                                  <td className="border border-gray-300 px-3 py-2">UTD-20</td>
-                                  <td className="border border-gray-300 px-3 py-2 text-center">{ctIssuedData.eng.freshCt.utd20} ENGs</td>
-                                </tr>
-                                <tr className="bg-white">
-                                  <td className="border border-gray-300 px-3 py-2">BAZ</td>
-                                  <td className="border border-gray-300 px-3 py-2 text-center">{ctIssuedData.eng.freshCt.baz} ENGs</td>
-                                </tr>
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Graph: Target vs CT Issued */}
-                    <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
-                      <h3 className="text-2xl font-bold text-gray-900 mb-6">Target vs CT Issued - VEH</h3>
-                      <div className="flex items-end justify-around h-96 border-l-2 border-b-2 border-gray-400 pl-4 pb-4">
-                        <div className="flex flex-col items-center gap-2">
-                          <div
-                            className="w-24 bg-gradient-to-t from-purple-600 to-purple-400 flex items-start justify-center text-white font-bold text-sm pt-2 rounded-t-lg"
-                            style={{ height: `${((targetData.veh.ohI.bmpII + targetData.veh.ohII.bmpII + targetData.veh.cmt + targetData.veh.vt72b + targetData.veh.gun30mm) / 200) * 350}px`, minHeight: '30px' }}
-                          >
-                            {targetData.veh.ohI.bmpII + targetData.veh.ohII.bmpII + targetData.veh.cmt + targetData.veh.vt72b + targetData.veh.gun30mm}
-                          </div>
-                          <span className="text-sm font-semibold text-gray-700 mt-2 text-center">Target</span>
-                        </div>
-                        <div className="flex flex-col items-center gap-2">
-                          <div
-                            className="w-24 bg-gradient-to-t from-blue-600 to-blue-400 flex items-start justify-center text-white font-bold text-sm pt-2 rounded-t-lg"
-                            style={{ height: `${((ctIssuedData.veh.cfCt.total + 55) / 200) * 350}px`, minHeight: '30px' }}
-                          >
-                            {ctIssuedData.veh.cfCt.total + 55}
-                          </div>
-                          <span className="text-sm font-semibold text-gray-700 mt-2 text-center">CT Issued</span>
-                        </div>
-                      </div>
-                    </div>
                   </>
                 );
               })()}
@@ -1123,7 +900,7 @@ export default function MPOLogin() {
 
               {/* NA Items Detail Table */}
               <div>
-                <h5 className="text-lg font-bold text-gray-900 mb-4">NA Items - Action Required</h5>
+                <h5 className="text-lg font-bold text-gray-900 mb-4">Carry Forward CT - Action Taken</h5>
                 <div className="overflow-x-auto">
                   <table className="w-full border-collapse text-sm">
                     <thead>
@@ -1318,6 +1095,7 @@ export default function MPOLogin() {
                 sec: 'SRD',
                 partNo: 'KG/CMT/NBC (6745-71-SB6502)',
                 ohsNo: 95,
+                oh1Ohs: '',
                 oh2Ohs: '',
                 cat: 'PEC',
                 depot: 'CAFVD KIRKEE',
@@ -1351,6 +1129,7 @@ export default function MPOLogin() {
                 sec: 'SRD',
                 partNo: 'KG/CMT/NBC (6745-71-SB6503)',
                 ohsNo: 96,
+                oh1Ohs: '',
                 oh2Ohs: '',
                 cat: 'PEC',
                 depot: 'CAFVD KIRKEE',
@@ -1384,6 +1163,7 @@ export default function MPOLogin() {
                 sec: 'SRD',
                 partNo: 'KG/CMT/NBC (6745-71-SB6505)',
                 ohsNo: 98,
+                oh1Ohs: '',
                 oh2Ohs: '',
                 cat: 'PEC',
                 depot: 'CAFVD KIRKEE',
@@ -1417,6 +1197,7 @@ export default function MPOLogin() {
                 sec: 'SRD',
                 partNo: 'LV2/CVs, 675-08-SB123',
                 ohsNo: 596,
+                oh1Ohs: '',
                 oh2Ohs: '',
                 cat: 'UNIFIED',
                 depot: 'CAFVD KIRKEE',
@@ -1448,7 +1229,7 @@ export default function MPOLogin() {
               <div className="overflow-x-auto">
                 <div className="mb-4 text-center">
                   <div className="font-bold text-lg mb-2">SCALED LM 2025-26 WITH CARRY FWD</div>
-                </div>
+          </div>
                 <table className="w-full border-collapse text-xs">
                   <thead>
                     <tr className="bg-gray-200">
@@ -1459,7 +1240,8 @@ export default function MPOLogin() {
                       <th className="border border-gray-400 px-1 py-2 font-semibold text-left">SEC</th>
                       <th className="border border-gray-400 px-1 py-2 font-semibold text-left">PART<br/>NO</th>
                       <th className="border border-gray-400 px-1 py-2 font-semibold text-left">OHS<br/>NO</th>
-                      <th className="border border-gray-400 px-1 py-2 font-semibold text-left">OH-II<br/>OHS</th>
+                      <th className="border border-gray-400 px-1 py-2 font-semibold text-left">OHS-I</th>
+                      <th className="border border-gray-400 px-1 py-2 font-semibold text-left">OHS-II</th>
                       <th className="border border-gray-400 px-1 py-2 font-semibold text-left">CAT</th>
                       <th className="border border-gray-400 px-1 py-2 font-semibold text-left">DEPOT</th>
                       <th className="border border-gray-400 px-1 py-2 font-semibold text-left">NOMEN</th>
@@ -1498,6 +1280,7 @@ export default function MPOLogin() {
                         <td className="border border-gray-300 px-1 py-1 text-center">{item.sec}</td>
                         <td className="border border-gray-300 px-1 py-1 text-xs font-mono">{item.partNo}</td>
                         <td className="border border-gray-300 px-1 py-1 text-center">{item.ohsNo}</td>
+                        <td className="border border-gray-300 px-1 py-1 text-center">{item.oh1Ohs || '-'}</td>
                         <td className="border border-gray-300 px-1 py-1 text-center">{item.oh2Ohs || '-'}</td>
                         <td className="border border-gray-300 px-1 py-1 text-center">{item.cat}</td>
                         <td className="border border-gray-300 px-1 py-1 text-xs">{item.depot}</td>
@@ -1741,7 +1524,8 @@ export default function MPOLogin() {
                   <th className="border border-gray-400 px-2 py-2 font-semibold">Sec</th>
                   <th className="border border-gray-400 px-2 py-2 font-semibold">PART NO</th>
                   <th className="border border-gray-400 px-2 py-2 font-semibold">OHS</th>
-                  <th className="border border-gray-400 px-2 py-2 font-semibold">(OH-II)<br/>OHS</th>
+                  <th className="border border-gray-400 px-2 py-2 font-semibold">OHS-I</th>
+                  <th className="border border-gray-400 px-2 py-2 font-semibold">OHS-II</th>
                   <th className="border border-gray-400 px-2 py-2 font-semibold">CAT</th>
                   <th className="border border-gray-400 px-2 py-2 font-semibold">DEPOT</th>
                   <th className="border border-gray-400 px-2 py-2 font-semibold">Item</th>
@@ -1778,6 +1562,7 @@ export default function MPOLogin() {
                   <td className="border border-gray-300 px-2 py-2 text-xs">LV2I/CVS (675-35-SB 123)</td>
                   <td className="border border-gray-300 px-2 py-2 text-center">1358</td>
                   <td className="border border-gray-300 px-2 py-2"></td>
+                  <td className="border border-gray-300 px-2 py-2"></td>
                   <td className="border border-gray-300 px-2 py-2">UNIFIED</td>
                   <td className="border border-gray-300 px-2 py-2">CAF/VD<br/>KIRKEE</td>
                   <td className="border border-gray-300 px-2 py-2">TRACK</td>
@@ -1811,6 +1596,7 @@ export default function MPOLogin() {
                   <td className="border border-gray-300 px-2 py-2">SRD</td>
                   <td className="border border-gray-300 px-2 py-2 text-xs">LV2I/CVS (765-03-SB179)</td>
                   <td className="border border-gray-300 px-2 py-2 text-center">46</td>
+                  <td className="border border-gray-300 px-2 py-2"></td>
                   <td className="border border-gray-300 px-2 py-2"></td>
                   <td className="border border-gray-300 px-2 py-2">UNIFIED</td>
                   <td className="border border-gray-300 px-2 py-2">CAF/VD<br/>KIRKEE</td>
@@ -1846,6 +1632,7 @@ export default function MPOLogin() {
                   <td className="border border-gray-300 px-2 py-2 text-xs">LV2I/CVS<br/>2815/GVSET 028<br/>CONNECTING O</td>
                   <td className="border border-gray-300 px-2 py-2 text-center">4833</td>
                   <td className="border border-gray-300 px-2 py-2"></td>
+                  <td className="border border-gray-300 px-2 py-2"></td>
                   <td className="border border-gray-300 px-2 py-2">UNIFIED</td>
                   <td className="border border-gray-300 px-2 py-2">CAF/VD<br/>KIRKEE</td>
                   <td className="border border-gray-300 px-2 py-2">MOD KIT VEH EQPT<br/>COMPONENTS</td>
@@ -1880,6 +1667,7 @@ export default function MPOLogin() {
                   <td className="border border-gray-300 px-2 py-2 text-xs">765-08-SB276</td>
                   <td className="border border-gray-300 px-2 py-2 text-center">316</td>
                   <td className="border border-gray-300 px-2 py-2"></td>
+                  <td className="border border-gray-300 px-2 py-2"></td>
                   <td className="border border-gray-300 px-2 py-2">UNIFIED</td>
                   <td className="border border-gray-300 px-2 py-2">CAF/VD<br/>KIRKEE</td>
                   <td className="border border-gray-300 px-2 py-2">PIPE</td>
@@ -1913,6 +1701,7 @@ export default function MPOLogin() {
                   <td className="border border-gray-300 px-2 py-2">ETD</td>
                   <td className="border border-gray-300 px-2 py-2 text-xs">26-2020-001908</td>
                   <td className="border border-gray-300 px-2 py-2 text-center">5305</td>
+                  <td className="border border-gray-300 px-2 py-2"></td>
                   <td className="border border-gray-300 px-2 py-2"></td>
                   <td className="border border-gray-300 px-2 py-2">UNIFIED</td>
                   <td className="border border-gray-300 px-2 py-2">COD AGRA</td>

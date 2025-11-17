@@ -144,15 +144,60 @@ interface FormField {
   function LprList() {
     const [selectedLpr, setSelectedLpr] = useState<any>(null);
     
+    // Helper function to calculate days between dates
+    const calculateDays = (dateString: string): number => {
+      // Parse date in format "DD-MMM-YYYY" (e.g., "15-Oct-2024")
+      const [day, month, year] = dateString.split('-');
+      const monthMap: Record<string, string> = {
+        'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04',
+        'May': '05', 'Jun': '06', 'Jul': '07', 'Aug': '08',
+        'Sep': '09', 'Oct': '10', 'Nov': '11', 'Dec': '12'
+      };
+      const date = new Date(`${year}-${monthMap[month]}-${day}`);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      date.setHours(0, 0, 0, 0);
+      const diffTime = today.getTime() - date.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      return diffDays > 0 ? diffDays : 0;
+    };
+
+    // Helper function to calculate days in current state (using status date or OSS date as proxy)
+    const calculateDaysInState = (lpr: any): number => {
+      // Using statusDate if available, otherwise OSS date as the state entry date
+      const stateDate = lpr.statusDate || lpr.ossDate;
+      return calculateDays(stateDate);
+    };
+
+    // Helper function to check if LPR exceeds 90 days and show alert
+    const checkAndAlert = (totalDays: number, originatorNo: string) => {
+      if (totalDays > 90) {
+        // Store notification for GMWKSLogin to pick up
+        const notifications = JSON.parse(localStorage.getItem('lprNotifications') || '[]');
+        const existingNotification = notifications.find((n: any) => n.originatorNo === originatorNo);
+        if (!existingNotification) {
+          notifications.push({
+            originatorNo,
+            totalDays,
+            date: new Date().toISOString()
+          });
+          localStorage.setItem('lprNotifications', JSON.stringify(notifications));
+        }
+      }
+    };
+    
     // Dummy data matching the image format with status entries
+    // Most LPRs have dates within last 30-60 days (under 90 days)
+    // Only two LPRs have dates older than 90 days
     const lprs = [
       {
         id: 1,
-        originatorNo: 'ORG/2025/001',
-        date: '15-Jan-2025',
-        ossControlNo: 'OSS/001/2025',
-        ossDate: '16-Jan-2025',
+        originatorNo: 'ORG/2024/001',
+        date: '15-Nov-2024',
+        ossControlNo: 'OSS/001/2024',
+        ossDate: '16-Nov-2024',
         status: 'ENQ',
+        statusDate: '18-Nov-2024', // Date when status changed to ENQ (about 60 days ago)
         items: [
           {
             sNo: 1,
@@ -160,10 +205,10 @@ interface FormField {
             designation: 'BOLT ASSEMBLY',
             au: 'Nos',
             qtyReqd: '500',
-            demandNoDate: 'DEM/001 / 10-Jan-2025',
-            depotNANoDate: 'DEP/NA/001 / 12-Jan-2025',
+            demandNoDate: 'DEM/001 / 10-Nov-2024',
+            depotNANoDate: 'DEP/NA/001 / 12-Nov-2024',
             armyHQSrlNo: 'AHQ/SRL/001',
-            woNoJobNo: 'WO/2025/001',
+            woNoJobNo: 'WO/2024/001',
             remarks: 'Urgent'
           },
           {
@@ -172,21 +217,22 @@ interface FormField {
             designation: 'HYDRAULIC OIL',
             au: 'Ltr',
             qtyReqd: '1000',
-            demandNoDate: 'DEM/002 / 10-Jan-2025',
-            depotNANoDate: 'DEP/NA/002 / 12-Jan-2025',
+            demandNoDate: 'DEM/002 / 10-Nov-2024',
+            depotNANoDate: 'DEP/NA/002 / 12-Nov-2024',
             armyHQSrlNo: 'AHQ/SRL/002',
-            woNoJobNo: 'WO/2025/002',
+            woNoJobNo: 'WO/2024/002',
             remarks: ''
           }
         ]
       },
       {
         id: 2,
-        originatorNo: 'ORG/2025/002',
-        date: '18-Jan-2025',
-        ossControlNo: 'OSS/002/2025',
-        ossDate: '19-Jan-2025',
+        originatorNo: 'ORG/2024/002',
+        date: '20-Nov-2024',
+        ossControlNo: 'OSS/002/2024',
+        ossDate: '21-Nov-2024',
         status: 'CST',
+        statusDate: '25-Nov-2024', // Date when status changed to CST (about 55 days ago)
         items: [
           {
             sNo: 1,
@@ -194,21 +240,22 @@ interface FormField {
             designation: 'WATER RADIATOR',
             au: 'Nos',
             qtyReqd: '50',
-            demandNoDate: 'DEM/003 / 15-Jan-2025',
-            depotNANoDate: 'DEP/NA/003 / 16-Jan-2025',
+            demandNoDate: 'DEM/003 / 18-Nov-2024',
+            depotNANoDate: 'DEP/NA/003 / 19-Nov-2024',
             armyHQSrlNo: 'AHQ/SRL/003',
-            woNoJobNo: 'WO/2025/003',
+            woNoJobNo: 'WO/2024/003',
             remarks: 'Priority'
           }
         ]
       },
       {
         id: 3,
-        originatorNo: 'ORG/2025/003',
-        date: '20-Jan-2025',
-        ossControlNo: 'OSS/003/2025',
-        ossDate: '21-Jan-2025',
+        originatorNo: 'ORG/2024/003',
+        date: '25-Nov-2024',
+        ossControlNo: 'OSS/003/2024',
+        ossDate: '26-Nov-2024',
         status: 'SANC',
+        statusDate: '28-Nov-2024', // Date when status changed to SANC (about 52 days ago)
         items: [
           {
             sNo: 1,
@@ -216,10 +263,10 @@ interface FormField {
             designation: 'GASKET SET',
             au: 'Sets',
             qtyReqd: '100',
-            demandNoDate: 'DEM/004 / 18-Jan-2025',
-            depotNANoDate: 'DEP/NA/004 / 19-Jan-2025',
+            demandNoDate: 'DEM/004 / 23-Nov-2024',
+            depotNANoDate: 'DEP/NA/004 / 24-Nov-2024',
             armyHQSrlNo: 'AHQ/SRL/004',
-            woNoJobNo: 'WO/2025/004',
+            woNoJobNo: 'WO/2024/004',
             remarks: ''
           },
           {
@@ -228,21 +275,22 @@ interface FormField {
             designation: 'SPRING HELICAL',
             au: 'Nos',
             qtyReqd: '300',
-            demandNoDate: 'DEM/005 / 18-Jan-2025',
-            depotNANoDate: 'DEP/NA/005 / 19-Jan-2025',
+            demandNoDate: 'DEM/005 / 23-Nov-2024',
+            depotNANoDate: 'DEP/NA/005 / 24-Nov-2024',
             armyHQSrlNo: 'AHQ/SRL/005',
-            woNoJobNo: 'WO/2025/005',
+            woNoJobNo: 'WO/2024/005',
             remarks: 'Bulk Order'
           }
         ]
       },
       {
         id: 4,
-        originatorNo: 'ORG/2025/004',
-        date: '22-Jan-2025',
-        ossControlNo: 'OSS/004/2025',
-        ossDate: '23-Jan-2025',
+        originatorNo: 'ORG/2024/004',
+        date: '01-Dec-2024',
+        ossControlNo: 'OSS/004/2024',
+        ossDate: '02-Dec-2024',
         status: 'SO NO',
+        statusDate: '05-Dec-2024', // Date when status changed to SO NO (about 45 days ago)
         items: [
           {
             sNo: 1,
@@ -250,21 +298,22 @@ interface FormField {
             designation: 'FILTER ELEMENT',
             au: 'Nos',
             qtyReqd: '200',
-            demandNoDate: 'DEM/006 / 20-Jan-2025',
-            depotNANoDate: 'DEP/NA/006 / 21-Jan-2025',
+            demandNoDate: 'DEM/006 / 28-Nov-2024',
+            depotNANoDate: 'DEP/NA/006 / 29-Nov-2024',
             armyHQSrlNo: 'AHQ/SRL/006',
-            woNoJobNo: 'WO/2025/006',
+            woNoJobNo: 'WO/2024/006',
             remarks: ''
           }
         ]
       },
       {
         id: 5,
-        originatorNo: 'ORG/2025/005',
-        date: '24-Jan-2025',
-        ossControlNo: 'OSS/005/2025',
-        ossDate: '25-Jan-2025',
+        originatorNo: 'ORG/2024/005',
+        date: '05-Dec-2024',
+        ossControlNo: 'OSS/005/2024',
+        ossDate: '06-Dec-2024',
         status: 'SO Dt',
+        statusDate: '10-Dec-2024', // Date when status changed to SO Dt (about 40 days ago)
         items: [
           {
             sNo: 1,
@@ -272,21 +321,22 @@ interface FormField {
             designation: 'OIL SEAL',
             au: 'Nos',
             qtyReqd: '150',
-            demandNoDate: 'DEM/007 / 22-Jan-2025',
-            depotNANoDate: 'DEP/NA/007 / 23-Jan-2025',
+            demandNoDate: 'DEM/007 / 02-Dec-2024',
+            depotNANoDate: 'DEP/NA/007 / 03-Dec-2024',
             armyHQSrlNo: 'AHQ/SRL/007',
-            woNoJobNo: 'WO/2025/007',
+            woNoJobNo: 'WO/2024/007',
             remarks: ''
           }
         ]
       },
       {
         id: 6,
-        originatorNo: 'ORG/2025/006',
-        date: '26-Jan-2025',
-        ossControlNo: 'OSS/006/2025',
-        ossDate: '27-Jan-2025',
+        originatorNo: 'ORG/2024/006',
+        date: '10-Dec-2024',
+        ossControlNo: 'OSS/006/2024',
+        ossDate: '11-Dec-2024',
         status: 'PDS',
+        statusDate: '15-Dec-2024', // Date when status changed to PDS (about 35 days ago)
         items: [
           {
             sNo: 1,
@@ -294,15 +344,73 @@ interface FormField {
             designation: 'BEARING ASSEMBLY',
             au: 'Nos',
             qtyReqd: '75',
-            demandNoDate: 'DEM/008 / 24-Jan-2025',
-            depotNANoDate: 'DEP/NA/008 / 25-Jan-2025',
+            demandNoDate: 'DEM/008 / 08-Dec-2024',
+            depotNANoDate: 'DEP/NA/008 / 09-Dec-2024',
             armyHQSrlNo: 'AHQ/SRL/008',
-            woNoJobNo: 'WO/2025/008',
+            woNoJobNo: 'WO/2024/008',
             remarks: ''
+          }
+        ]
+      },
+      {
+        id: 7,
+        originatorNo: 'ORG/2024/095',
+        date: '15-Oct-2024',
+        ossControlNo: 'OSS/095/2024',
+        ossDate: '16-Oct-2024',
+        status: 'CST',
+        statusDate: '20-Oct-2024', // Date when status changed to CST (about 95 days ago - OVER 90)
+        items: [
+          {
+            sNo: 1,
+            secPartNo: 'VRD/PT-9/009',
+            designation: 'CRITICAL COMPONENT DELAYED',
+            au: 'Nos',
+            qtyReqd: '25',
+            demandNoDate: 'DEM/009 / 10-Oct-2024',
+            depotNANoDate: 'DEP/NA/009 / 12-Oct-2024',
+            armyHQSrlNo: 'AHQ/SRL/009',
+            woNoJobNo: 'WO/2024/009',
+            remarks: 'Exceeds 90 days - Urgent Action Required'
+          }
+        ]
+      },
+      {
+        id: 8,
+        originatorNo: 'ORG/2024/098',
+        date: '10-Oct-2024',
+        ossControlNo: 'OSS/098/2024',
+        ossDate: '11-Oct-2024',
+        status: 'SANC',
+        statusDate: '15-Oct-2024', // Date when status changed to SANC (about 100 days ago - OVER 90)
+        items: [
+          {
+            sNo: 1,
+            secPartNo: 'ETD/PT-10/010',
+            designation: 'OVERDUE COMPONENT',
+            au: 'Nos',
+            qtyReqd: '30',
+            demandNoDate: 'DEM/010 / 05-Oct-2024',
+            depotNANoDate: 'DEP/NA/010 / 07-Oct-2024',
+            armyHQSrlNo: 'AHQ/SRL/010',
+            woNoJobNo: 'WO/2024/010',
+            remarks: 'Exceeds 90 days - Requires Immediate Attention'
           }
         ]
       }
     ];
+
+    // Calculate days for each LPR and check for alerts
+    const lprsWithDays = lprs.map(lpr => {
+      const totalDays = calculateDays(lpr.date);
+      const daysInState = calculateDaysInState(lpr);
+      checkAndAlert(totalDays, lpr.originatorNo);
+      return {
+        ...lpr,
+        totalDays,
+        daysInState
+      };
+    });
 
     const handlePrint = () => {
       window.print();
@@ -408,6 +516,63 @@ interface FormField {
     return (
       <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
         <h3 className="text-2xl font-bold text-gray-900 mb-6">List of LPRs</h3>
+
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-blue-100 text-sm font-semibold mb-1">Total LPRs</p>
+                <p className="text-3xl font-bold">{lprsWithDays.length}</p>
+              </div>
+              <div className="bg-white bg-opacity-20 rounded-full p-3">
+                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+          <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-xl shadow-lg p-6 text-white">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-red-100 text-sm font-semibold mb-1">Overdue (&gt;90 days)</p>
+                <p className="text-3xl font-bold">{lprsWithDays.filter(l => l.totalDays > 90).length}</p>
+              </div>
+              <div className="bg-white bg-opacity-20 rounded-full p-3">
+                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+          <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-green-100 text-sm font-semibold mb-1">Active LPRs</p>
+                <p className="text-3xl font-bold">{lprsWithDays.filter(l => l.totalDays <= 90).length}</p>
+              </div>
+              <div className="bg-white bg-opacity-20 rounded-full p-3">
+                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+          <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl shadow-lg p-6 text-white">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-yellow-100 text-sm font-semibold mb-1">Avg Days</p>
+                <p className="text-3xl font-bold">{Math.round(lprsWithDays.reduce((sum, l) => sum + l.totalDays, 0) / lprsWithDays.length) || 0}</p>
+              </div>
+              <div className="bg-white bg-opacity-20 rounded-full p-3">
+                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-sm">
             <thead>
@@ -417,38 +582,61 @@ interface FormField {
                 <th className="border border-gray-400 px-3 py-2 font-semibold">Date</th>
                 <th className="border border-gray-400 px-3 py-2 font-semibold">OSS Control No</th>
                 <th className="border border-gray-400 px-3 py-2 font-semibold">Status</th>
+                <th className="border border-gray-400 px-3 py-2 font-semibold">Days in State</th>
+                <th className="border border-gray-400 px-3 py-2 font-semibold">Total Days</th>
                 <th className="border border-gray-400 px-3 py-2 font-semibold">View</th>
               </tr>
             </thead>
             <tbody>
-              {lprs.map((lpr, index) => (
-                <tr key={lpr.id} className="hover:bg-gray-50">
-                  <td className="border border-gray-300 px-3 py-2 text-center">{index + 1}</td>
-                  <td className="border border-gray-300 px-3 py-2">{lpr.originatorNo}</td>
-                  <td className="border border-gray-300 px-3 py-2">{lpr.date}</td>
-                  <td className="border border-gray-300 px-3 py-2">{lpr.ossControlNo}</td>
-                  <td className="border border-gray-300 px-3 py-2 text-center">
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                      lpr.status === 'ENQ' ? 'bg-yellow-100 text-yellow-800' :
-                      lpr.status === 'CST' ? 'bg-blue-100 text-blue-800' :
-                      lpr.status === 'SANC' ? 'bg-purple-100 text-purple-800' :
-                      lpr.status === 'SO NO' ? 'bg-green-100 text-green-800' :
-                      lpr.status === 'SO Dt' ? 'bg-indigo-100 text-indigo-800' :
-                      'bg-gray-100 text-gray-800'
+              {lprsWithDays.map((lpr, index) => {
+                const isOverdue = lpr.totalDays > 90;
+                return (
+                  <tr key={lpr.id} className={`hover:bg-gray-50 ${isOverdue ? 'bg-red-50' : ''}`}>
+                    <td className="border border-gray-300 px-3 py-2 text-center">{index + 1}</td>
+                    <td className="border border-gray-300 px-3 py-2">{lpr.originatorNo}</td>
+                    <td className="border border-gray-300 px-3 py-2">{lpr.date}</td>
+                    <td className="border border-gray-300 px-3 py-2">{lpr.ossControlNo}</td>
+                    <td className="border border-gray-300 px-3 py-2 text-center">
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                        lpr.status === 'ENQ' ? 'bg-yellow-100 text-yellow-800' :
+                        lpr.status === 'CST' ? 'bg-blue-100 text-blue-800' :
+                        lpr.status === 'SANC' ? 'bg-purple-100 text-purple-800' :
+                        lpr.status === 'SO NO' ? 'bg-green-100 text-green-800' :
+                        lpr.status === 'SO Dt' ? 'bg-indigo-100 text-indigo-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {lpr.status}
+                      </span>
+                    </td>
+                    <td className="border border-gray-300 px-3 py-2 text-center font-semibold">
+                      {lpr.daysInState} days
+                    </td>
+                    <td className={`border border-gray-300 px-3 py-2 text-center font-semibold ${
+                      isOverdue ? 'text-red-600' : ''
                     }`}>
-                      {lpr.status}
-                    </span>
-                  </td>
-                  <td className="border border-gray-300 px-3 py-2 text-center">
-                    <button
-                      onClick={() => setSelectedLpr(lpr)}
-                      className="px-4 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition text-sm font-semibold"
-                    >
-                      View
-                    </button>
-                  </td>
-                </tr>
-              ))}
+                      {lpr.totalDays} days
+                      {isOverdue && (
+                        <span className="ml-2 text-red-600" title="LPR exceeds 90 days threshold">
+                          ⚠️
+                        </span>
+                      )}
+                    </td>
+                    <td className="border border-gray-300 px-3 py-2 text-center">
+                      <button
+                        onClick={() => {
+                          if (isOverdue) {
+                            alert(`Alert: LPR ${lpr.originatorNo} has been pending for ${lpr.totalDays} days, exceeding the 90-day threshold!`);
+                          }
+                          setSelectedLpr(lpr);
+                        }}
+                        className="px-4 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition text-sm font-semibold"
+                      >
+                        View
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -459,6 +647,29 @@ interface FormField {
 export default function LPOLogin() {
   const [selectedSection, setSelectedSection] = useState('lpr-form');
   const navigate = useNavigate();
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+    }
+  };
+
+  const handleImport = () => {
+    if (selectedFile) {
+      console.log('Importing file:', selectedFile.name);
+      alert(`File "${selectedFile.name}" imported successfully!`);
+      setSelectedFile(null);
+      setShowImportModal(false);
+    }
+  };
+
+  const handleCancelImport = () => {
+    setSelectedFile(null);
+    setShowImportModal(false);
+  };
 
   return (
     <div>
@@ -491,8 +702,121 @@ export default function LPOLogin() {
         </div>
       </div>
 
-      {selectedSection === 'lpr-form' && <LprForm />}
-      {selectedSection === 'lpr-list' && <LprList />}
+      {/* Import Modal */}
+      {showImportModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full mx-4">
+            <h3 className="text-2xl font-bold text-gray-900 mb-6">Import File</h3>
+            <div className="mb-6">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Select File to Upload
+              </label>
+              <input
+                type="file"
+                onChange={handleFileSelect}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                accept=".xlsx,.xls,.csv"
+              />
+              {selectedFile && (
+                <p className="mt-2 text-sm text-gray-600">
+                  Selected: <span className="font-semibold">{selectedFile.name}</span>
+                </p>
+              )}
+            </div>
+            <div className="flex gap-4 justify-end">
+              <button
+                onClick={handleCancelImport}
+                className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-semibold transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleImport}
+                disabled={!selectedFile}
+                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg font-semibold transition-colors"
+              >
+                Import
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {selectedSection === 'lpr-form' && (
+        <div>
+          <div className="flex justify-end mb-4">
+            <button
+              onClick={() => setShowImportModal(true)}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors flex items-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+              Import
+            </button>
+          </div>
+
+          {/* Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-blue-100 text-sm font-semibold mb-1">Total LPRs Created</p>
+                  <p className="text-3xl font-bold">45</p>
+                </div>
+                <div className="bg-white bg-opacity-20 rounded-full p-3">
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+            <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-green-100 text-sm font-semibold mb-1">This Month</p>
+                  <p className="text-3xl font-bold">12</p>
+                </div>
+                <div className="bg-white bg-opacity-20 rounded-full p-3">
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+            <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg p-6 text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-purple-100 text-sm font-semibold mb-1">Pending Forms</p>
+                  <p className="text-3xl font-bold">3</p>
+                </div>
+                <div className="bg-white bg-opacity-20 rounded-full p-3">
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+          <LprForm />
+        </div>
+      )}
+      {selectedSection === 'lpr-list' && (
+        <div>
+          <div className="flex justify-end mb-4">
+            <button
+              onClick={() => setShowImportModal(true)}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors flex items-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+              Import
+            </button>
+          </div>
+          <LprList />
+        </div>
+      )}
     </div>
   );
 }

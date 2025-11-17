@@ -35,7 +35,8 @@ export default function DGMPurchaseLogin() {
     { id: 'bill-count', title: 'Bill count', description: 'Bill count and statistics', color: 'bg-emerald-500' },
     { id: 'challan-pending', title: 'Challan pending', description: 'Pending challan items', color: 'bg-violet-500' },
     { id: 'crv-pending', title: 'CRV pending', description: 'Pending CRV items', color: 'bg-rose-500' },
-    { id: 'bill-pending', title: 'Bill pending', description: 'Pending bill items', color: 'bg-sky-500' }
+    { id: 'bill-pending', title: 'Bill pending', description: 'Pending bill items', color: 'bg-sky-500' },
+    { id: 'misc', title: 'MISC', description: 'Miscellaneous items and information', color: 'bg-gray-500' }
   ]
 
   const handleAccess = (cardId: string) => {
@@ -65,6 +66,57 @@ export default function DGMPurchaseLogin() {
     ];
 
     const maxAmount = Math.max(...sectionFundData.map(s => s.amount));
+
+    // Fund State Grant Data
+    const fundStateGrantData = [
+      {
+        serNo: 1,
+        grantName: 'ORD Grant (415/01)',
+        almt202526: 17359000,
+        soPlacedGem: 12,
+        soPlacedNonGem: 278,
+        expdrGem: 713555,
+        expdrNonGem: 11060706,
+        totalExpdr: 11774261,
+        billsSubmitted: 5365263,
+        amtBooked: 4493190,
+        amtBal: 5584739,
+        remarks: ''
+      },
+      {
+        serNo: 2,
+        grantName: 'MT Grant (417/07)',
+        almt202526: 16252000,
+        soPlacedGem: 8,
+        soPlacedNonGem: 139,
+        expdrGem: 8731713,
+        expdrNonGem: 11916599,
+        totalExpdr: 20648312,
+        billsSubmitted: 7604025,
+        amtBooked: 7320152,
+        amtBal: -4396312,
+        remarks: 'Addl Rs 60 lakhs reqmt already fwd to HQ BWG'
+      },
+      {
+        serNo: 3,
+        grantName: 'IR&D Grant (438/00)',
+        almt202526: 3500000,
+        soPlacedGem: null,
+        soPlacedNonGem: 3,
+        expdrGem: 0,
+        expdrNonGem: 244130,
+        totalExpdr: 244130,
+        billsSubmitted: 199998,
+        amtBooked: null,
+        amtBal: 3255870,
+        remarks: 'Letter fwd to HQ BWG for surrender of Rs 28.75 Lakhs'
+      }
+    ];
+
+    // Calculate totals for graph
+    const totalAlmt = fundStateGrantData.reduce((sum, g) => sum + g.almt202526, 0);
+    const totalExpdr = fundStateGrantData.reduce((sum, g) => sum + g.totalExpdr, 0);
+    const maxGrantAmount = Math.max(...fundStateGrantData.map(g => g.almt202526));
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100">
@@ -122,93 +174,171 @@ export default function DGMPurchaseLogin() {
                 <h3 className="text-2xl font-bold text-gray-900 mb-4">Fund State Summary</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 rounded-lg p-6 shadow-sm hover:shadow-md transition">
-                    <div className="text-blue-700 text-sm mb-1 font-semibold">Total Budget</div>
-                    <div className="text-3xl font-bold text-blue-600">₹{(totalBudget / 10000000).toFixed(2)} Cr</div>
+                    <div className="text-blue-700 text-sm mb-1 font-semibold">ORD Grant (415/01)</div>
+                    <div className="text-3xl font-bold text-blue-600">₹{fundStateGrantData[0].almt202526.toLocaleString('en-IN')}</div>
                   </div>
                   <div className="bg-gradient-to-br from-red-50 to-red-100 border-2 border-red-200 rounded-lg p-6 shadow-sm hover:shadow-md transition">
-                    <div className="text-red-700 text-sm mb-1 font-semibold">Funds Used</div>
-                    <div className="text-3xl font-bold text-red-600">₹{(usedFunds / 10000000).toFixed(2)} Cr</div>
-                    <div className="text-sm text-red-500 mt-1">{usedPercentage.toFixed(1)}% utilized</div>
+                    <div className="text-red-700 text-sm mb-1 font-semibold">MT Grant (417/07)</div>
+                    <div className="text-3xl font-bold text-red-600">₹{fundStateGrantData[1].almt202526.toLocaleString('en-IN')}</div>
                   </div>
                   <div className="bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-200 rounded-lg p-6 shadow-sm hover:shadow-md transition">
-                    <div className="text-green-700 text-sm mb-1 font-semibold">Remaining Funds</div>
-                    <div className="text-3xl font-bold text-green-600">₹{(remainingFunds / 10000000).toFixed(2)} Cr</div>
-                    <div className="text-sm text-green-500 mt-1">{remainingPercentage.toFixed(1)}% available</div>
+                    <div className="text-green-700 text-sm mb-1 font-semibold">IR&D Grant (438/00)</div>
+                    <div className="text-3xl font-bold text-green-600">₹{fundStateGrantData[2].almt202526.toLocaleString('en-IN')}</div>
                   </div>
                 </div>
               </div>
 
-              {/* Pie Chart - Fund Utilization */}
+              {/* Fund State Table */}
               <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
-                <h3 className="text-2xl font-bold text-gray-900 mb-6">Fund Utilization</h3>
-                <div className="flex flex-col items-center">
-                  <div className="relative w-80 h-80">
-                    <svg viewBox="0 0 200 200" className="w-full h-full">
-                      {(() => {
-                        const colors = ['#ef4444', '#22c55e'];
-                        const percentages = [usedPercentage, remainingPercentage];
-                        let currentAngle = 0;
+                <h2 className="text-3xl font-bold text-gray-900 mb-6">Fund State Report 2025-26</h2>
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse text-xs">
+                    <thead>
+                      <tr className="bg-gray-200">
+                        <th className="border border-gray-400 px-2 py-2 font-semibold text-left">Ser No</th>
+                        <th className="border border-gray-400 px-2 py-2 font-semibold text-left">Name of Grant (Code Head)</th>
+                        <th className="border border-gray-400 px-2 py-2 font-semibold text-left">Almt 2025-26</th>
+                        <th className="border border-gray-400 px-2 py-2 font-semibold text-center" colSpan={2}>No of SO Placed</th>
+                        <th className="border border-gray-400 px-2 py-2 font-semibold text-center" colSpan={3}>Expdr</th>
+                        <th className="border border-gray-400 px-2 py-2 font-semibold text-left">Bills Submitted to CDA</th>
+                        <th className="border border-gray-400 px-2 py-2 font-semibold text-left">Amt Booked by CDA</th>
+                        <th className="border border-gray-400 px-2 py-2 font-semibold text-left">Amt Bal</th>
+                        <th className="border border-gray-400 px-2 py-2 font-semibold text-left">Remarks</th>
+                      </tr>
+                      <tr className="bg-gray-100">
+                        <th className="border border-gray-400 px-2 py-1"></th>
+                        <th className="border border-gray-400 px-2 py-1"></th>
+                        <th className="border border-gray-400 px-2 py-1"></th>
+                        <th className="border border-gray-400 px-2 py-1 font-semibold text-center">GeM</th>
+                        <th className="border border-gray-400 px-2 py-1 font-semibold text-center">Non GeM</th>
+                        <th className="border border-gray-400 px-2 py-1 font-semibold text-center">Cost / Expdr</th>
+                        <th className="border border-gray-400 px-2 py-1 font-semibold text-center">Total Expdr</th>
+                        <th className="border border-gray-400 px-2 py-1"></th>
+                        <th className="border border-gray-400 px-2 py-1"></th>
+                        <th className="border border-gray-400 px-2 py-1"></th>
+                        <th className="border border-gray-400 px-2 py-1"></th>
+                        <th className="border border-gray-400 px-2 py-1"></th>
+                      </tr>
+                      <tr className="bg-gray-50">
+                        <th className="border border-gray-400 px-2 py-1"></th>
+                        <th className="border border-gray-400 px-2 py-1"></th>
+                        <th className="border border-gray-400 px-2 py-1"></th>
+                        <th className="border border-gray-400 px-2 py-1"></th>
+                        <th className="border border-gray-400 px-2 py-1"></th>
+                        <th className="border border-gray-400 px-2 py-1 font-semibold text-center">GeM</th>
+                        <th className="border border-gray-400 px-2 py-1 font-semibold text-center">Non GeM</th>
+                        <th className="border border-gray-400 px-2 py-1"></th>
+                        <th className="border border-gray-400 px-2 py-1"></th>
+                        <th className="border border-gray-400 px-2 py-1"></th>
+                        <th className="border border-gray-400 px-2 py-1"></th>
+                        <th className="border border-gray-400 px-2 py-1"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {fundStateGrantData.map((grant, index) => {
+                        const expdrPercentage = ((grant.totalExpdr / grant.almt202526) * 100).toFixed(2);
+                        const billsPercentage = grant.billsSubmitted ? ((grant.billsSubmitted / grant.almt202526) * 100).toFixed(2) : '-';
+                        const bookedPercentage = grant.amtBooked ? ((grant.amtBooked / grant.almt202526) * 100).toFixed(2) : '-';
+                        const balPercentage = ((grant.amtBal / grant.almt202526) * 100).toFixed(2);
                         
-                        return percentages.map((percentage, index) => {
-                          const angle = (percentage / 100) * 360;
-                          const startAngle = currentAngle;
-                          const endAngle = currentAngle + angle;
-                          const startRad = (startAngle - 90) * (Math.PI / 180);
-                          const endRad = (endAngle - 90) * (Math.PI / 180);
-                          const x1 = 100 + 90 * Math.cos(startRad);
-                          const y1 = 100 + 90 * Math.sin(startRad);
-                          const x2 = 100 + 90 * Math.cos(endRad);
-                          const y2 = 100 + 90 * Math.sin(endRad);
-                          const largeArcFlag = angle > 180 ? 1 : 0;
-                          const pathData = [
-                            `M 100 100`,
-                            `L ${x1} ${y1}`,
-                            `A 90 90 0 ${largeArcFlag} 1 ${x2} ${y2}`,
-                            'Z'
-                          ].join(' ');
-                          currentAngle = endAngle;
-                          return (
-                            <path
-                              key={index}
-                              d={pathData}
-                              fill={colors[index]}
-                              stroke="white"
-                              strokeWidth="2"
-                            />
-                          );
-                        })
-                      })()}
-                      <circle cx="100" cy="100" r="50" fill="white" />
-                    </svg>
-                  </div>
-                  <div className="mt-6 flex gap-8">
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 bg-red-500 rounded"></div>
-                      <div className="text-sm font-semibold">Used</div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 bg-green-500 rounded"></div>
-                      <div className="text-sm font-semibold">Remaining</div>
-                    </div>
-                  </div>
+                        return (
+                          <React.Fragment key={grant.serNo}>
+                            <tr className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors`}>
+                              <td className="border border-gray-300 px-2 py-2 text-center font-semibold">{grant.serNo}</td>
+                              <td className="border border-gray-300 px-2 py-2 font-semibold">{grant.grantName}</td>
+                              <td className="border border-gray-300 px-2 py-2 text-right">{grant.almt202526.toLocaleString('en-IN')}</td>
+                              <td className="border border-gray-300 px-2 py-2 text-center">{grant.soPlacedGem ?? '-'}</td>
+                              <td className="border border-gray-300 px-2 py-2 text-center">{grant.soPlacedNonGem}</td>
+                              <td className="border border-gray-300 px-2 py-2 text-right">{grant.expdrGem.toLocaleString('en-IN')}</td>
+                              <td className="border border-gray-300 px-2 py-2 text-right">{grant.expdrNonGem.toLocaleString('en-IN')}</td>
+                              <td className="border border-gray-300 px-2 py-2 text-right font-semibold">{grant.totalExpdr.toLocaleString('en-IN')}</td>
+                              <td className="border border-gray-300 px-2 py-2 text-right">{grant.billsSubmitted.toLocaleString('en-IN')}</td>
+                              <td className="border border-gray-300 px-2 py-2 text-right">{grant.amtBooked ? grant.amtBooked.toLocaleString('en-IN') : '-'}</td>
+                              <td className={`border border-gray-300 px-2 py-2 text-right font-semibold ${grant.amtBal < 0 ? 'text-red-600' : ''}`}>
+                                {grant.amtBal.toLocaleString('en-IN')}
+                              </td>
+                              <td className="border border-gray-300 px-2 py-2 text-sm">{grant.remarks}</td>
+                            </tr>
+                            <tr className={`${index % 2 === 0 ? 'bg-gray-50' : 'bg-white'} text-xs`}>
+                              <td className="border border-gray-300 px-2 py-1"></td>
+                              <td className="border border-gray-300 px-2 py-1"></td>
+                              <td className="border border-gray-300 px-2 py-1"></td>
+                              <td className="border border-gray-300 px-2 py-1"></td>
+                              <td className="border border-gray-300 px-2 py-1"></td>
+                              <td className="border border-gray-300 px-2 py-1"></td>
+                              <td className="border border-gray-300 px-2 py-1 text-right font-semibold">{expdrPercentage}%</td>
+                              <td className="border border-gray-300 px-2 py-1 text-right">{billsPercentage}%</td>
+                              <td className="border border-gray-300 px-2 py-1 text-right">{bookedPercentage}%</td>
+                              <td className="border border-gray-300 px-2 py-1 text-right font-semibold">{balPercentage}%</td>
+                              <td className="border border-gray-300 px-2 py-1"></td>
+                            </tr>
+                          </React.Fragment>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
               </div>
 
-              {/* Bar Graph - Section-wise Fund Usage */}
+              {/* Bar Graph - Grant Allocation vs Expenditure vs Bills Submitted */}
               <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
-                <h3 className="text-2xl font-bold text-gray-900 mb-6">Section-wise Fund Usage</h3>
-                <div className="flex items-end justify-around h-96 border-l-2 border-b-2 border-gray-400 pl-4 pb-4">
-                  {sectionFundData.map((data) => (
-                    <div key={data.section} className="flex flex-col items-center gap-2">
-                      <div
-                        className={`w-20 ${data.color} flex items-start justify-center text-white font-bold text-sm pt-2 rounded-t-lg hover:opacity-80 transition-all`}
-                        style={{ height: `${(data.amount / maxAmount) * 300}px`, minHeight: '40px' }}
-                      >
-                        ₹{(data.amount / 1000000).toFixed(1)}M
+                <h3 className="text-2xl font-bold text-gray-900 mb-6">Grant Allocation vs Expenditure vs Bills Submitted</h3>
+                <div className="flex items-end justify-around h-96 border-l-2 border-b-2 border-gray-400 pl-4 pb-4 mt-4">
+                  {fundStateGrantData.map((grant) => {
+                    const grantShortName = grant.grantName.split(' ')[0]; // ORD, MT, IR&D
+                    const almtHeight = (grant.almt202526 / maxGrantAmount) * 320;
+                    const expdrHeight = (Math.abs(grant.totalExpdr) / maxGrantAmount) * 320;
+                    const billsHeight = grant.billsSubmitted ? (grant.billsSubmitted / maxGrantAmount) * 320 : 0;
+                    
+                    return (
+                      <div key={grant.serNo} className="flex flex-col items-center gap-2">
+                        <div className="flex items-end gap-1">
+                          <div
+                            className="w-14 bg-blue-500 flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg hover:opacity-80 transition-all"
+                            style={{ height: `${almtHeight}px`, minHeight: '30px' }}
+                            title={`Allocation: ₹${(grant.almt202526 / 1000000).toFixed(2)}M`}
+                          >
+                            ₹{(grant.almt202526 / 1000000).toFixed(1)}M
+                          </div>
+                          <div
+                            className={`w-14 ${grant.totalExpdr > grant.almt202526 ? 'bg-red-500' : 'bg-green-500'} flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg hover:opacity-80 transition-all`}
+                            style={{ height: `${expdrHeight}px`, minHeight: '30px' }}
+                            title={`Expenditure: ₹${(grant.totalExpdr / 1000000).toFixed(2)}M`}
+                          >
+                            ₹{(grant.totalExpdr / 1000000).toFixed(1)}M
+                          </div>
+                          {grant.billsSubmitted && (
+                            <div
+                              className="w-14 bg-orange-500 flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg hover:opacity-80 transition-all"
+                              style={{ height: `${billsHeight}px`, minHeight: '30px' }}
+                              title={`Bills Submitted: ₹${(grant.billsSubmitted / 1000000).toFixed(2)}M`}
+                            >
+                              ₹{(grant.billsSubmitted / 1000000).toFixed(1)}M
+                            </div>
+                          )}
+                        </div>
+                        <span className="text-xs font-semibold text-gray-700 mt-2 text-center">{grantShortName}</span>
                       </div>
-                      <span className="text-sm font-semibold text-gray-700 mt-2">{data.section}</span>
-                    </div>
-                  ))}
+                    );
+                  })}
+                </div>
+                <div className="mt-6 flex justify-center gap-8 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-blue-500 rounded"></div>
+                    <div className="text-sm font-semibold">Allocation</div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-green-500 rounded"></div>
+                    <div className="text-sm font-semibold">Expenditure (Within Budget)</div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-red-500 rounded"></div>
+                    <div className="text-sm font-semibold">Expenditure (Over Budget)</div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-orange-500 rounded"></div>
+                    <div className="text-sm font-semibold">Bills Submitted to CDA</div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -250,21 +380,158 @@ export default function DGMPurchaseLogin() {
                         </div>
                       </div>
 
-                      {/* Bar Graph - IFA Cases per Quarter */}
-                      <div>
-                        <h3 className="text-2xl font-bold text-gray-900 mb-6">IFA Cases by Quarter</h3>
-                        <div className="flex items-end justify-around h-96 border-l-2 border-b-2 border-gray-400 pl-4 pb-4">
-                          {ifaCasesData.map((data) => (
-                            <div key={data.quarter} className="flex flex-col items-center gap-2">
-                              <div
-                                className="w-24 bg-gradient-to-t from-cyan-600 to-cyan-400 flex items-start justify-center text-white font-bold text-sm pt-2 rounded-t-lg hover:from-cyan-700 hover:to-cyan-500 transition-all"
-                                style={{ height: `${(data.count / maxIfaCount) * 350}px`, minHeight: '30px' }}
-                              >
-                                {data.count}
-                              </div>
-                              <span className="text-sm font-semibold text-gray-700 mt-2 text-center">{data.quarter}</span>
-                            </div>
-                          ))}
+                      {/* IFA Cases Table */}
+                      <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 mb-8">
+                        <h3 className="text-2xl font-bold text-gray-900 mb-6">IFA Cases - Detailed List</h3>
+                        <div className="overflow-x-auto">
+                          <table className="w-full border-collapse text-sm">
+                            <thead>
+                              <tr className="bg-gray-200">
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">S.No</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">IFA Case No</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">LPR/WO No</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Section</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Component</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Issue Date</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Status</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Remarks</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {[
+                                { sNo: 1, ifaCaseNo: 'IFA/2024/001', lprWoNo: 'LPR/2024/001', section: 'ARD', component: 'Hydraulic Pump', issueDate: '15/01/2024', status: 'Pending', remarks: 'Awaiting vendor response' },
+                                { sNo: 2, ifaCaseNo: 'IFA/2024/002', lprWoNo: 'WO/2024/001', section: 'VRD', component: 'Engine Gasket', issueDate: '20/01/2024', status: 'In Progress', remarks: 'Under review' },
+                                { sNo: 3, ifaCaseNo: 'IFA/2024/003', lprWoNo: 'LPR/2024/002', section: 'SRD', component: 'Brake Assembly', issueDate: '25/01/2024', status: 'Resolved', remarks: 'Issue resolved' },
+                                { sNo: 4, ifaCaseNo: 'IFA/2024/004', lprWoNo: 'WO/2024/002', section: 'ETD', component: 'Transmission Gear', issueDate: '01/02/2024', status: 'Pending', remarks: '' },
+                                { sNo: 5, ifaCaseNo: 'IFA/2024/005', lprWoNo: 'LPR/2024/003', section: 'ARMT', component: 'Clutch Plate', issueDate: '05/02/2024', status: 'In Progress', remarks: 'Investigation ongoing' },
+                                { sNo: 6, ifaCaseNo: 'IFA/2024/006', lprWoNo: 'WO/2024/003', section: 'T&R', component: 'Suspension Spring', issueDate: '10/02/2024', status: 'Resolved', remarks: 'Closed' },
+                                { sNo: 7, ifaCaseNo: 'IFA/2024/007', lprWoNo: 'LPR/2024/004', section: 'ENG', component: 'Cylinder Head', issueDate: '15/02/2024', status: 'Pending', remarks: '' },
+                                { sNo: 8, ifaCaseNo: 'IFA/2024/008', lprWoNo: 'WO/2024/004', section: 'INST', component: 'Electrical Harness', issueDate: '20/02/2024', status: 'In Progress', remarks: 'Awaiting parts' },
+                                { sNo: 9, ifaCaseNo: 'IFA/2024/009', lprWoNo: 'LPR/2024/005', section: 'VRD', component: 'Oil Filter', issueDate: '25/02/2024', status: 'Resolved', remarks: 'Issue fixed' },
+                                { sNo: 10, ifaCaseNo: 'IFA/2024/010', lprWoNo: 'WO/2024/005', section: 'ARD', component: 'Water Pump', issueDate: '01/03/2024', status: 'Pending', remarks: 'Follow up required' }
+                              ].map((row, index) => (
+                                <tr key={row.sNo} className={`${index % 2 === 0 ? 'bg-gray-50' : 'bg-white'} hover:bg-blue-50 transition-colors`}>
+                                  <td className="border border-gray-300 px-3 py-2 text-center">{row.sNo}</td>
+                                  <td className="border border-gray-300 px-3 py-2 font-mono">{row.ifaCaseNo}</td>
+                                  <td className="border border-gray-300 px-3 py-2 font-mono">{row.lprWoNo}</td>
+                                  <td className="border border-gray-300 px-3 py-2 font-semibold">{row.section}</td>
+                                  <td className="border border-gray-300 px-3 py-2">{row.component}</td>
+                                  <td className="border border-gray-300 px-3 py-2 text-center">{row.issueDate}</td>
+                                  <td className="border border-gray-300 px-3 py-2 text-center">
+                                    <span
+                                      className={`px-3 py-1 rounded-full text-xs font-bold ${
+                                        row.status === 'Resolved'
+                                          ? 'bg-green-100 text-green-800'
+                                          : row.status === 'In Progress'
+                                          ? 'bg-blue-100 text-blue-800'
+                                          : 'bg-yellow-100 text-yellow-800'
+                                      }`}
+                                    >
+                                      {row.status}
+                                    </span>
+                                  </td>
+                                  <td className="border border-gray-300 px-3 py-2 text-sm">{row.remarks || '-'}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+
+                      {/* Pie Chart - IFA Cases by Status */}
+                      <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
+                        <h3 className="text-2xl font-bold text-gray-900 mb-6">IFA Cases by Status</h3>
+                        <div className="flex flex-col items-center">
+                          {(() => {
+                            const ifaTableData = [
+                              { sNo: 1, ifaCaseNo: 'IFA/2024/001', lprWoNo: 'LPR/2024/001', section: 'ARD', component: 'Hydraulic Pump', issueDate: '15/01/2024', status: 'Pending', remarks: 'Awaiting vendor response' },
+                              { sNo: 2, ifaCaseNo: 'IFA/2024/002', lprWoNo: 'WO/2024/001', section: 'VRD', component: 'Engine Gasket', issueDate: '20/01/2024', status: 'In Progress', remarks: 'Under review' },
+                              { sNo: 3, ifaCaseNo: 'IFA/2024/003', lprWoNo: 'LPR/2024/002', section: 'SRD', component: 'Brake Assembly', issueDate: '25/01/2024', status: 'Resolved', remarks: 'Issue resolved' },
+                              { sNo: 4, ifaCaseNo: 'IFA/2024/004', lprWoNo: 'WO/2024/002', section: 'ETD', component: 'Transmission Gear', issueDate: '01/02/2024', status: 'Pending', remarks: '' },
+                              { sNo: 5, ifaCaseNo: 'IFA/2024/005', lprWoNo: 'LPR/2024/003', section: 'ARMT', component: 'Clutch Plate', issueDate: '05/02/2024', status: 'In Progress', remarks: 'Investigation ongoing' },
+                              { sNo: 6, ifaCaseNo: 'IFA/2024/006', lprWoNo: 'WO/2024/003', section: 'T&R', component: 'Suspension Spring', issueDate: '10/02/2024', status: 'Resolved', remarks: 'Closed' },
+                              { sNo: 7, ifaCaseNo: 'IFA/2024/007', lprWoNo: 'LPR/2024/004', section: 'ENG', component: 'Cylinder Head', issueDate: '15/02/2024', status: 'Pending', remarks: '' },
+                              { sNo: 8, ifaCaseNo: 'IFA/2024/008', lprWoNo: 'WO/2024/004', section: 'INST', component: 'Electrical Harness', issueDate: '20/02/2024', status: 'In Progress', remarks: 'Awaiting parts' },
+                              { sNo: 9, ifaCaseNo: 'IFA/2024/009', lprWoNo: 'LPR/2024/005', section: 'VRD', component: 'Oil Filter', issueDate: '25/02/2024', status: 'Resolved', remarks: 'Issue fixed' },
+                              { sNo: 10, ifaCaseNo: 'IFA/2024/010', lprWoNo: 'WO/2024/005', section: 'ARD', component: 'Water Pump', issueDate: '01/03/2024', status: 'Pending', remarks: 'Follow up required' }
+                            ];
+                            
+                            const statusCounts = ifaTableData.reduce((acc: any, item) => {
+                              acc[item.status] = (acc[item.status] || 0) + 1;
+                              return acc;
+                            }, {});
+                            
+                            const statusData = [
+                              { status: 'Pending', count: statusCounts['Pending'] || 0, color: '#eab308' },
+                              { status: 'In Progress', count: statusCounts['In Progress'] || 0, color: '#3b82f6' },
+                              { status: 'Resolved', count: statusCounts['Resolved'] || 0, color: '#22c55e' }
+                            ];
+                            
+                            const totalStatusCount = statusData.reduce((sum, item) => sum + item.count, 0);
+                            const percentages = statusData.map(item => totalStatusCount > 0 ? (item.count / totalStatusCount) * 100 : 0);
+                            
+                            return (
+                              <>
+                                <div className="relative w-80 h-80">
+                                  <svg viewBox="0 0 200 200" className="w-full h-full">
+                                    {(() => {
+                                      let currentAngle = 0;
+                                      return percentages.map((percentage, index) => {
+                                        if (percentage === 0) return null;
+                                        const angle = (percentage / 100) * 360;
+                                        const startAngle = currentAngle;
+                                        const endAngle = currentAngle + angle;
+                                        const startRad = (startAngle - 90) * (Math.PI / 180);
+                                        const endRad = (endAngle - 90) * (Math.PI / 180);
+                                        const x1 = 100 + 90 * Math.cos(startRad);
+                                        const y1 = 100 + 90 * Math.sin(startRad);
+                                        const x2 = 100 + 90 * Math.cos(endRad);
+                                        const y2 = 100 + 90 * Math.sin(endRad);
+                                        const largeArcFlag = angle > 180 ? 1 : 0;
+                                        const pathData = [
+                                          `M 100 100`,
+                                          `L ${x1} ${y1}`,
+                                          `A 90 90 0 ${largeArcFlag} 1 ${x2} ${y2}`,
+                                          'Z'
+                                        ].join(' ');
+                                        currentAngle = endAngle;
+                                        return (
+                                          <path
+                                            key={index}
+                                            d={pathData}
+                                            fill={statusData[index].color}
+                                            stroke="white"
+                                            strokeWidth="2"
+                                          />
+                                        );
+                                      });
+                                    })()}
+                                    <circle cx="100" cy="100" r="50" fill="white" />
+                                    <text x="100" y="95" textAnchor="middle" className="text-2xl font-bold fill-gray-900">
+                                      {totalStatusCount}
+                                    </text>
+                                    <text x="100" y="110" textAnchor="middle" className="text-sm fill-gray-600">
+                                      Total Cases
+                                    </text>
+                                  </svg>
+                                </div>
+                                <div className="mt-6 flex flex-wrap justify-center gap-6">
+                                  {statusData.map((item, index) => (
+                                    <div key={index} className="flex items-center gap-2">
+                                      <div className="w-4 h-4 rounded" style={{ backgroundColor: item.color }}></div>
+                                      <div className="text-sm">
+                                        <span className="font-semibold">{item.status}</span>
+                                        <span className="text-gray-600 ml-1">({item.count})</span>
+                                        <span className="text-gray-500 ml-1">
+                                          ({totalStatusCount > 0 ? ((item.count / totalStatusCount) * 100).toFixed(1) : 0}%)
+                                        </span>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </>
+                            );
+                          })()}
                         </div>
                       </div>
                     </>
@@ -382,6 +649,64 @@ export default function DGMPurchaseLogin() {
                       </div>
                       <div className="mt-6 text-center">
                         <p className="text-xs text-gray-500">Y-axis: Number of Enquiry Cases | X-axis: Financial Year Quarters</p>
+                      </div>
+                    </div>
+
+                    {/* Enquiry Table */}
+                    <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
+                      <h3 className="text-2xl font-bold text-gray-900 mb-6">Enquiry Details</h3>
+                      <div className="overflow-x-auto">
+                        <table className="w-full border-collapse text-xs">
+                          <thead>
+                            <tr className="bg-gray-200">
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">S.No</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">LPR No</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Section</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Component</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Enquiry Date</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Days in Enquiry</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Priority</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Status</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Remarks</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {[
+                              { sNo: 1, lprNo: 'LPR-2024-001', section: 'VRD', component: 'Hydraulic Cylinder', enquiryDate: '05/01/2024', daysInEnquiry: 12, priority: 'Critical', status: 'Open', remarks: '' },
+                              { sNo: 2, lprNo: 'LPR-2024-002', section: 'ARD', component: 'Gear Assembly', enquiryDate: '08/01/2024', daysInEnquiry: 9, priority: 'Moderate', status: 'Open', remarks: '' },
+                              { sNo: 3, lprNo: 'LPR-2024-003', section: 'SRD', component: 'Brake Pad Set', enquiryDate: '10/01/2024', daysInEnquiry: 7, priority: 'Low', status: 'Open', remarks: '' },
+                              { sNo: 4, lprNo: 'LPR-2024-004', section: 'ETD', component: 'Control Valve', enquiryDate: '12/01/2024', daysInEnquiry: 5, priority: 'Critical', status: 'Open', remarks: 'Urgent' },
+                              { sNo: 5, lprNo: 'LPR-2024-005', section: 'VRD', component: 'Manifold Airline', enquiryDate: '15/01/2024', daysInEnquiry: 2, priority: 'Moderate', status: 'Open', remarks: '' },
+                              { sNo: 6, lprNo: 'LPR-2024-006', section: 'ARD', component: 'Pedal Control', enquiryDate: '18/01/2024', daysInEnquiry: 0, priority: 'Low', status: 'Open', remarks: '' },
+                              { sNo: 7, lprNo: 'LPR-2024-007', section: 'SRD', component: 'Water Radiator', enquiryDate: '20/01/2024', daysInEnquiry: 0, priority: 'Moderate', status: 'Open', remarks: '' },
+                              { sNo: 8, lprNo: 'LPR-2024-008', section: 'ETD', component: 'Engine Gasket', enquiryDate: '22/01/2024', daysInEnquiry: 0, priority: 'Critical', status: 'Open', remarks: '' }
+                            ].map((item, index) => (
+                              <tr key={item.sNo} className={`${index % 2 === 0 ? 'bg-gray-50' : 'bg-white'} hover:bg-blue-50 transition-colors`}>
+                                <td className="border border-gray-300 px-3 py-2 text-center">{item.sNo}</td>
+                                <td className="border border-gray-300 px-3 py-2 font-mono">{item.lprNo}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center">{item.section}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-xs">{item.component}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center">{item.enquiryDate}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center">{item.daysInEnquiry}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center">
+                                  <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                                    item.priority === 'Critical' ? 'bg-red-100 text-red-800' :
+                                    item.priority === 'Moderate' ? 'bg-yellow-100 text-yellow-800' :
+                                    'bg-green-100 text-green-800'
+                                  }`}>
+                                    {item.priority}
+                                  </span>
+                                </td>
+                                <td className="border border-gray-300 px-3 py-2 text-center">
+                                  <span className="px-2 py-1 rounded text-xs font-semibold bg-blue-100 text-blue-800">
+                                    {item.status}
+                                  </span>
+                                </td>
+                                <td className="border border-gray-300 px-3 py-2 text-xs">{item.remarks || '-'}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
                     </div>
                   </>
@@ -546,6 +871,57 @@ export default function DGMPurchaseLogin() {
                         </div>
                       </div>
                     </div>
+
+                    {/* Quotation Table */}
+                    <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
+                      <h3 className="text-2xl font-bold text-gray-900 mb-6">Quotation Details</h3>
+                      <div className="overflow-x-auto">
+                        <table className="w-full border-collapse text-xs">
+                          <thead>
+                            <tr className="bg-gray-200">
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">S.No</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">LPR No</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Section</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Component</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Quotation Date</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Vendor</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Quoted Amount (₹)</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Status</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Remarks</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {[
+                              { sNo: 1, lprNo: 'LPR-2024-001', section: 'VRD', component: 'Hydraulic Cylinder', quotationDate: '10/01/2024', vendor: 'ABC Engineering Ltd', quotedAmount: 125000, status: 'Open', remarks: '' },
+                              { sNo: 2, lprNo: 'LPR-2024-002', section: 'ARD', component: 'Gear Assembly', quotationDate: '12/01/2024', vendor: 'XYZ Industries', quotedAmount: 98000, status: 'Open', remarks: '' },
+                              { sNo: 3, lprNo: 'LPR-2024-003', section: 'SRD', component: 'Brake Pad Set', quotationDate: '15/01/2024', vendor: 'Precision Parts Co', quotedAmount: 156000, status: 'Pending', remarks: '' },
+                              { sNo: 4, lprNo: 'LPR-2024-004', section: 'ETD', component: 'Control Valve', quotationDate: '18/01/2024', vendor: 'Metro Supplies', quotedAmount: 89000, status: 'Open', remarks: '' },
+                              { sNo: 5, lprNo: 'LPR-2024-005', section: 'VRD', component: 'Manifold Airline', quotationDate: '20/01/2024', vendor: 'TechnoMech Solutions', quotedAmount: 112000, status: 'Pending', remarks: '' },
+                              { sNo: 6, lprNo: 'LPR-2024-006', section: 'ARD', component: 'Pedal Control', quotationDate: '22/01/2024', vendor: 'Elite Parts Inc', quotedAmount: 134000, status: 'Open', remarks: '' }
+                            ].map((item, index) => (
+                              <tr key={item.sNo} className={`${index % 2 === 0 ? 'bg-gray-50' : 'bg-white'} hover:bg-blue-50 transition-colors`}>
+                                <td className="border border-gray-300 px-3 py-2 text-center">{item.sNo}</td>
+                                <td className="border border-gray-300 px-3 py-2 font-mono">{item.lprNo}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center">{item.section}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-xs">{item.component}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center">{item.quotationDate}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-xs">{item.vendor}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-right">₹{item.quotedAmount.toLocaleString('en-IN')}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center">
+                                  <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                                    item.status === 'Open' ? 'bg-blue-100 text-blue-800' :
+                                    'bg-orange-100 text-orange-800'
+                                  }`}>
+                                    {item.status}
+                                  </span>
+                                </td>
+                                <td className="border border-gray-300 px-3 py-2 text-xs">{item.remarks || '-'}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
                   </>
                 );
               })()}
@@ -660,6 +1036,61 @@ export default function DGMPurchaseLogin() {
                       </div>
                       <div className="mt-6 text-center">
                         <p className="text-xs text-gray-500">Y-axis: Number of CST Cases | X-axis: Financial Year Quarters</p>
+                      </div>
+                    </div>
+
+                    {/* CST Table */}
+                    <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
+                      <h3 className="text-2xl font-bold text-gray-900 mb-6">CST Details</h3>
+                      <div className="overflow-x-auto">
+                        <table className="w-full border-collapse text-xs">
+                          <thead>
+                            <tr className="bg-gray-200">
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">S.No</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">LPR No</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Section</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Component</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">CST Date</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Days in CST</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Priority</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Status</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Remarks</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {[
+                              { sNo: 1, lprNo: 'LPR-2024-001', section: 'VRD', component: 'Hydraulic Cylinder', cstDate: '15/01/2024', daysInCst: 8, priority: 'Critical', status: 'Active', remarks: '' },
+                              { sNo: 2, lprNo: 'LPR-2024-002', section: 'ARD', component: 'Gear Assembly', cstDate: '18/01/2024', daysInCst: 5, priority: 'Moderate', status: 'Active', remarks: '' },
+                              { sNo: 3, lprNo: 'LPR-2024-003', section: 'SRD', component: 'Brake Pad Set', cstDate: '20/01/2024', daysInCst: 3, priority: 'Low', status: 'Active', remarks: '' },
+                              { sNo: 4, lprNo: 'LPR-2024-004', section: 'ETD', component: 'Control Valve', cstDate: '22/01/2024', daysInCst: 1, priority: 'Critical', status: 'Active', remarks: 'Urgent' },
+                              { sNo: 5, lprNo: 'LPR-2024-005', section: 'VRD', component: 'Manifold Airline', cstDate: '25/01/2024', daysInCst: 0, priority: 'Moderate', status: 'Active', remarks: '' }
+                            ].map((item, index) => (
+                              <tr key={item.sNo} className={`${index % 2 === 0 ? 'bg-gray-50' : 'bg-white'} hover:bg-blue-50 transition-colors`}>
+                                <td className="border border-gray-300 px-3 py-2 text-center">{item.sNo}</td>
+                                <td className="border border-gray-300 px-3 py-2 font-mono">{item.lprNo}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center">{item.section}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-xs">{item.component}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center">{item.cstDate}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center">{item.daysInCst}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center">
+                                  <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                                    item.priority === 'Critical' ? 'bg-red-100 text-red-800' :
+                                    item.priority === 'Moderate' ? 'bg-yellow-100 text-yellow-800' :
+                                    'bg-green-100 text-green-800'
+                                  }`}>
+                                    {item.priority}
+                                  </span>
+                                </td>
+                                <td className="border border-gray-300 px-3 py-2 text-center">
+                                  <span className="px-2 py-1 rounded text-xs font-semibold bg-purple-100 text-purple-800">
+                                    {item.status}
+                                  </span>
+                                </td>
+                                <td className="border border-gray-300 px-3 py-2 text-xs">{item.remarks || '-'}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
                     </div>
                   </>
@@ -778,6 +1209,62 @@ export default function DGMPurchaseLogin() {
                         <p className="text-xs text-gray-500">Y-axis: Number of Sanction Cases | X-axis: Financial Year Quarters</p>
                       </div>
                     </div>
+
+                    {/* Sanction Table */}
+                    <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
+                      <h3 className="text-2xl font-bold text-gray-900 mb-6">Sanction Details</h3>
+                      <div className="overflow-x-auto">
+                        <table className="w-full border-collapse text-xs">
+                          <thead>
+                            <tr className="bg-gray-200">
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">S.No</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">LPR No</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Section</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Component</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Sanction Date</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Sanctioned Amount (₹)</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Days in Sanction</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Priority</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Status</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Remarks</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {[
+                              { sNo: 1, lprNo: 'LPR-2024-001', section: 'VRD', component: 'Hydraulic Cylinder', sanctionDate: '20/01/2024', sanctionedAmount: 125000, daysInSanction: 5, priority: 'Critical', status: 'Active', remarks: '' },
+                              { sNo: 2, lprNo: 'LPR-2024-002', section: 'ARD', component: 'Gear Assembly', sanctionDate: '22/01/2024', sanctionedAmount: 98000, daysInSanction: 3, priority: 'Moderate', status: 'Active', remarks: '' },
+                              { sNo: 3, lprNo: 'LPR-2024-003', section: 'SRD', component: 'Brake Pad Set', sanctionDate: '25/01/2024', sanctionedAmount: 156000, daysInSanction: 0, priority: 'Low', status: 'Active', remarks: '' },
+                              { sNo: 4, lprNo: 'LPR-2024-004', section: 'ETD', component: 'Control Valve', sanctionDate: '28/01/2024', sanctionedAmount: 89000, daysInSanction: 0, priority: 'Critical', status: 'Active', remarks: 'Urgent' }
+                            ].map((item, index) => (
+                              <tr key={item.sNo} className={`${index % 2 === 0 ? 'bg-gray-50' : 'bg-white'} hover:bg-blue-50 transition-colors`}>
+                                <td className="border border-gray-300 px-3 py-2 text-center">{item.sNo}</td>
+                                <td className="border border-gray-300 px-3 py-2 font-mono">{item.lprNo}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center">{item.section}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-xs">{item.component}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center">{item.sanctionDate}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-right">₹{item.sanctionedAmount.toLocaleString('en-IN')}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center">{item.daysInSanction}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center">
+                                  <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                                    item.priority === 'Critical' ? 'bg-red-100 text-red-800' :
+                                    item.priority === 'Moderate' ? 'bg-yellow-100 text-yellow-800' :
+                                    'bg-green-100 text-green-800'
+                                  }`}>
+                                    {item.priority}
+                                  </span>
+                                </td>
+                                <td className="border border-gray-300 px-3 py-2 text-center">
+                                  <span className="px-2 py-1 rounded text-xs font-semibold bg-yellow-100 text-yellow-800">
+                                    {item.status}
+                                  </span>
+                                </td>
+                                <td className="border border-gray-300 px-3 py-2 text-xs">{item.remarks || '-'}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
                   </>
                 );
               })()}
@@ -892,6 +1379,65 @@ export default function DGMPurchaseLogin() {
                       </div>
                       <div className="mt-6 text-center">
                         <p className="text-xs text-gray-500">Y-axis: Number of SO Placed Cases | X-axis: Financial Year Quarters</p>
+                      </div>
+                    </div>
+
+                    {/* SO Placed Table */}
+                    <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
+                      <h3 className="text-2xl font-bold text-gray-900 mb-6">SO Placed Details</h3>
+                      <div className="overflow-x-auto">
+                        <table className="w-full border-collapse text-xs">
+                          <thead>
+                            <tr className="bg-gray-200">
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">S.No</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">LPR No</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">SO No</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Section</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Component</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Vendor</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">SO Date</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">SO Amount (₹)</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Priority</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Status</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Remarks</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {[
+                              { sNo: 1, lprNo: 'LPR-2024-001', soNo: 'SO-2024-001', section: 'VRD', component: 'Hydraulic Cylinder', vendor: 'ABC Engineering Ltd', soDate: '25/01/2024', soAmount: 125000, priority: 'Critical', status: 'Active', remarks: '' },
+                              { sNo: 2, lprNo: 'LPR-2024-002', soNo: 'SO-2024-002', section: 'ARD', component: 'Gear Assembly', vendor: 'XYZ Industries', soDate: '28/01/2024', soAmount: 98000, priority: 'Moderate', status: 'Active', remarks: '' },
+                              { sNo: 3, lprNo: 'LPR-2024-003', soNo: 'SO-2024-003', section: 'SRD', component: 'Brake Pad Set', vendor: 'Precision Parts Co', soDate: '30/01/2024', soAmount: 156000, priority: 'Low', status: 'Active', remarks: '' },
+                              { sNo: 4, lprNo: 'LPR-2024-004', soNo: 'SO-2024-004', section: 'ETD', component: 'Control Valve', vendor: 'Metro Supplies', soDate: '02/02/2024', soAmount: 89000, priority: 'Critical', status: 'Active', remarks: 'Urgent' },
+                              { sNo: 5, lprNo: 'LPR-2024-005', soNo: 'SO-2024-005', section: 'VRD', component: 'Manifold Airline', vendor: 'TechnoMech Solutions', soDate: '05/02/2024', soAmount: 112000, priority: 'Moderate', status: 'Active', remarks: '' }
+                            ].map((item, index) => (
+                              <tr key={item.sNo} className={`${index % 2 === 0 ? 'bg-gray-50' : 'bg-white'} hover:bg-blue-50 transition-colors`}>
+                                <td className="border border-gray-300 px-3 py-2 text-center">{item.sNo}</td>
+                                <td className="border border-gray-300 px-3 py-2 font-mono">{item.lprNo}</td>
+                                <td className="border border-gray-300 px-3 py-2 font-mono font-semibold">{item.soNo}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center">{item.section}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-xs">{item.component}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-xs">{item.vendor}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center">{item.soDate}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-right">₹{item.soAmount.toLocaleString('en-IN')}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center">
+                                  <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                                    item.priority === 'Critical' ? 'bg-red-100 text-red-800' :
+                                    item.priority === 'Moderate' ? 'bg-yellow-100 text-yellow-800' :
+                                    'bg-green-100 text-green-800'
+                                  }`}>
+                                    {item.priority}
+                                  </span>
+                                </td>
+                                <td className="border border-gray-300 px-3 py-2 text-center">
+                                  <span className="px-2 py-1 rounded text-xs font-semibold bg-indigo-100 text-indigo-800">
+                                    {item.status}
+                                  </span>
+                                </td>
+                                <td className="border border-gray-300 px-3 py-2 text-xs">{item.remarks || '-'}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
                     </div>
                   </>
@@ -1086,6 +1632,74 @@ export default function DGMPurchaseLogin() {
                           Showing {filteredVendors.length} of {vendorData.length} vendors
                         </div>
                       )}
+
+                      {/* Vendor Rating Distribution Graph */}
+                      <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 mt-8">
+                        <h3 className="text-2xl font-bold text-gray-900 mb-6">Vendor Rating Distribution</h3>
+                        <div className="flex items-end justify-around h-96 border-l-2 border-b-2 border-gray-400 pl-4 pb-4 gap-2">
+                          {vendorData.map((vendor, index) => {
+                            const maxRating = 5;
+                            const height = (vendor.rating / maxRating) * 350;
+                            const colors = ['bg-purple-500', 'bg-blue-500', 'bg-green-500', 'bg-orange-500', 'bg-pink-500', 'bg-cyan-500'];
+                            return (
+                              <div key={vendor.name} className="flex flex-col items-center gap-2 flex-1 min-w-0">
+                                <div
+                                  className={`w-full ${colors[index % colors.length]} flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg hover:opacity-80 transition-all`}
+                                  style={{ height: `${height}px`, minHeight: '30px' }}
+                                  title={`${vendor.name}: ${vendor.rating}`}
+                                >
+                                  {vendor.rating.toFixed(1)}
+                                </div>
+                                <span className="text-xs font-semibold text-gray-700 mt-2 text-center break-words whitespace-normal">
+                                  {vendor.name.split(' ')[0]}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <div className="mt-6 text-center">
+                          <p className="text-xs text-gray-500">Y-axis: Rating (out of 5) | X-axis: Vendors</p>
+                        </div>
+                      </div>
+
+                      {/* Vendor Category Distribution Graph */}
+                      <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 mt-8">
+                        <h3 className="text-2xl font-bold text-gray-900 mb-6">Vendors by Category</h3>
+                        <div className="flex items-end justify-around h-96 border-l-2 border-b-2 border-gray-400 pl-4 pb-4 gap-2">
+                          {(() => {
+                            const categoryData = [
+                              { category: 'Hydraulic Components', count: 1 },
+                              { category: 'Engine Parts', count: 1 },
+                              { category: 'Brake Systems', count: 1 },
+                              { category: 'General Spares', count: 1 },
+                              { category: 'Electrical Components', count: 1 },
+                              { category: 'Suspension Parts', count: 1 }
+                            ];
+                            const maxCount = Math.max(...categoryData.map(c => c.count));
+                            return categoryData.map((data, index) => {
+                              const colors = ['bg-purple-500', 'bg-blue-500', 'bg-green-500', 'bg-orange-500', 'bg-pink-500', 'bg-cyan-500'];
+                              const height = (data.count / maxCount) * 350;
+                              return (
+                                <div key={data.category} className="flex flex-col items-center gap-2 flex-1 min-w-0">
+                                  <div
+                                    className={`w-full ${colors[index % colors.length]} flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg hover:opacity-80 transition-all`}
+                                    style={{ height: `${height}px`, minHeight: '30px' }}
+                                    title={`${data.category}: ${data.count}`}
+                                  >
+                                    {data.count}
+                                  </div>
+                                  <span className="text-xs font-semibold text-gray-700 mt-2 text-center break-words whitespace-normal">
+                                    {data.category.split(' ')[0]}
+                                  </span>
+                                </div>
+                              );
+                            });
+                          })()}
+                        </div>
+                        <div className="mt-6 text-center">
+                          <p className="text-xs text-gray-500">Y-axis: Number of Vendors | X-axis: Categories</p>
+                        </div>
+                      </div>
                     </>
                   );
                 })()}
@@ -1156,6 +1770,68 @@ export default function DGMPurchaseLogin() {
                       <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
                         <div className="text-green-600 text-sm mb-1 font-semibold">Low</div>
                         <div className="text-3xl font-bold text-gray-900">{lprSummary.low}</div>
+                      </div>
+                    </div>
+
+                    {/* PDS Lapse Table */}
+                    <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
+                      <h3 className="text-2xl font-bold text-gray-900 mb-6">PDS Lapse - Detailed List</h3>
+                      <div className="overflow-x-auto">
+                        <table className="w-full border-collapse text-sm">
+                          <thead>
+                            <tr className="bg-gray-200">
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">S.No</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">LPR No</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Vendor</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Component</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">SO No</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">SO Date</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Delivery Date</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Days Lapsed</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Priority</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Remarks</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {[
+                              { sNo: 1, lprNo: 'LPR/2024/001', vendor: 'ABC Engineering Ltd', component: 'Hydraulic Pump', soNo: 'SO/2024/001', soDate: '01/04/2024', deliveryDate: '15/04/2024', daysLapsed: 45, priority: 'Critical', remarks: 'Urgent requirement' },
+                              { sNo: 2, lprNo: 'LPR/2024/002', vendor: 'XYZ Industries', component: 'Gasket Set', soNo: 'SO/2024/002', soDate: '05/04/2024', deliveryDate: '20/04/2024', daysLapsed: 38, priority: 'Moderate', remarks: 'Follow up required' },
+                              { sNo: 3, lprNo: 'LPR/2024/003', vendor: 'Precision Parts Co', component: 'Brake Assembly', soNo: 'SO/2024/003', soDate: '10/04/2024', deliveryDate: '25/04/2024', daysLapsed: 32, priority: 'Moderate', remarks: '' },
+                              { sNo: 4, lprNo: 'LPR/2024/004', vendor: 'Metro Supplies', component: 'Oil Filter', soNo: 'SO/2024/004', soDate: '15/04/2024', deliveryDate: '30/04/2024', daysLapsed: 28, priority: 'Low', remarks: '' },
+                              { sNo: 5, lprNo: 'LPR/2024/005', vendor: 'TechnoMech Solutions', component: 'Clutch Plate', soNo: 'SO/2024/005', soDate: '20/04/2024', deliveryDate: '05/05/2024', daysLapsed: 42, priority: 'Critical', remarks: 'Production impact' },
+                              { sNo: 6, lprNo: 'LPR/2024/006', vendor: 'Elite Parts Inc', component: 'Radiator Core', soNo: 'SO/2024/006', soDate: '25/04/2024', deliveryDate: '10/05/2024', daysLapsed: 35, priority: 'Moderate', remarks: '' },
+                              { sNo: 7, lprNo: 'LPR/2024/007', vendor: 'Global Components', component: 'Fuel Pump', soNo: 'SO/2024/007', soDate: '01/05/2024', deliveryDate: '15/05/2024', daysLapsed: 40, priority: 'Critical', remarks: 'Critical item' },
+                              { sNo: 8, lprNo: 'LPR/2024/008', vendor: 'ABC Engineering Ltd', component: 'Alternator', soNo: 'SO/2024/008', soDate: '05/05/2024', deliveryDate: '20/05/2024', daysLapsed: 30, priority: 'Moderate', remarks: '' },
+                              { sNo: 9, lprNo: 'LPR/2024/009', vendor: 'XYZ Industries', component: 'Steering Box', soNo: 'SO/2024/009', soDate: '10/05/2024', deliveryDate: '25/05/2024', daysLapsed: 25, priority: 'Low', remarks: '' },
+                              { sNo: 10, lprNo: 'LPR/2024/010', vendor: 'Precision Parts Co', component: 'Water Pump', soNo: 'SO/2024/010', soDate: '15/05/2024', deliveryDate: '30/05/2024', daysLapsed: 22, priority: 'Low', remarks: '' }
+                            ].map((row, index) => (
+                              <tr key={row.sNo} className={`${index % 2 === 0 ? 'bg-gray-50' : 'bg-white'} hover:bg-blue-50 transition-colors`}>
+                                <td className="border border-gray-300 px-3 py-2 text-center">{row.sNo}</td>
+                                <td className="border border-gray-300 px-3 py-2 font-mono">{row.lprNo}</td>
+                                <td className="border border-gray-300 px-3 py-2">{row.vendor}</td>
+                                <td className="border border-gray-300 px-3 py-2">{row.component}</td>
+                                <td className="border border-gray-300 px-3 py-2 font-mono">{row.soNo}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center">{row.soDate}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center">{row.deliveryDate}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center font-semibold">{row.daysLapsed}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center">
+                                  <span
+                                    className={`px-3 py-1 rounded-full text-xs font-bold ${
+                                      row.priority === 'Critical'
+                                        ? 'bg-red-100 text-red-800'
+                                        : row.priority === 'Moderate'
+                                        ? 'bg-yellow-100 text-yellow-800'
+                                        : 'bg-green-100 text-green-800'
+                                    }`}
+                                  >
+                                    {row.priority}
+                                  </span>
+                                </td>
+                                <td className="border border-gray-300 px-3 py-2 text-sm">{row.remarks || '-'}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
                     </div>
 
@@ -1527,6 +2203,56 @@ export default function DGMPurchaseLogin() {
                         <p className="text-xs text-gray-500">Y-axis: Number of Receipts | X-axis: Financial Year Quarters</p>
                       </div>
                     </div>
+
+                    {/* Store Receipt Table */}
+                    <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
+                      <h3 className="text-2xl font-bold text-gray-900 mb-6">Store Receipt Details</h3>
+                      <div className="overflow-x-auto">
+                        <table className="w-full border-collapse text-xs">
+                          <thead>
+                            <tr className="bg-gray-200">
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">S.No</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Receipt No</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Date</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Challan No</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Vendor</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Component</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Quantity</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Status</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Remarks</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {[
+                              { sNo: 1, receiptNo: 'SR-2024-001', date: '10/01/2024', challanNo: 'CH-101', vendor: 'ABC Engineering Ltd', component: 'Hydraulic Cylinder', quantity: 5, status: 'Generated', remarks: '' },
+                              { sNo: 2, receiptNo: 'SR-2024-002', date: '12/01/2024', challanNo: 'CH-102', vendor: 'XYZ Industries', component: 'Gear Assembly', quantity: 3, status: 'Generated', remarks: '' },
+                              { sNo: 3, receiptNo: 'SR-2024-003', date: '15/01/2024', challanNo: 'CH-103', vendor: 'Precision Parts Co', component: 'Brake Pad Set', quantity: 10, status: 'To Be Generated', remarks: 'Pending' },
+                              { sNo: 4, receiptNo: 'SR-2024-004', date: '18/01/2024', challanNo: 'CH-104', vendor: 'Metro Supplies', component: 'Control Valve', quantity: 8, status: 'Generated', remarks: '' },
+                              { sNo: 5, receiptNo: 'SR-2024-005', date: '20/01/2024', challanNo: 'CH-105', vendor: 'TechnoMech Solutions', component: 'Manifold Airline', quantity: 6, status: 'To Be Generated', remarks: 'Pending' }
+                            ].map((item, index) => (
+                              <tr key={item.sNo} className={`${index % 2 === 0 ? 'bg-gray-50' : 'bg-white'} hover:bg-blue-50 transition-colors`}>
+                                <td className="border border-gray-300 px-3 py-2 text-center">{item.sNo}</td>
+                                <td className="border border-gray-300 px-3 py-2 font-mono">{item.receiptNo}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center">{item.date}</td>
+                                <td className="border border-gray-300 px-3 py-2 font-mono">{item.challanNo}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-xs">{item.vendor}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-xs">{item.component}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center">{item.quantity}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center">
+                                  <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                                    item.status === 'Generated' ? 'bg-green-100 text-green-800' :
+                                    'bg-orange-100 text-orange-800'
+                                  }`}>
+                                    {item.status}
+                                  </span>
+                                </td>
+                                <td className="border border-gray-300 px-3 py-2 text-xs">{item.remarks || '-'}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
                   </>
                 );
               })()}
@@ -1636,6 +2362,49 @@ export default function DGMPurchaseLogin() {
                         </div>
                       </div>
                     </div>
+
+                    {/* Store Balance Table */}
+                    <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
+                      <h3 className="text-2xl font-bold text-gray-900 mb-6">Store Balance Details</h3>
+                      <div className="overflow-x-auto">
+                        <table className="w-full border-collapse text-xs">
+                          <thead>
+                            <tr className="bg-gray-200">
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">S.No</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Component</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">M Number</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Opening Balance</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Receipts</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Issues</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Current Balance</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Value (₹)</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Remarks</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {[
+                              { sNo: 1, component: 'Hydraulic Cylinder', mNumber: 'M-10234632', openingBalance: 20, receipts: 5, issues: 3, currentBalance: 22, value: 275000, remarks: '' },
+                              { sNo: 2, component: 'Gear Assembly', mNumber: 'M-10260808', openingBalance: 15, receipts: 3, issues: 2, currentBalance: 16, value: 156800, remarks: '' },
+                              { sNo: 3, component: 'Brake Pad Set', mNumber: 'M-10254567', openingBalance: 30, receipts: 10, issues: 8, currentBalance: 32, value: 320000, remarks: '' },
+                              { sNo: 4, component: 'Control Valve', mNumber: 'M-10278901', openingBalance: 12, receipts: 8, issues: 5, currentBalance: 15, value: 133500, remarks: '' },
+                              { sNo: 5, component: 'Manifold Airline', mNumber: 'M-10281681', openingBalance: 18, receipts: 6, issues: 4, currentBalance: 20, value: 224000, remarks: '' }
+                            ].map((item, index) => (
+                              <tr key={item.sNo} className={`${index % 2 === 0 ? 'bg-gray-50' : 'bg-white'} hover:bg-blue-50 transition-colors`}>
+                                <td className="border border-gray-300 px-3 py-2 text-center">{item.sNo}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-xs">{item.component}</td>
+                                <td className="border border-gray-300 px-3 py-2 font-mono">{item.mNumber}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center">{item.openingBalance}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center text-green-600 font-semibold">+{item.receipts}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center text-red-600 font-semibold">-{item.issues}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center font-bold">{item.currentBalance}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-right">₹{item.value.toLocaleString('en-IN')}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-xs">{item.remarks || '-'}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
                   </>
                 );
               })()}
@@ -1703,6 +2472,71 @@ export default function DGMPurchaseLogin() {
                             ))}
                           </tbody>
                         </table>
+                      </div>
+                    </div>
+
+                    {/* Graph: Items Quantity Distribution */}
+                    <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
+                      <h3 className="text-2xl font-bold text-gray-900 mb-6">Items Quantity Distribution</h3>
+                      <div className="flex items-end justify-around h-96 border-l-2 border-b-2 border-gray-400 pl-4 pb-4 gap-2">
+                        {itemsRegisterData.map((item, index) => {
+                          const maxQuantity = Math.max(...itemsRegisterData.map(i => i.quantity));
+                          const height = (item.quantity / maxQuantity) * 350;
+                          const colors = ['bg-lime-500', 'bg-blue-500', 'bg-green-500', 'bg-orange-500', 'bg-pink-500', 'bg-cyan-500', 'bg-yellow-500', 'bg-red-500', 'bg-purple-500', 'bg-indigo-500'];
+                          return (
+                            <div key={item.serialNo} className="flex flex-col items-center gap-2 flex-1 min-w-0">
+                              <div
+                                className={`w-full ${colors[index % colors.length]} flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg hover:opacity-80 transition-all`}
+                                style={{ height: `${height}px`, minHeight: '30px' }}
+                                title={`${item.nomenclature}: ${item.quantity}`}
+                              >
+                                {item.quantity}
+                              </div>
+                              <span className="text-xs font-semibold text-gray-700 mt-2 text-center break-words whitespace-normal">
+                                {item.nomenclature.split(' ')[0]}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div className="mt-6 text-center">
+                        <p className="text-xs text-gray-500">Y-axis: Quantity | X-axis: Items</p>
+                      </div>
+                    </div>
+
+                    {/* Graph: Items by Location */}
+                    <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
+                      <h3 className="text-2xl font-bold text-gray-900 mb-6">Items Distribution by Location</h3>
+                      <div className="flex items-end justify-around h-96 border-l-2 border-b-2 border-gray-400 pl-4 pb-4 gap-2">
+                        {(() => {
+                          const locationData = [
+                            { location: 'Rack A', count: 2 },
+                            { location: 'Rack B', count: 2 },
+                            { location: 'Rack C', count: 2 },
+                            { location: 'Rack D', count: 2 },
+                            { location: 'Rack E', count: 2 }
+                          ];
+                          const maxCount = Math.max(...locationData.map(l => l.count));
+                          return locationData.map((data, index) => {
+                            const colors = ['bg-lime-500', 'bg-blue-500', 'bg-green-500', 'bg-orange-500', 'bg-pink-500'];
+                            const height = (data.count / maxCount) * 350;
+                            return (
+                              <div key={data.location} className="flex flex-col items-center gap-2 flex-1 min-w-0">
+                                <div
+                                  className={`w-full ${colors[index % colors.length]} flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg hover:opacity-80 transition-all`}
+                                  style={{ height: `${height}px`, minHeight: '30px' }}
+                                  title={`${data.location}: ${data.count} items`}
+                                >
+                                  {data.count}
+                                </div>
+                                <span className="text-xs font-semibold text-gray-700 mt-2 text-center">{data.location}</span>
+                              </div>
+                            );
+                          });
+                        })()}
+                      </div>
+                      <div className="mt-6 text-center">
+                        <p className="text-xs text-gray-500">Y-axis: Number of Items | X-axis: Storage Locations</p>
                       </div>
                     </div>
                   </>
@@ -1795,6 +2629,130 @@ export default function DGMPurchaseLogin() {
                             </tr>
                           </tbody>
                         </table>
+                      </div>
+                    </div>
+
+                    {/* Graph: Bill Count by Category */}
+                    <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
+                      <h3 className="text-2xl font-bold text-gray-900 mb-6">Bill Count by Category</h3>
+                      <div className="flex items-end justify-around h-96 border-l-2 border-b-2 border-gray-400 pl-4 pb-4 gap-2">
+                        {billCountData.map((item, index) => {
+                          const maxTotal = Math.max(...billCountData.map(i => i.total));
+                          const height = (item.total / maxTotal) * 350;
+                          const colors = ['bg-emerald-500', 'bg-blue-500', 'bg-green-500', 'bg-orange-500'];
+                          return (
+                            <div key={item.category} className="flex flex-col items-center gap-1 flex-1 min-w-0">
+                              {/* To Be Paid Stack */}
+                              <div
+                                className="w-full bg-gradient-to-t from-orange-600 to-orange-400 flex items-start justify-center text-white font-bold text-xs pt-1 rounded-t-lg hover:from-orange-700 hover:to-orange-500 transition-all"
+                                style={{ height: `${(item.toBePaid / maxTotal) * 300}px`, minHeight: '20px' }}
+                                title={`To Be Paid: ${item.toBePaid}`}
+                              >
+                                {item.toBePaid}
+                              </div>
+                              {/* In Process Stack */}
+                              <div
+                                className="w-full bg-gradient-to-t from-yellow-600 to-yellow-400 flex items-start justify-center text-white font-bold text-xs pt-1 hover:from-yellow-700 hover:to-yellow-500 transition-all"
+                                style={{ height: `${(item.inProcess / maxTotal) * 300}px`, minHeight: '20px' }}
+                                title={`In Process: ${item.inProcess}`}
+                              >
+                                {item.inProcess}
+                              </div>
+                              {/* Paid Stack */}
+                              <div
+                                className="w-full bg-gradient-to-t from-green-600 to-green-400 flex items-start justify-center text-white font-bold text-xs pt-1 hover:from-green-700 hover:to-green-500 transition-all"
+                                style={{ height: `${(item.paid / maxTotal) * 300}px`, minHeight: '20px' }}
+                                title={`Paid: ${item.paid}`}
+                              >
+                                {item.paid}
+                              </div>
+                              <span className="text-xs font-semibold text-gray-700 mt-2 text-center break-words whitespace-normal">
+                                {item.category.split(' ')[0]}
+                              </span>
+                              <span className="text-xs text-gray-500 mt-1">Total: {item.total}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div className="mt-6 text-center">
+                        <p className="text-xs text-gray-500 mb-2">Y-axis: Number of Bills | X-axis: Categories</p>
+                        <div className="flex justify-center gap-6 mt-2">
+                          <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 bg-green-500 rounded"></div>
+                            <span className="text-xs text-gray-600">Paid</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 bg-yellow-500 rounded"></div>
+                            <span className="text-xs text-gray-600">In Process</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 bg-orange-500 rounded"></div>
+                            <span className="text-xs text-gray-600">To Be Paid</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Graph: Bill Payment Status Distribution */}
+                    <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
+                      <h3 className="text-2xl font-bold text-gray-900 mb-6">Overall Bill Payment Status</h3>
+                      <div className="flex flex-col items-center">
+                        <div className="relative w-80 h-80">
+                          <svg viewBox="0 0 200 200" className="w-full h-full">
+                            {(() => {
+                              const paidPercentage = (grandTotal.paid / grandTotal.total) * 100;
+                              const toBePaidPercentage = (grandTotal.toBePaid / grandTotal.total) * 100;
+                              const inProcessPercentage = (grandTotal.inProcess / grandTotal.total) * 100;
+                              const colors = ['#22c55e', '#eab308', '#f97316']; // Green for paid, Yellow for in process, Orange for to be paid
+                              const percentages = [paidPercentage, inProcessPercentage, toBePaidPercentage];
+                              let currentAngle = 0;
+                              
+                              return percentages.map((percentage, index) => {
+                                const angle = (percentage / 100) * 360;
+                                const startAngle = currentAngle;
+                                const endAngle = currentAngle + angle;
+                                const startRad = (startAngle - 90) * (Math.PI / 180);
+                                const endRad = (endAngle - 90) * (Math.PI / 180);
+                                const x1 = 100 + 90 * Math.cos(startRad);
+                                const y1 = 100 + 90 * Math.sin(startRad);
+                                const x2 = 100 + 90 * Math.cos(endRad);
+                                const y2 = 100 + 90 * Math.sin(endRad);
+                                const largeArcFlag = angle > 180 ? 1 : 0;
+                                const pathData = [
+                                  `M 100 100`,
+                                  `L ${x1} ${y1}`,
+                                  `A 90 90 0 ${largeArcFlag} 1 ${x2} ${y2}`,
+                                  'Z'
+                                ].join(' ');
+                                currentAngle = endAngle;
+                                return (
+                                  <path
+                                    key={index}
+                                    d={pathData}
+                                    fill={colors[index]}
+                                    stroke="white"
+                                    strokeWidth="2"
+                                  />
+                                );
+                              })
+                            })()}
+                            <circle cx="100" cy="100" r="50" fill="white" />
+                          </svg>
+                        </div>
+                        <div className="mt-6 flex gap-8">
+                          <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 bg-green-500 rounded"></div>
+                            <div className="text-sm font-semibold">Paid: {grandTotal.paid} ({((grandTotal.paid / grandTotal.total) * 100).toFixed(1)}%)</div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 bg-yellow-500 rounded"></div>
+                            <div className="text-sm font-semibold">In Process: {grandTotal.inProcess} ({((grandTotal.inProcess / grandTotal.total) * 100).toFixed(1)}%)</div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 bg-orange-500 rounded"></div>
+                            <div className="text-sm font-semibold">To Be Paid: {grandTotal.toBePaid} ({((grandTotal.toBePaid / grandTotal.total) * 100).toFixed(1)}%)</div>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </>

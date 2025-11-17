@@ -1,6 +1,17 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import LoginForm from '../LoginForm'
+
+interface Notification {
+  id: number
+  from: string
+  to: string
+  serial: number
+  itemName: string
+  action: string
+  message: string
+  timestamp: string
+}
 
 export default function DGMMTRLLogin() {
   const navigate = useNavigate()
@@ -11,6 +22,37 @@ export default function DGMMTRLLogin() {
   const [vendorSearchTerm, setVendorSearchTerm] = useState<string>('')
   const [selectedPeriod, setSelectedPeriod] = useState<string>('PY-2023-24')
   const [selectedYear, setSelectedYear] = useState<string>('')
+  const [isChatbotOpen, setIsChatbotOpen] = useState(false)
+  const [chatMessages, setChatMessages] = useState<Array<{ id: number; text: string; sender: 'user' | 'bot'; timestamp: Date }>>([])
+  const [chatInput, setChatInput] = useState('')
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false)
+  const [notifications, setNotifications] = useState<Notification[]>([])
+
+  // Load notifications on component mount and when logged in
+  useEffect(() => {
+    if (isLoggedIn) {
+      // Load notifications from localStorage
+      const storedNotifications = JSON.parse(localStorage.getItem('notifications_DGM WKS MTRL') || '[]')
+      
+      // Add dummy notification from GM WKS MTRL if no notifications exist
+      if (storedNotifications.length === 0) {
+        const dummyNotification: Notification = {
+          id: Date.now(),
+          from: 'GM WKS MTRL',
+          to: 'DGM WKS MTRL',
+          serial: 1,
+          itemName: 'SEAL PLAIN (CUP)',
+          action: 'Urgent action required',
+          message: 'LPR status update: Item SEAL PLAIN (CUP) has been pending for 95 days. Please review and expedite the procurement process. The current status shows delays in vendor response and requires immediate attention.',
+          timestamp: new Date().toISOString()
+        }
+        storedNotifications.push(dummyNotification)
+        localStorage.setItem('notifications_DGM WKS MTRL', JSON.stringify(storedNotifications))
+      }
+      
+      setNotifications(storedNotifications)
+    }
+  }, [isLoggedIn])
 
   if (!isLoggedIn) {
   return (
@@ -26,14 +68,17 @@ export default function DGMMTRLLogin() {
     { id: 'ct-issue', title: 'CT Issue', description: 'Component tracking and issue management', color: 'bg-green-500' },
     { id: 'target', title: 'Target', description: 'View production targets and goals', color: 'bg-blue-500' },
     { id: 'fund-state', title: 'Fund State', description: 'Current fund allocation and status', color: 'bg-yellow-500' },
-    { id: 'lp-so-placed', title: 'LP SO placed', description: 'Local Purchase Supply Orders placed', color: 'bg-indigo-500' },
-    { id: 'lm-wo-placed', title: 'LM WO placed', description: 'Local Manufacture Work Orders placed', color: 'bg-purple-500' },
+    { id: 'lp-so-placed', title: 'LP Status', description: 'Local Purchase status', color: 'bg-indigo-500' },
+    { id: 'lm-wo-placed', title: 'LM Status', description: 'Local Manufacture status', color: 'bg-purple-500' },
     { id: 'pds-lapse-lp', title: 'PDS lapse LP', description: 'Pending Delivery Status lapse for Local Purchase', color: 'bg-orange-500' },
     { id: 'pds-lapse-lm', title: 'PDS lapse LM', description: 'Pending Delivery Status lapse for Local Manufacture', color: 'bg-red-500' },
     { id: 'urgency', title: 'Urgency Cases', description: 'Urgent items and priority tracking', color: 'bg-pink-500' },
     { id: 'ifa-case-progress', title: 'IFA cases', description: 'Issue For Acknowledgement cases', color: 'bg-cyan-500' },
     { id: 'vendor-rating-contact', title: 'Vendor Rating and Contact', description: 'Vendor performance ratings and contact information', color: 'bg-teal-500' },
-    { id: 'dr-summary', title: 'DR summary', description: 'Defect Report summary and analysis', color: 'bg-amber-500' }
+    { id: 'dr-summary', title: 'DR summary', description: 'Defect Report summary and analysis', color: 'bg-amber-500' },
+    { id: 'abc-analysis', title: 'ABC Analysis', description: 'ABC Analysis for MT Grant and ORD Grant', color: 'bg-slate-500' },
+    { id: 'srb', title: 'SRB', description: 'Spares Requirement Book summary', color: 'bg-rose-500' },
+    { id: 'misc', title: 'MISC', description: 'Miscellaneous items and information', color: 'bg-gray-500' }
   ]
 
   const handleAccess = (cardId: string) => {
@@ -43,6 +88,50 @@ export default function DGMMTRLLogin() {
   const handleBack = () => {
     setSelectedCard(null)
   }
+
+  const handleSendMessage = () => {
+    if (chatInput.trim() === '') return;
+
+    const userMessage = {
+      id: Date.now(),
+      text: chatInput,
+      sender: 'user' as const,
+      timestamp: new Date()
+    };
+
+    setChatMessages(prev => [...prev, userMessage]);
+
+    // Simulate bot response
+    setTimeout(() => {
+      const botResponse = {
+        id: Date.now() + 1,
+        text: "I'm here to help you with the DGM WKS MTRL dashboard. You can ask me about LP Status, LM Status, Fund State, or any other dashboard features.",
+        sender: 'bot' as const,
+        timestamp: new Date()
+      };
+      setChatMessages(prev => [...prev, botResponse]);
+    }, 500);
+
+    setChatInput('');
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
+  const handleDismissNotification = (id: number) => {
+    const updatedNotifications = notifications.filter(n => n.id !== id);
+    setNotifications(updatedNotifications);
+    localStorage.setItem('notifications_DGM WKS MTRL', JSON.stringify(updatedNotifications));
+  };
+
+  const handleDismissAllNotifications = () => {
+    setNotifications([]);
+    localStorage.removeItem('notifications_DGM WKS MTRL');
+  };
 
   if (selectedCard) {
     // CT Issue Data (same as GM Prod)
@@ -72,6 +161,57 @@ export default function DGMMTRLLogin() {
     ];
 
     const maxAmount = Math.max(...sectionFundData.map(s => s.amount));
+
+    // Fund State Grant Data
+    const fundStateGrantData = [
+      {
+        serNo: 1,
+        grantName: 'ORD Grant (415/01)',
+        almt202526: 17359000,
+        soPlacedGem: 12,
+        soPlacedNonGem: 278,
+        expdrGem: 713555,
+        expdrNonGem: 11060706,
+        totalExpdr: 11774261,
+        billsSubmitted: 5365263,
+        amtBooked: 4493190,
+        amtBal: 5584739,
+        remarks: ''
+      },
+      {
+        serNo: 2,
+        grantName: 'MT Grant (417/07)',
+        almt202526: 16252000,
+        soPlacedGem: 8,
+        soPlacedNonGem: 139,
+        expdrGem: 8731713,
+        expdrNonGem: 11916599,
+        totalExpdr: 20648312,
+        billsSubmitted: 7604025,
+        amtBooked: 7320152,
+        amtBal: -4396312,
+        remarks: 'Addl Rs 60 lakhs reqmt already fwd to HQ BWG'
+      },
+      {
+        serNo: 3,
+        grantName: 'IR&D Grant (438/00)',
+        almt202526: 3500000,
+        soPlacedGem: null,
+        soPlacedNonGem: 3,
+        expdrGem: 0,
+        expdrNonGem: 244130,
+        totalExpdr: 244130,
+        billsSubmitted: 199998,
+        amtBooked: null,
+        amtBal: 3255870,
+        remarks: 'Letter fwd to HQ BWG for surrender of Rs 28.75 Lakhs'
+      }
+    ];
+
+    // Calculate totals for graph
+    const totalAlmt = fundStateGrantData.reduce((sum, g) => sum + g.almt202526, 0);
+    const totalExpdr = fundStateGrantData.reduce((sum, g) => sum + g.totalExpdr, 0);
+    const maxGrantAmount = Math.max(...fundStateGrantData.map(g => g.almt202526));
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100">
@@ -124,70 +264,15 @@ export default function DGMMTRLLogin() {
                   Back to Dashboards
                 </button>
               </div>
-              {/* Table Section */}
-              <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
-                <h2 className="text-3xl font-bold text-gray-900 mb-6">CT Issue</h2>
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse text-xs">
-                    <thead>
-                      <tr className="bg-gray-200">
-                        <th className="border border-gray-400 px-2 py-2 font-semibold text-left">SER NO</th>
-                        <th className="border border-gray-400 px-2 py-2 font-semibold text-left">OHS SER NO</th>
-                        <th className="border border-gray-400 px-2 py-2 font-semibold text-left">COMP NO</th>
-                        <th className="border border-gray-400 px-2 py-2 font-semibold text-left">MTRL NO</th>
-                        <th className="border border-gray-400 px-2 py-2 font-semibold text-left">COS/SECTION</th>
-                        <th className="border border-gray-400 px-2 py-2 font-semibold text-left">PART No</th>
-                        <th className="border border-gray-400 px-2 py-2 font-semibold text-left">NOMENCLATURE</th>
-                        <th className="border border-gray-400 px-2 py-2 font-semibold text-left">NO OFF</th>
-                        <th className="border border-gray-400 px-2 py-2 font-semibold text-left">SCALE</th>
-                        <th className="border border-gray-400 px-2 py-2 font-semibold text-left">REQD QTY</th>
-                        <th className="border border-gray-400 px-2 py-2 font-semibold text-left">ISSUE QTY</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {ctIssueData.map((item) => (
-                        <tr key={item.serNo} className="hover:bg-gray-50">
-                          <td className="border border-gray-300 px-2 py-2 text-center">{item.serNo}</td>
-                          <td className="border border-gray-300 px-2 py-2 text-center">{item.ohsSerNo}</td>
-                          <td className="border border-gray-300 px-2 py-2 text-center">{item.compNo}</td>
-                          <td className="border border-gray-300 px-2 py-2 text-center font-mono">{item.mtrlNo}</td>
-                          <td className="border border-gray-300 px-2 py-2 text-center">{item.cosSection}</td>
-                          <td className="border border-gray-300 px-2 py-2 font-mono text-sm">{item.partNo}</td>
-                          <td className="border border-gray-300 px-2 py-2">{item.nomenclature}</td>
-                          <td className="border border-gray-300 px-2 py-2 text-center">{item.noOff}</td>
-                          <td className="border border-gray-300 px-2 py-2 text-center">{item.scale}</td>
-                          <td className="border border-gray-300 px-2 py-2 text-center">{item.reqdQty || '-'}</td>
-                          <td className="border border-gray-300 px-2 py-2 text-center">{item.issueQty || '-'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          ) : selectedCard === 'target' ? (
-            <div className="space-y-8">
-              {/* Back Button */}
-              <div className="mb-4">
-                <button
-                  onClick={handleBack}
-                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-semibold transition-colors flex items-center gap-2"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                  </svg>
-                  Back to Dashboards
-                </button>
-              </div>
               
               {/* Year Selection Dropdown */}
               <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
-                <label htmlFor="year-select" className="block text-sm font-semibold text-gray-700 mb-2">
+                <label htmlFor="year-select-ct" className="block text-sm font-semibold text-gray-700 mb-2">
                   Select Financial Year
                 </label>
                 <div className="flex items-center gap-3">
                   <select
-                    id="year-select"
+                    id="year-select-ct"
                     value={selectedYear}
                     onChange={(e) => setSelectedYear(e.target.value)}
                     className="w-full md:w-64 px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm font-semibold"
@@ -209,8 +294,48 @@ export default function DGMMTRLLogin() {
                 </div>
               </div>
 
-              {/* Content based on selected year - Imported from GM WKS MTRL */}
-              {selectedYear === 'PY-2023-24' ? (
+              {/* Content based on selected year */}
+              {!selectedYear ? (
+                <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
+                  <h2 className="text-3xl font-bold text-gray-900 mb-6">CT Issue</h2>
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse text-xs">
+                      <thead>
+                        <tr className="bg-gray-200">
+                          <th className="border border-gray-400 px-2 py-2 font-semibold text-left">SER NO</th>
+                          <th className="border border-gray-400 px-2 py-2 font-semibold text-left">OHS SER NO</th>
+                          <th className="border border-gray-400 px-2 py-2 font-semibold text-left">COMP NO</th>
+                          <th className="border border-gray-400 px-2 py-2 font-semibold text-left">MTRL NO</th>
+                          <th className="border border-gray-400 px-2 py-2 font-semibold text-left">COS/SECTION</th>
+                          <th className="border border-gray-400 px-2 py-2 font-semibold text-left">PART No</th>
+                          <th className="border border-gray-400 px-2 py-2 font-semibold text-left">NOMENCLATURE</th>
+                          <th className="border border-gray-400 px-2 py-2 font-semibold text-left">NO OFF</th>
+                          <th className="border border-gray-400 px-2 py-2 font-semibold text-left">SCALE</th>
+                          <th className="border border-gray-400 px-2 py-2 font-semibold text-left">REQD QTY</th>
+                          <th className="border border-gray-400 px-2 py-2 font-semibold text-left">ISSUE QTY</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {ctIssueData.map((item) => (
+                          <tr key={item.serNo} className="hover:bg-gray-50">
+                            <td className="border border-gray-300 px-2 py-2 text-center">{item.serNo}</td>
+                            <td className="border border-gray-300 px-2 py-2 text-center">{item.ohsSerNo}</td>
+                            <td className="border border-gray-300 px-2 py-2 text-center">{item.compNo}</td>
+                            <td className="border border-gray-300 px-2 py-2 text-center font-mono">{item.mtrlNo}</td>
+                            <td className="border border-gray-300 px-2 py-2 text-center">{item.cosSection}</td>
+                            <td className="border border-gray-300 px-2 py-2 font-mono text-sm">{item.partNo}</td>
+                            <td className="border border-gray-300 px-2 py-2">{item.nomenclature}</td>
+                            <td className="border border-gray-300 px-2 py-2 text-center">{item.noOff}</td>
+                            <td className="border border-gray-300 px-2 py-2 text-center">{item.scale}</td>
+                            <td className="border border-gray-300 px-2 py-2 text-center">{item.reqdQty || '-'}</td>
+                            <td className="border border-gray-300 px-2 py-2 text-center">{item.issueQty || '-'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ) : selectedYear === 'PY-2023-24' ? (
                 <div className="space-y-8">
                   {(() => {
                     // PY-2023-24 Data: CT ISSUE IN 2023-24
@@ -231,47 +356,7 @@ export default function DGMMTRLLogin() {
 
                     return (
                       <>
-                        {/* VEH Summary Cards */}
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                          <div className="bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 rounded-lg p-6 shadow-sm">
-                            <div className="text-blue-700 text-sm mb-1 font-semibold">Total VEH CT</div>
-                            <div className="text-3xl font-bold text-blue-600">{vehData.total}</div>
-                          </div>
-                          <div className="bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-200 rounded-lg p-6 shadow-sm">
-                            <div className="text-green-700 text-sm mb-1 font-semibold">CF CT</div>
-                            <div className="text-3xl font-bold text-green-600">{vehData.cfCt.total}</div>
-                          </div>
-                          <div className="bg-gradient-to-br from-purple-50 to-purple-100 border-2 border-purple-200 rounded-lg p-6 shadow-sm">
-                            <div className="text-purple-700 text-sm mb-1 font-semibold">Fresh CT</div>
-                            <div className="text-3xl font-bold text-purple-600">{vehData.freshCt.total}</div>
-                          </div>
-                          <div className="bg-gradient-to-br from-orange-50 to-orange-100 border-2 border-orange-200 rounded-lg p-6 shadow-sm">
-                            <div className="text-orange-700 text-sm mb-1 font-semibold">Output</div>
-                            <div className="text-3xl font-bold text-orange-600">{vehData.output.total}</div>
-                          </div>
-                        </div>
-
-                        {/* ENG Summary Cards */}
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                          <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 border-2 border-indigo-200 rounded-lg p-6 shadow-sm">
-                            <div className="text-indigo-700 text-sm mb-1 font-semibold">Total ENG CT</div>
-                            <div className="text-3xl font-bold text-indigo-600">{engData.total}</div>
-                          </div>
-                          <div className="bg-gradient-to-br from-teal-50 to-teal-100 border-2 border-teal-200 rounded-lg p-6 shadow-sm">
-                            <div className="text-teal-700 text-sm mb-1 font-semibold">CF CT ENGs</div>
-                            <div className="text-3xl font-bold text-teal-600">{engData.cfCt.total}</div>
-                          </div>
-                          <div className="bg-gradient-to-br from-cyan-50 to-cyan-100 border-2 border-cyan-200 rounded-lg p-6 shadow-sm">
-                            <div className="text-cyan-700 text-sm mb-1 font-semibold">Fresh CT ENGs</div>
-                            <div className="text-3xl font-bold text-cyan-600">{engData.freshCt.total}</div>
-                          </div>
-                          <div className="bg-gradient-to-br from-rose-50 to-rose-100 border-2 border-rose-200 rounded-lg p-6 shadow-sm">
-                            <div className="text-rose-700 text-sm mb-1 font-semibold">Output ENGs</div>
-                            <div className="text-3xl font-bold text-rose-600">{engData.output.total}</div>
-                          </div>
-                        </div>
-
-                        {/* VEH Table */}
+                        {/* CT Issued VEH Table */}
                         <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
                           <h2 className="text-3xl font-bold text-gray-900 mb-6">CT ISSUE IN 2023-24 - VEH (Vehicles)</h2>
                           <div className="overflow-x-auto">
@@ -330,7 +415,7 @@ export default function DGMMTRLLogin() {
                           </div>
                         </div>
 
-                        {/* ENG Table */}
+                        {/* CT Issued ENG Table */}
                         <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
                           <h2 className="text-3xl font-bold text-gray-900 mb-6">CT ISSUE IN 2023-24 - ENGs (Engines)</h2>
                           <div className="overflow-x-auto">
@@ -449,7 +534,7 @@ export default function DGMMTRLLogin() {
               ) : selectedYear === 'PY-2024-25' ? (
                 <div className="space-y-8">
                   {(() => {
-                    // PY-2024-25 Data: CT ISSUED IN 2024-25 and TARGET FOR 2024-25
+                    // PY-2024-25 Data: CT ISSUED IN 2024-25
                     const ctIssuedData = {
                       veh: {
                         total: 208,
@@ -464,43 +549,11 @@ export default function DGMMTRLLogin() {
                         output: { total: 183, utd20: 183 }
                       }
                     };
-                    const targetData = {
-                      veh: {
-                        ohI: { bmpII: 21, iik: 10 },
-                        ohII: 89,
-                        cmt: 15,
-                        vt72b: 2
-                      },
-                      eng: {
-                        utd20: 300,
-                        slk: 5
-                      }
-                    };
                     const carryFwdVehicles = 136;
                     const carryFwdEngs = 40;
 
                     return (
                       <>
-                        {/* Summary Cards */}
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                          <div className="bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 rounded-lg p-6 shadow-sm">
-                            <div className="text-blue-700 text-sm mb-1 font-semibold">CT Issued VEH</div>
-                            <div className="text-3xl font-bold text-blue-600">{ctIssuedData.veh.total}</div>
-                          </div>
-                          <div className="bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-200 rounded-lg p-6 shadow-sm">
-                            <div className="text-green-700 text-sm mb-1 font-semibold">CT Issued ENG</div>
-                            <div className="text-3xl font-bold text-green-600">{ctIssuedData.eng.total}</div>
-                          </div>
-                          <div className="bg-gradient-to-br from-purple-50 to-purple-100 border-2 border-purple-200 rounded-lg p-6 shadow-sm">
-                            <div className="text-purple-700 text-sm mb-1 font-semibold">Target VEH</div>
-                            <div className="text-3xl font-bold text-purple-600">{targetData.veh.ohI.bmpII + targetData.veh.ohI.iik + targetData.veh.ohII + targetData.veh.cmt + targetData.veh.vt72b}</div>
-                          </div>
-                          <div className="bg-gradient-to-br from-orange-50 to-orange-100 border-2 border-orange-200 rounded-lg p-6 shadow-sm">
-                            <div className="text-orange-700 text-sm mb-1 font-semibold">Target ENG</div>
-                            <div className="text-3xl font-bold text-orange-600">{targetData.eng.utd20 + targetData.eng.slk}</div>
-                          </div>
-                        </div>
-
                         {/* CT Issued VEH Table */}
                         <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
                           <h2 className="text-3xl font-bold text-gray-900 mb-6">CT ISSUED IN 2024-25 - VEH (Vehicles)</h2>
@@ -587,105 +640,6 @@ export default function DGMMTRLLogin() {
                             <p><strong>Carry Forward in 2025-26:</strong> {carryFwdEngs} ENGs</p>
                           </div>
                         </div>
-
-                        {/* Target Table */}
-                        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
-                          <h2 className="text-3xl font-bold text-gray-900 mb-6">TARGET FOR 2024-25</h2>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div>
-                              <h3 className="text-xl font-bold text-gray-800 mb-4">VEH (Vehicles)</h3>
-                              <div className="overflow-x-auto">
-                                <table className="w-full border-collapse text-xs">
-                                  <thead>
-                                    <tr className="bg-gray-200">
-                                      <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Type</th>
-                                      <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Quantity</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    <tr className="bg-gray-50">
-                                      <td className="border border-gray-300 px-3 py-2">OH-I - BMP II</td>
-                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.veh.ohI.bmpII}</td>
-                                    </tr>
-                                    <tr className="bg-white">
-                                      <td className="border border-gray-300 px-3 py-2">OH-I - BMP IIK</td>
-                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.veh.ohI.iik}</td>
-                                    </tr>
-                                    <tr className="bg-gray-50">
-                                      <td className="border border-gray-300 px-3 py-2">OH-II</td>
-                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.veh.ohII}</td>
-                                    </tr>
-                                    <tr className="bg-white">
-                                      <td className="border border-gray-300 px-3 py-2">CMT</td>
-                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.veh.cmt}</td>
-                                    </tr>
-                                    <tr className="bg-gray-50">
-                                      <td className="border border-gray-300 px-3 py-2">VT-72B</td>
-                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.veh.vt72b}</td>
-                                    </tr>
-                                  </tbody>
-                                </table>
-                              </div>
-                            </div>
-                            <div>
-                              <h3 className="text-xl font-bold text-gray-800 mb-4">ENGs (Engines)</h3>
-                              <div className="overflow-x-auto">
-                                <table className="w-full border-collapse text-xs">
-                                  <thead>
-                                    <tr className="bg-gray-200">
-                                      <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Type</th>
-                                      <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Quantity</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    <tr className="bg-gray-50">
-                                      <td className="border border-gray-300 px-3 py-2">UTD-20 ENG</td>
-                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.eng.utd20}</td>
-                                    </tr>
-                                    <tr className="bg-white">
-                                      <td className="border border-gray-300 px-3 py-2">SLK ENG</td>
-                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.eng.slk}</td>
-                                    </tr>
-                                  </tbody>
-                                </table>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Graph: CT Issued vs Output */}
-                        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
-                          <h3 className="text-2xl font-bold text-gray-900 mb-6">CT Issued vs Output vs Target - VEH</h3>
-                          <div className="flex items-end justify-around h-96 border-l-2 border-b-2 border-gray-400 pl-4 pb-4">
-                            <div className="flex flex-col items-center gap-2">
-                              <div
-                                className="w-24 bg-gradient-to-t from-blue-600 to-blue-400 flex items-start justify-center text-white font-bold text-sm pt-2 rounded-t-lg"
-                                style={{ height: `${(ctIssuedData.veh.total / 250) * 350}px`, minHeight: '30px' }}
-                              >
-                                {ctIssuedData.veh.total}
-                              </div>
-                              <span className="text-sm font-semibold text-gray-700 mt-2 text-center">CT Issued</span>
-                            </div>
-                            <div className="flex flex-col items-center gap-2">
-                              <div
-                                className="w-24 bg-gradient-to-t from-green-600 to-green-400 flex items-start justify-center text-white font-bold text-sm pt-2 rounded-t-lg"
-                                style={{ height: `${(ctIssuedData.veh.output.total / 250) * 350}px`, minHeight: '30px' }}
-                              >
-                                {ctIssuedData.veh.output.total}
-                              </div>
-                              <span className="text-sm font-semibold text-gray-700 mt-2 text-center">Output</span>
-                            </div>
-                            <div className="flex flex-col items-center gap-2">
-                              <div
-                                className="w-24 bg-gradient-to-t from-purple-600 to-purple-400 flex items-start justify-center text-white font-bold text-sm pt-2 rounded-t-lg"
-                                style={{ height: `${((targetData.veh.ohI.bmpII + targetData.veh.ohI.iik + targetData.veh.ohII + targetData.veh.cmt + targetData.veh.vt72b) / 250) * 350}px`, minHeight: '30px' }}
-                              >
-                                {targetData.veh.ohI.bmpII + targetData.veh.ohI.iik + targetData.veh.ohII + targetData.veh.cmt + targetData.veh.vt72b}
-                              </div>
-                              <span className="text-sm font-semibold text-gray-700 mt-2 text-center">Target</span>
-                            </div>
-                          </div>
-                        </div>
                       </>
                     );
                   })()}
@@ -693,21 +647,7 @@ export default function DGMMTRLLogin() {
               ) : selectedYear === 'PY-2025-26' ? (
                 <div className="space-y-8">
                   {(() => {
-                    // PY-2025-26 Data: TARGET FOR 2025-26 and CT ISSUED IN PY 2025-26
-                    const targetData = {
-                      veh: {
-                        ohI: { bmpII: 72, iik: 0 },
-                        ohII: { bmpII: 48 },
-                        cmt: 15,
-                        vt72b: 2,
-                        gun30mm: 20
-                      },
-                      eng: {
-                        utd20: 280,
-                        baz: 6,
-                        slk: 8
-                      }
-                    };
+                    // PY-2025-26 Data: CT ISSUED IN PY 2025-26
                     const ctIssuedData = {
                       veh: {
                         cfCt: { total: 136, bmpII: 36, iik: 64, cmt: 11, ohII: 25 },
@@ -721,95 +661,6 @@ export default function DGMMTRLLogin() {
 
                     return (
                       <>
-                        {/* Summary Cards */}
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                          <div className="bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 rounded-lg p-6 shadow-sm">
-                            <div className="text-blue-700 text-sm mb-1 font-semibold">Target VEH</div>
-                            <div className="text-3xl font-bold text-blue-600">{targetData.veh.ohI.bmpII + targetData.veh.ohII.bmpII + targetData.veh.cmt + targetData.veh.vt72b + targetData.veh.gun30mm}</div>
-                          </div>
-                          <div className="bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-200 rounded-lg p-6 shadow-sm">
-                            <div className="text-green-700 text-sm mb-1 font-semibold">Target ENG</div>
-                            <div className="text-3xl font-bold text-green-600">{targetData.eng.utd20 + targetData.eng.baz + targetData.eng.slk}</div>
-                          </div>
-                          <div className="bg-gradient-to-br from-purple-50 to-purple-100 border-2 border-purple-200 rounded-lg p-6 shadow-sm">
-                            <div className="text-purple-700 text-sm mb-1 font-semibold">CT Issued VEH</div>
-                            <div className="text-3xl font-bold text-purple-600">{ctIssuedData.veh.cfCt.total + 55}</div>
-                          </div>
-                          <div className="bg-gradient-to-br from-orange-50 to-orange-100 border-2 border-orange-200 rounded-lg p-6 shadow-sm">
-                            <div className="text-orange-700 text-sm mb-1 font-semibold">CT Issued ENG</div>
-                            <div className="text-3xl font-bold text-orange-600">{ctIssuedData.eng.cfCt.utd20 + ctIssuedData.eng.freshCt.utd20 + ctIssuedData.eng.freshCt.baz}</div>
-                          </div>
-                        </div>
-
-                        {/* Target Table */}
-                        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
-                          <h2 className="text-3xl font-bold text-gray-900 mb-6">TARGET FOR 2025-26</h2>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div>
-                              <h3 className="text-xl font-bold text-gray-800 mb-4">VEH (Vehicles)</h3>
-                              <div className="overflow-x-auto">
-                                <table className="w-full border-collapse text-xs">
-                                  <thead>
-                                    <tr className="bg-gray-200">
-                                      <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Type</th>
-                                      <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Quantity</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    <tr className="bg-gray-50">
-                                      <td className="border border-gray-300 px-3 py-2">OH-I - BMP II</td>
-                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.veh.ohI.bmpII}</td>
-                                    </tr>
-                                    <tr className="bg-white">
-                                      <td className="border border-gray-300 px-3 py-2">OH-II - BMP II</td>
-                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.veh.ohII.bmpII}</td>
-                                    </tr>
-                                    <tr className="bg-gray-50">
-                                      <td className="border border-gray-300 px-3 py-2">CMT</td>
-                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.veh.cmt}</td>
-                                    </tr>
-                                    <tr className="bg-white">
-                                      <td className="border border-gray-300 px-3 py-2">VT-72B</td>
-                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.veh.vt72b}</td>
-                                    </tr>
-                                    <tr className="bg-gray-50">
-                                      <td className="border border-gray-300 px-3 py-2">30 MM Gun</td>
-                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.veh.gun30mm}</td>
-                                    </tr>
-                                  </tbody>
-                                </table>
-                              </div>
-                            </div>
-                            <div>
-                              <h3 className="text-xl font-bold text-gray-800 mb-4">ENGs (Engines)</h3>
-                              <div className="overflow-x-auto">
-                                <table className="w-full border-collapse text-xs">
-                                  <thead>
-                                    <tr className="bg-gray-200">
-                                      <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Type</th>
-                                      <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Quantity</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    <tr className="bg-gray-50">
-                                      <td className="border border-gray-300 px-3 py-2">UTD-20 ENG</td>
-                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.eng.utd20}</td>
-                                    </tr>
-                                    <tr className="bg-white">
-                                      <td className="border border-gray-300 px-3 py-2">BAZ ENG</td>
-                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.eng.baz}</td>
-                                    </tr>
-                                    <tr className="bg-gray-50">
-                                      <td className="border border-gray-300 px-3 py-2">SLK ENG</td>
-                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.eng.slk}</td>
-                                    </tr>
-                                  </tbody>
-                                </table>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
                         {/* CT Issued Table */}
                         <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
                           <h2 className="text-3xl font-bold text-gray-900 mb-6">CT ISSUED IN PY 2025-26</h2>
@@ -896,29 +747,355 @@ export default function DGMMTRLLogin() {
                             </div>
                           </div>
                         </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              ) : null}
+            </div>
+          ) : selectedCard === 'target' ? (
+            <div className="space-y-8">
+              {/* Back Button */}
+              <div className="mb-4">
+                <button
+                  onClick={handleBack}
+                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-semibold transition-colors flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                  </svg>
+                  Back to Dashboards
+                </button>
+              </div>
+              
+              {/* Year Selection Dropdown */}
+              <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+                <label htmlFor="year-select" className="block text-sm font-semibold text-gray-700 mb-2">
+                  Select Financial Year
+                </label>
+                <div className="flex items-center gap-3">
+                  <select
+                    id="year-select"
+                    value={selectedYear}
+                    onChange={(e) => setSelectedYear(e.target.value)}
+                    className="w-full md:w-64 px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm font-semibold"
+                  >
+                    <option value="">-- Select a Year --</option>
+                    <option value="PY-2023-24">PY-2023-24</option>
+                    <option value="PY-2024-25">PY-2024-25</option>
+                    <option value="PY-2025-26">PY-2025-26</option>
+                    <option value="PY-2026-27">PY-2026-27</option>
+                  </select>
+                  {selectedYear && (
+                    <button
+                      onClick={() => setSelectedYear('')}
+                      className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-semibold transition-colors text-sm"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+              </div>
 
-                        {/* Graph: Target vs CT Issued */}
+              {/* Content based on selected year - Imported from GM WKS MTRL */}
+              {selectedYear === 'PY-2023-24' ? (
+                <div className="space-y-8">
+                  <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
+                    <h2 className="text-3xl font-bold text-gray-900 mb-6">Target Module - PY-2023-24</h2>
+                    <p className="text-gray-600">No target data available for this financial year.</p>
+                  </div>
+                </div>
+              ) : selectedYear === 'PY-2024-25' ? (
+                <div className="space-y-8">
+                  {(() => {
+                    // PY-2024-25 Data: CT ISSUED IN 2024-25 and TARGET FOR 2024-25
+                    const ctIssuedData = {
+                      veh: {
+                        total: 208,
+                        cfCt: { total: 143, bmpII: 33, iik: 101, cmt: 4, ohII: 5 },
+                        freshCt: { total: 65, bmpII: 15, iik: 10, cmt: 15, ohII: 25 },
+                        output: { total: 72, bmpII: 12, iik: 41, cmt: 8, ohII: 5 }
+                      },
+                      eng: {
+                        total: 223,
+                        cfCt: { total: 123, utd20: 123 },
+                        freshCt: { total: 100, utd20: 100 },
+                        output: { total: 183, utd20: 183 }
+                      }
+                    };
+                    const targetData = {
+                      veh: {
+                        ohI: { bmpII: 21, iik: 10 },
+                        ohII: 89,
+                        cmt: 15,
+                        vt72b: 2
+                      },
+                      eng: {
+                        utd20: 300,
+                        slk: 5
+                      }
+                    };
+                    const carryFwdVehicles = 136;
+                    const carryFwdEngs = 40;
+
+                    return (
+                      <>
+                        {/* Summary Cards */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="bg-gradient-to-br from-purple-50 to-purple-100 border-2 border-purple-200 rounded-lg p-6 shadow-sm">
+                            <div className="text-purple-700 text-sm mb-1 font-semibold">Target VEH</div>
+                            <div className="text-3xl font-bold text-purple-600">{targetData.veh.ohI.bmpII + targetData.veh.ohI.iik + targetData.veh.ohII + targetData.veh.cmt + targetData.veh.vt72b}</div>
+                          </div>
+                          <div className="bg-gradient-to-br from-orange-50 to-orange-100 border-2 border-orange-200 rounded-lg p-6 shadow-sm">
+                            <div className="text-orange-700 text-sm mb-1 font-semibold">Target ENG</div>
+                            <div className="text-3xl font-bold text-orange-600">{targetData.eng.utd20 + targetData.eng.slk}</div>
+                          </div>
+                        </div>
+
+                        {/* Target Table */}
                         <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
-                          <h3 className="text-2xl font-bold text-gray-900 mb-6">Target vs CT Issued - VEH</h3>
-                          <div className="flex items-end justify-around h-96 border-l-2 border-b-2 border-gray-400 pl-4 pb-4">
-                            <div className="flex flex-col items-center gap-2">
-                              <div
-                                className="w-24 bg-gradient-to-t from-purple-600 to-purple-400 flex items-start justify-center text-white font-bold text-sm pt-2 rounded-t-lg"
-                                style={{ height: `${((targetData.veh.ohI.bmpII + targetData.veh.ohII.bmpII + targetData.veh.cmt + targetData.veh.vt72b + targetData.veh.gun30mm) / 200) * 350}px`, minHeight: '30px' }}
-                              >
-                                {targetData.veh.ohI.bmpII + targetData.veh.ohII.bmpII + targetData.veh.cmt + targetData.veh.vt72b + targetData.veh.gun30mm}
+                          <h2 className="text-3xl font-bold text-gray-900 mb-6">TARGET FOR 2024-25</h2>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div>
+                              <h3 className="text-xl font-bold text-gray-800 mb-4">VEH (Vehicles)</h3>
+                              <div className="overflow-x-auto">
+                                <table className="w-full border-collapse text-xs">
+                                  <thead>
+                                    <tr className="bg-gray-200">
+                                      <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Type</th>
+                                      <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Quantity</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    <tr className="bg-gray-50">
+                                      <td className="border border-gray-300 px-3 py-2">OH-I - BMP II</td>
+                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.veh.ohI.bmpII}</td>
+                                    </tr>
+                                    <tr className="bg-white">
+                                      <td className="border border-gray-300 px-3 py-2">OH-I - BMP IIK</td>
+                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.veh.ohI.iik}</td>
+                                    </tr>
+                                    <tr className="bg-gray-50">
+                                      <td className="border border-gray-300 px-3 py-2">OH-II</td>
+                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.veh.ohII}</td>
+                                    </tr>
+                                    <tr className="bg-white">
+                                      <td className="border border-gray-300 px-3 py-2">CMT</td>
+                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.veh.cmt}</td>
+                                    </tr>
+                                    <tr className="bg-gray-50">
+                                      <td className="border border-gray-300 px-3 py-2">VT-72B</td>
+                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.veh.vt72b}</td>
+                                    </tr>
+                                  </tbody>
+                                </table>
                               </div>
-                              <span className="text-sm font-semibold text-gray-700 mt-2 text-center">Target</span>
                             </div>
-                            <div className="flex flex-col items-center gap-2">
-                              <div
-                                className="w-24 bg-gradient-to-t from-blue-600 to-blue-400 flex items-start justify-center text-white font-bold text-sm pt-2 rounded-t-lg"
-                                style={{ height: `${((ctIssuedData.veh.cfCt.total + 55) / 200) * 350}px`, minHeight: '30px' }}
-                              >
-                                {ctIssuedData.veh.cfCt.total + 55}
+                            <div>
+                              <h3 className="text-xl font-bold text-gray-800 mb-4">ENGs (Engines)</h3>
+                              <div className="overflow-x-auto">
+                                <table className="w-full border-collapse text-xs">
+                                  <thead>
+                                    <tr className="bg-gray-200">
+                                      <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Type</th>
+                                      <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Quantity</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    <tr className="bg-gray-50">
+                                      <td className="border border-gray-300 px-3 py-2">UTD-20 ENG</td>
+                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.eng.utd20}</td>
+                                    </tr>
+                                    <tr className="bg-white">
+                                      <td className="border border-gray-300 px-3 py-2">SLK ENG</td>
+                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.eng.slk}</td>
+                                    </tr>
+                                  </tbody>
+                                </table>
                               </div>
-                              <span className="text-sm font-semibold text-gray-700 mt-2 text-center">CT Issued</span>
                             </div>
+                          </div>
+                        </div>
+
+                        {/* Bar Graph: Target Values from Table - Merged VEH and ENG */}
+                        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
+                          <h3 className="text-2xl font-bold text-gray-900 mb-6">Target Values - VEH & ENG</h3>
+                          <div className="flex items-end justify-around h-96 border-l-2 border-b-2 border-gray-400 pl-4 pb-4 gap-2">
+                            {(() => {
+                              const vehTargets = [
+                                { label: 'OH-I\nBMP II', value: targetData.veh.ohI.bmpII, color: 'from-blue-600 to-blue-400' },
+                                { label: 'OH-I\nBMP IIK', value: targetData.veh.ohI.iik, color: 'from-purple-600 to-purple-400' },
+                                { label: 'OH-II', value: targetData.veh.ohII, color: 'from-green-600 to-green-400' },
+                                { label: 'CMT', value: targetData.veh.cmt, color: 'from-orange-600 to-orange-400' },
+                                { label: 'VT-72B', value: targetData.veh.vt72b, color: 'from-red-600 to-red-400' }
+                              ];
+                              const engTargets = [
+                                { label: 'UTD-20 ENG', value: targetData.eng.utd20, color: 'from-indigo-600 to-indigo-400' },
+                                { label: 'SLK ENG', value: targetData.eng.slk, color: 'from-teal-600 to-teal-400' }
+                              ];
+                              const allTargets = [...vehTargets, ...engTargets];
+                              const maxValue = Math.max(...allTargets.map(t => t.value), 1);
+                              return allTargets.map((target, index) => (
+                                <div key={index} className="flex flex-col items-center gap-2 flex-1">
+                                  <div
+                                    className={`w-full bg-gradient-to-t ${target.color} flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg`}
+                                    style={{ height: `${(target.value / maxValue) * 350}px`, minHeight: '30px' }}
+                                  >
+                                    {target.value}
+                                  </div>
+                                  <span className="text-xs font-semibold text-gray-700 mt-2 text-center whitespace-pre-line">{target.label}</span>
+                                </div>
+                              ));
+                            })()}
+                          </div>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              ) : selectedYear === 'PY-2025-26' ? (
+                <div className="space-y-8">
+                  {(() => {
+                    // PY-2025-26 Data: TARGET FOR 2025-26 and CT ISSUED IN PY 2025-26
+                    const targetData = {
+                      veh: {
+                        ohI: { bmpII: 72, iik: 0 },
+                        ohII: { bmpII: 48 },
+                        cmt: 15,
+                        vt72b: 2,
+                        gun30mm: 20
+                      },
+                      eng: {
+                        utd20: 280,
+                        baz: 6,
+                        slk: 8
+                      }
+                    };
+                    const ctIssuedData = {
+                      veh: {
+                        cfCt: { total: 136, bmpII: 36, iik: 64, cmt: 11, ohII: 25 },
+                        freshCt: { cmt: 10, ohII: 20, ohI: 15, gun30mm: 10 }
+                      },
+                      eng: {
+                        cfCt: { utd20: 40 },
+                        freshCt: { utd20: 95, baz: 5 }
+                      }
+                    };
+
+                    return (
+                      <>
+                        {/* Summary Cards */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 rounded-lg p-6 shadow-sm">
+                            <div className="text-blue-700 text-sm mb-1 font-semibold">Target VEH</div>
+                            <div className="text-3xl font-bold text-blue-600">{targetData.veh.ohI.bmpII + targetData.veh.ohII.bmpII + targetData.veh.cmt + targetData.veh.vt72b + targetData.veh.gun30mm}</div>
+                          </div>
+                          <div className="bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-200 rounded-lg p-6 shadow-sm">
+                            <div className="text-green-700 text-sm mb-1 font-semibold">Target ENG</div>
+                            <div className="text-3xl font-bold text-green-600">{targetData.eng.utd20 + targetData.eng.baz + targetData.eng.slk}</div>
+                          </div>
+                        </div>
+
+                        {/* Target Table */}
+                        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
+                          <h2 className="text-3xl font-bold text-gray-900 mb-6">TARGET FOR 2025-26</h2>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div>
+                              <h3 className="text-xl font-bold text-gray-800 mb-4">VEH (Vehicles)</h3>
+                              <div className="overflow-x-auto">
+                                <table className="w-full border-collapse text-xs">
+                                  <thead>
+                                    <tr className="bg-gray-200">
+                                      <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Type</th>
+                                      <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Quantity</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    <tr className="bg-gray-50">
+                                      <td className="border border-gray-300 px-3 py-2">OH-I - BMP II</td>
+                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.veh.ohI.bmpII}</td>
+                                    </tr>
+                                    <tr className="bg-white">
+                                      <td className="border border-gray-300 px-3 py-2">OH-II - BMP II</td>
+                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.veh.ohII.bmpII}</td>
+                                    </tr>
+                                    <tr className="bg-gray-50">
+                                      <td className="border border-gray-300 px-3 py-2">CMT</td>
+                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.veh.cmt}</td>
+                                    </tr>
+                                    <tr className="bg-white">
+                                      <td className="border border-gray-300 px-3 py-2">VT-72B</td>
+                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.veh.vt72b}</td>
+                                    </tr>
+                                    <tr className="bg-gray-50">
+                                      <td className="border border-gray-300 px-3 py-2">30 MM Gun</td>
+                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.veh.gun30mm}</td>
+                                    </tr>
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                            <div>
+                              <h3 className="text-xl font-bold text-gray-800 mb-4">ENGs (Engines)</h3>
+                              <div className="overflow-x-auto">
+                                <table className="w-full border-collapse text-xs">
+                                  <thead>
+                                    <tr className="bg-gray-200">
+                                      <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Type</th>
+                                      <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Quantity</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    <tr className="bg-gray-50">
+                                      <td className="border border-gray-300 px-3 py-2">UTD-20 ENG</td>
+                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.eng.utd20}</td>
+                                    </tr>
+                                    <tr className="bg-white">
+                                      <td className="border border-gray-300 px-3 py-2">BAZ ENG</td>
+                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.eng.baz}</td>
+                                    </tr>
+                                    <tr className="bg-gray-50">
+                                      <td className="border border-gray-300 px-3 py-2">SLK ENG</td>
+                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.eng.slk}</td>
+                                    </tr>
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Bar Graph: Target Values from Table - Merged VEH and ENG */}
+                        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
+                          <h3 className="text-2xl font-bold text-gray-900 mb-6">Target Values - VEH & ENG</h3>
+                          <div className="flex items-end justify-around h-96 border-l-2 border-b-2 border-gray-400 pl-4 pb-4 gap-2">
+                            {(() => {
+                              const vehTargets = [
+                                { label: 'OH-I\nBMP II', value: targetData.veh.ohI.bmpII, color: 'from-blue-600 to-blue-400' },
+                                { label: 'OH-II\nBMP II', value: targetData.veh.ohII.bmpII, color: 'from-green-600 to-green-400' },
+                                { label: 'CMT', value: targetData.veh.cmt, color: 'from-orange-600 to-orange-400' },
+                                { label: 'VT-72B', value: targetData.veh.vt72b, color: 'from-red-600 to-red-400' },
+                                { label: '30 MM\nGun', value: targetData.veh.gun30mm, color: 'from-pink-600 to-pink-400' }
+                              ];
+                              const engTargets = [
+                                { label: 'UTD-20 ENG', value: targetData.eng.utd20, color: 'from-indigo-600 to-indigo-400' },
+                                { label: 'BAZ ENG', value: targetData.eng.baz, color: 'from-cyan-600 to-cyan-400' },
+                                { label: 'SLK ENG', value: targetData.eng.slk, color: 'from-teal-600 to-teal-400' }
+                              ];
+                              const allTargets = [...vehTargets, ...engTargets];
+                              const maxValue = Math.max(...allTargets.map(t => t.value), 1);
+                              return allTargets.map((target, index) => (
+                                <div key={index} className="flex flex-col items-center gap-2 flex-1">
+                                  <div
+                                    className={`w-full bg-gradient-to-t ${target.color} flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg`}
+                                    style={{ height: `${(target.value / maxValue) * 350}px`, minHeight: '30px' }}
+                                  >
+                                    {target.value}
+                                  </div>
+                                  <span className="text-xs font-semibold text-gray-700 mt-2 text-center whitespace-pre-line">{target.label}</span>
+                                </div>
+                              ));
+                            })()}
                           </div>
                         </div>
                       </>
@@ -1021,79 +1198,39 @@ export default function DGMMTRLLogin() {
                           </div>
                         </div>
 
-                        {/* Graph: Target Distribution */}
+                        {/* Bar Graph: Target Values from Table - Merged VEH and ENG */}
                         <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
-                          <h3 className="text-2xl font-bold text-gray-900 mb-6">Target Distribution - VEH</h3>
-                          <div className="flex items-end justify-around h-96 border-l-2 border-b-2 border-gray-400 pl-4 pb-4">
-                            <div className="flex flex-col items-center gap-2">
-                              <div
-                                className="w-20 bg-gradient-to-t from-blue-600 to-blue-400 flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg"
-                                style={{ height: `${(targetData.veh.ohI.bmpII / 100) * 350}px`, minHeight: '30px' }}
-                              >
-                                {targetData.veh.ohI.bmpII}
-                              </div>
-                              <span className="text-xs font-semibold text-gray-700 mt-2 text-center">OH-I<br/>BMP II</span>
-                            </div>
-                            <div className="flex flex-col items-center gap-2">
-                              <div
-                                className="w-20 bg-gradient-to-t from-purple-600 to-purple-400 flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg"
-                                style={{ height: `${(targetData.veh.ohI.iik / 100) * 350}px`, minHeight: '30px' }}
-                              >
-                                {targetData.veh.ohI.iik}
-                              </div>
-                              <span className="text-xs font-semibold text-gray-700 mt-2 text-center">OH-I<br/>BMP IIK</span>
-                            </div>
-                            <div className="flex flex-col items-center gap-2">
-                              <div
-                                className="w-20 bg-gradient-to-t from-green-600 to-green-400 flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg"
-                                style={{ height: `${(targetData.veh.ohII.bmpII / 100) * 350}px`, minHeight: '30px' }}
-                              >
-                                {targetData.veh.ohII.bmpII}
-                              </div>
-                              <span className="text-xs font-semibold text-gray-700 mt-2 text-center">OH-II<br/>BMP II</span>
-                            </div>
-                            <div className="flex flex-col items-center gap-2">
-                              <div
-                                className="w-20 bg-gradient-to-t from-orange-600 to-orange-400 flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg"
-                                style={{ height: `${(targetData.veh.cmt / 100) * 350}px`, minHeight: '30px' }}
-                              >
-                                {targetData.veh.cmt}
-                              </div>
-                              <span className="text-xs font-semibold text-gray-700 mt-2 text-center">CMT</span>
-                            </div>
-                            <div className="flex flex-col items-center gap-2">
-                              <div
-                                className="w-20 bg-gradient-to-t from-red-600 to-red-400 flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg"
-                                style={{ height: `${(targetData.veh.vt72b / 100) * 350}px`, minHeight: '30px' }}
-                              >
-                                {targetData.veh.vt72b}
-                              </div>
-                              <span className="text-xs font-semibold text-gray-700 mt-2 text-center">VT-72B</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
-                          <h3 className="text-2xl font-bold text-gray-900 mb-6">Target Distribution - ENG</h3>
-                          <div className="flex items-end justify-around h-96 border-l-2 border-b-2 border-gray-400 pl-4 pb-4">
-                            <div className="flex flex-col items-center gap-2">
-                              <div
-                                className="w-24 bg-gradient-to-t from-indigo-600 to-indigo-400 flex items-start justify-center text-white font-bold text-sm pt-2 rounded-t-lg"
-                                style={{ height: `${(targetData.eng.utd20 / 300) * 350}px`, minHeight: '30px' }}
-                              >
-                                {targetData.eng.utd20}
-                              </div>
-                              <span className="text-sm font-semibold text-gray-700 mt-2 text-center">UTD-20 ENG</span>
-                            </div>
-                            <div className="flex flex-col items-center gap-2">
-                              <div
-                                className="w-24 bg-gradient-to-t from-teal-600 to-teal-400 flex items-start justify-center text-white font-bold text-sm pt-2 rounded-t-lg"
-                                style={{ height: `${(targetData.eng.slk / 300) * 350}px`, minHeight: '30px' }}
-                              >
-                                {targetData.eng.slk}
-                              </div>
-                              <span className="text-sm font-semibold text-gray-700 mt-2 text-center">SLK ENG</span>
-                            </div>
+                          <h3 className="text-2xl font-bold text-gray-900 mb-6">Target Values - VEH & ENG</h3>
+                          <div className="flex items-end justify-around h-96 border-l-2 border-b-2 border-gray-400 pl-4 pb-4 gap-2">
+                            {(() => {
+                              const vehTargets = [
+                                { label: 'OH-I\nBMP II', value: targetData.veh.ohI.bmpII, color: 'from-blue-600 to-blue-400' },
+                                { label: 'OH-I\nBMP IIK', value: targetData.veh.ohI.iik, color: 'from-purple-600 to-purple-400' },
+                                { label: 'OH-II\nBMP II', value: targetData.veh.ohII.bmpII, color: 'from-green-600 to-green-400' },
+                                { label: 'CMT', value: targetData.veh.cmt, color: 'from-orange-600 to-orange-400' },
+                                { label: 'VT-72B', value: targetData.veh.vt72b, color: 'from-red-600 to-red-400' }
+                              ];
+                              const engTargets: Array<{ label: string; value: number; color: string }> = [
+                                { label: 'UTD-20 ENG', value: targetData.eng.utd20, color: 'from-indigo-600 to-indigo-400' },
+                                { label: 'SLK ENG', value: targetData.eng.slk, color: 'from-teal-600 to-teal-400' }
+                              ];
+                              if ('baz' in targetData.eng && (targetData.eng as any).baz) {
+                                engTargets.splice(1, 0, { label: 'BAZ ENG', value: (targetData.eng as any).baz, color: 'from-cyan-600 to-cyan-400' });
+                              }
+                              const allTargets = [...vehTargets, ...engTargets];
+                              const maxValue = Math.max(...allTargets.map(t => t.value), 1);
+                              return allTargets.map((target, index) => (
+                                <div key={index} className="flex flex-col items-center gap-2 flex-1">
+                                  <div
+                                    className={`w-full bg-gradient-to-t ${target.color} flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg`}
+                                    style={{ height: `${(target.value / maxValue) * 350}px`, minHeight: '30px' }}
+                                  >
+                                    {target.value}
+                                  </div>
+                                  <span className="text-xs font-semibold text-gray-700 mt-2 text-center whitespace-pre-line">{target.label}</span>
+                                </div>
+                              ));
+                            })()}
                           </div>
                         </div>
                       </>
@@ -1121,93 +1258,171 @@ export default function DGMMTRLLogin() {
                 <h3 className="text-2xl font-bold text-gray-900 mb-4">Fund State Summary</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 rounded-lg p-6 shadow-sm hover:shadow-md transition">
-                    <div className="text-blue-700 text-sm mb-1 font-semibold">Total Budget</div>
-                    <div className="text-3xl font-bold text-blue-600">₹{(totalBudget / 10000000).toFixed(2)} Cr</div>
+                    <div className="text-blue-700 text-sm mb-1 font-semibold">ORD Grant (415/01)</div>
+                    <div className="text-3xl font-bold text-blue-600">₹{fundStateGrantData[0].almt202526.toLocaleString('en-IN')}</div>
                   </div>
                   <div className="bg-gradient-to-br from-red-50 to-red-100 border-2 border-red-200 rounded-lg p-6 shadow-sm hover:shadow-md transition">
-                    <div className="text-red-700 text-sm mb-1 font-semibold">Funds Used</div>
-                    <div className="text-3xl font-bold text-red-600">₹{(usedFunds / 10000000).toFixed(2)} Cr</div>
-                    <div className="text-sm text-red-500 mt-1">{usedPercentage.toFixed(1)}% utilized</div>
+                    <div className="text-red-700 text-sm mb-1 font-semibold">MT Grant (417/07)</div>
+                    <div className="text-3xl font-bold text-red-600">₹{fundStateGrantData[1].almt202526.toLocaleString('en-IN')}</div>
                   </div>
                   <div className="bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-200 rounded-lg p-6 shadow-sm hover:shadow-md transition">
-                    <div className="text-green-700 text-sm mb-1 font-semibold">Remaining Funds</div>
-                    <div className="text-3xl font-bold text-green-600">₹{(remainingFunds / 10000000).toFixed(2)} Cr</div>
-                    <div className="text-sm text-green-500 mt-1">{remainingPercentage.toFixed(1)}% available</div>
+                    <div className="text-green-700 text-sm mb-1 font-semibold">IR&D Grant (438/00)</div>
+                    <div className="text-3xl font-bold text-green-600">₹{fundStateGrantData[2].almt202526.toLocaleString('en-IN')}</div>
                   </div>
                 </div>
               </div>
 
-              {/* Pie Chart - Fund Utilization */}
+              {/* Fund State Table */}
               <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
-                <h3 className="text-2xl font-bold text-gray-900 mb-6">Fund Utilization</h3>
-                <div className="flex flex-col items-center">
-                  <div className="relative w-80 h-80">
-                    <svg viewBox="0 0 200 200" className="w-full h-full">
-                      {(() => {
-                        const colors = ['#ef4444', '#22c55e'];
-                        const percentages = [usedPercentage, remainingPercentage];
-                        let currentAngle = 0;
+                <h2 className="text-3xl font-bold text-gray-900 mb-6">Fund State Report 2025-26</h2>
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse text-xs">
+                    <thead>
+                      <tr className="bg-gray-200">
+                        <th className="border border-gray-400 px-2 py-2 font-semibold text-left">Ser No</th>
+                        <th className="border border-gray-400 px-2 py-2 font-semibold text-left">Name of Grant (Code Head)</th>
+                        <th className="border border-gray-400 px-2 py-2 font-semibold text-left">Almt 2025-26</th>
+                        <th className="border border-gray-400 px-2 py-2 font-semibold text-center" colSpan={2}>No of SO Placed</th>
+                        <th className="border border-gray-400 px-2 py-2 font-semibold text-center" colSpan={3}>Expdr</th>
+                        <th className="border border-gray-400 px-2 py-2 font-semibold text-left">Bills Submitted to CDA</th>
+                        <th className="border border-gray-400 px-2 py-2 font-semibold text-left">Amt Booked by CDA</th>
+                        <th className="border border-gray-400 px-2 py-2 font-semibold text-left">Amt Bal</th>
+                        <th className="border border-gray-400 px-2 py-2 font-semibold text-left">Remarks</th>
+                      </tr>
+                      <tr className="bg-gray-100">
+                        <th className="border border-gray-400 px-2 py-1"></th>
+                        <th className="border border-gray-400 px-2 py-1"></th>
+                        <th className="border border-gray-400 px-2 py-1"></th>
+                        <th className="border border-gray-400 px-2 py-1 font-semibold text-center">GeM</th>
+                        <th className="border border-gray-400 px-2 py-1 font-semibold text-center">Non GeM</th>
+                        <th className="border border-gray-400 px-2 py-1 font-semibold text-center">Cost / Expdr</th>
+                        <th className="border border-gray-400 px-2 py-1 font-semibold text-center">Total Expdr</th>
+                        <th className="border border-gray-400 px-2 py-1"></th>
+                        <th className="border border-gray-400 px-2 py-1"></th>
+                        <th className="border border-gray-400 px-2 py-1"></th>
+                        <th className="border border-gray-400 px-2 py-1"></th>
+                        <th className="border border-gray-400 px-2 py-1"></th>
+                      </tr>
+                      <tr className="bg-gray-50">
+                        <th className="border border-gray-400 px-2 py-1"></th>
+                        <th className="border border-gray-400 px-2 py-1"></th>
+                        <th className="border border-gray-400 px-2 py-1"></th>
+                        <th className="border border-gray-400 px-2 py-1"></th>
+                        <th className="border border-gray-400 px-2 py-1"></th>
+                        <th className="border border-gray-400 px-2 py-1 font-semibold text-center">GeM</th>
+                        <th className="border border-gray-400 px-2 py-1 font-semibold text-center">Non GeM</th>
+                        <th className="border border-gray-400 px-2 py-1"></th>
+                        <th className="border border-gray-400 px-2 py-1"></th>
+                        <th className="border border-gray-400 px-2 py-1"></th>
+                        <th className="border border-gray-400 px-2 py-1"></th>
+                        <th className="border border-gray-400 px-2 py-1"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {fundStateGrantData.map((grant, index) => {
+                        const expdrPercentage = ((grant.totalExpdr / grant.almt202526) * 100).toFixed(2);
+                        const billsPercentage = grant.billsSubmitted ? ((grant.billsSubmitted / grant.almt202526) * 100).toFixed(2) : '-';
+                        const bookedPercentage = grant.amtBooked ? ((grant.amtBooked / grant.almt202526) * 100).toFixed(2) : '-';
+                        const balPercentage = ((grant.amtBal / grant.almt202526) * 100).toFixed(2);
                         
-                        return percentages.map((percentage, index) => {
-                          const angle = (percentage / 100) * 360;
-                          const startAngle = currentAngle;
-                          const endAngle = currentAngle + angle;
-                          const startRad = (startAngle - 90) * (Math.PI / 180);
-                          const endRad = (endAngle - 90) * (Math.PI / 180);
-                          const x1 = 100 + 90 * Math.cos(startRad);
-                          const y1 = 100 + 90 * Math.sin(startRad);
-                          const x2 = 100 + 90 * Math.cos(endRad);
-                          const y2 = 100 + 90 * Math.sin(endRad);
-                          const largeArcFlag = angle > 180 ? 1 : 0;
-                          const pathData = [
-                            `M 100 100`,
-                            `L ${x1} ${y1}`,
-                            `A 90 90 0 ${largeArcFlag} 1 ${x2} ${y2}`,
-                            'Z'
-                          ].join(' ');
-                          currentAngle = endAngle;
-                          return (
-                            <path
-                              key={index}
-                              d={pathData}
-                              fill={colors[index]}
-                              stroke="white"
-                              strokeWidth="2"
-                            />
-                          );
-                        })
-                      })()}
-                      <circle cx="100" cy="100" r="50" fill="white" />
-                    </svg>
-                  </div>
-                  <div className="mt-6 flex gap-8">
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 bg-red-500 rounded"></div>
-                      <div className="text-sm font-semibold">Used</div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 bg-green-500 rounded"></div>
-                      <div className="text-sm font-semibold">Remaining</div>
-                    </div>
-                  </div>
+                        return (
+                          <React.Fragment key={grant.serNo}>
+                            <tr className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors`}>
+                              <td className="border border-gray-300 px-2 py-2 text-center font-semibold">{grant.serNo}</td>
+                              <td className="border border-gray-300 px-2 py-2 font-semibold">{grant.grantName}</td>
+                              <td className="border border-gray-300 px-2 py-2 text-right">{grant.almt202526.toLocaleString('en-IN')}</td>
+                              <td className="border border-gray-300 px-2 py-2 text-center">{grant.soPlacedGem ?? '-'}</td>
+                              <td className="border border-gray-300 px-2 py-2 text-center">{grant.soPlacedNonGem}</td>
+                              <td className="border border-gray-300 px-2 py-2 text-right">{grant.expdrGem.toLocaleString('en-IN')}</td>
+                              <td className="border border-gray-300 px-2 py-2 text-right">{grant.expdrNonGem.toLocaleString('en-IN')}</td>
+                              <td className="border border-gray-300 px-2 py-2 text-right font-semibold">{grant.totalExpdr.toLocaleString('en-IN')}</td>
+                              <td className="border border-gray-300 px-2 py-2 text-right">{grant.billsSubmitted.toLocaleString('en-IN')}</td>
+                              <td className="border border-gray-300 px-2 py-2 text-right">{grant.amtBooked ? grant.amtBooked.toLocaleString('en-IN') : '-'}</td>
+                              <td className={`border border-gray-300 px-2 py-2 text-right font-semibold ${grant.amtBal < 0 ? 'text-red-600' : ''}`}>
+                                {grant.amtBal.toLocaleString('en-IN')}
+                              </td>
+                              <td className="border border-gray-300 px-2 py-2 text-sm">{grant.remarks}</td>
+                            </tr>
+                            <tr className={`${index % 2 === 0 ? 'bg-gray-50' : 'bg-white'} text-xs`}>
+                              <td className="border border-gray-300 px-2 py-1"></td>
+                              <td className="border border-gray-300 px-2 py-1"></td>
+                              <td className="border border-gray-300 px-2 py-1"></td>
+                              <td className="border border-gray-300 px-2 py-1"></td>
+                              <td className="border border-gray-300 px-2 py-1"></td>
+                              <td className="border border-gray-300 px-2 py-1"></td>
+                              <td className="border border-gray-300 px-2 py-1 text-right font-semibold">{expdrPercentage}%</td>
+                              <td className="border border-gray-300 px-2 py-1 text-right">{billsPercentage}%</td>
+                              <td className="border border-gray-300 px-2 py-1 text-right">{bookedPercentage}%</td>
+                              <td className="border border-gray-300 px-2 py-1 text-right font-semibold">{balPercentage}%</td>
+                              <td className="border border-gray-300 px-2 py-1"></td>
+                            </tr>
+                          </React.Fragment>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
               </div>
 
-              {/* Bar Graph - Section-wise Fund Usage */}
+              {/* Bar Graph - Grant Allocation vs Expenditure vs Bills Submitted */}
               <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
-                <h3 className="text-2xl font-bold text-gray-900 mb-6">Section-wise Fund Usage</h3>
-                <div className="flex items-end justify-around h-96 border-l-2 border-b-2 border-gray-400 pl-4 pb-4">
-                  {sectionFundData.map((data) => (
-                    <div key={data.section} className="flex flex-col items-center gap-2">
-                      <div
-                        className={`w-20 ${data.color} flex items-start justify-center text-white font-bold text-sm pt-2 rounded-t-lg hover:opacity-80 transition-all`}
-                        style={{ height: `${(data.amount / maxAmount) * 300}px`, minHeight: '40px' }}
-                      >
-                        ₹{(data.amount / 1000000).toFixed(1)}M
+                <h3 className="text-2xl font-bold text-gray-900 mb-6">Grant Allocation vs Expenditure vs Bills Submitted</h3>
+                <div className="flex items-end justify-around h-96 border-l-2 border-b-2 border-gray-400 pl-4 pb-4 mt-4">
+                  {fundStateGrantData.map((grant) => {
+                    const grantShortName = grant.grantName.split(' ')[0]; // ORD, MT, IR&D
+                    const almtHeight = (grant.almt202526 / maxGrantAmount) * 320;
+                    const expdrHeight = (Math.abs(grant.totalExpdr) / maxGrantAmount) * 320;
+                    const billsHeight = grant.billsSubmitted ? (grant.billsSubmitted / maxGrantAmount) * 320 : 0;
+                    
+                    return (
+                      <div key={grant.serNo} className="flex flex-col items-center gap-2">
+                        <div className="flex items-end gap-1">
+                          <div
+                            className="w-14 bg-blue-500 flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg hover:opacity-80 transition-all"
+                            style={{ height: `${almtHeight}px`, minHeight: '30px' }}
+                            title={`Allocation: ₹${(grant.almt202526 / 1000000).toFixed(2)}M`}
+                          >
+                            ₹{(grant.almt202526 / 1000000).toFixed(1)}M
+                          </div>
+                          <div
+                            className={`w-14 ${grant.totalExpdr > grant.almt202526 ? 'bg-red-500' : 'bg-green-500'} flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg hover:opacity-80 transition-all`}
+                            style={{ height: `${expdrHeight}px`, minHeight: '30px' }}
+                            title={`Expenditure: ₹${(grant.totalExpdr / 1000000).toFixed(2)}M`}
+                          >
+                            ₹{(grant.totalExpdr / 1000000).toFixed(1)}M
+                          </div>
+                          {grant.billsSubmitted && (
+                            <div
+                              className="w-14 bg-orange-500 flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg hover:opacity-80 transition-all"
+                              style={{ height: `${billsHeight}px`, minHeight: '30px' }}
+                              title={`Bills Submitted: ₹${(grant.billsSubmitted / 1000000).toFixed(2)}M`}
+                            >
+                              ₹{(grant.billsSubmitted / 1000000).toFixed(1)}M
+                            </div>
+                          )}
+                        </div>
+                        <span className="text-xs font-semibold text-gray-700 mt-2 text-center">{grantShortName}</span>
                       </div>
-                      <span className="text-sm font-semibold text-gray-700 mt-2">{data.section}</span>
-                    </div>
-                  ))}
+                    );
+                  })}
+                </div>
+                <div className="mt-6 flex justify-center gap-8 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-blue-500 rounded"></div>
+                    <div className="text-sm font-semibold">Allocation</div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-green-500 rounded"></div>
+                    <div className="text-sm font-semibold">Expenditure (Within Budget)</div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-red-500 rounded"></div>
+                    <div className="text-sm font-semibold">Expenditure (Over Budget)</div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-orange-500 rounded"></div>
+                    <div className="text-sm font-semibold">Bills Submitted to CDA</div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1249,24 +1464,158 @@ export default function DGMMTRLLogin() {
                         </div>
                       </div>
 
-                      {/* Bar Graph - IFA Cases per Quarter */}
-                      <div>
-                        <h3 className="text-2xl font-bold text-gray-900 mb-6">IFA Cases by Quarter</h3>
-                        <div className="flex items-end justify-around h-96 border-l-2 border-b-2 border-gray-400 pl-4 pb-4">
-                          {ifaCasesData.map((data) => (
-                            <div key={data.quarter} className="flex flex-col items-center gap-2">
-                              <div
-                                className="w-24 bg-gradient-to-t from-cyan-600 to-cyan-400 flex items-start justify-center text-white font-bold text-sm pt-2 rounded-t-lg hover:from-cyan-700 hover:to-cyan-500 transition-all"
-                                style={{ height: `${(data.count / maxIfaCount) * 350}px`, minHeight: '30px' }}
-                              >
-                                {data.count}
-                              </div>
-                              <span className="text-sm font-semibold text-gray-700 mt-2 text-center">{data.quarter}</span>
-                            </div>
-                          ))}
+                      {/* IFA Cases Table */}
+                      <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 mb-8">
+                        <h3 className="text-2xl font-bold text-gray-900 mb-6">IFA Cases - Detailed List</h3>
+                        <div className="overflow-x-auto">
+                          <table className="w-full border-collapse text-sm">
+                            <thead>
+                              <tr className="bg-gray-200">
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">S.No</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">IFA Case No</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">LPR/WO No</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Section</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Component</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Issue Date</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Status</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Remarks</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {[
+                                { sNo: 1, ifaCaseNo: 'IFA/2024/001', lprWoNo: 'LPR/2024/001', section: 'ARD', component: 'Hydraulic Pump', issueDate: '15/01/2024', status: 'Pending', remarks: 'Awaiting vendor response' },
+                                { sNo: 2, ifaCaseNo: 'IFA/2024/002', lprWoNo: 'WO/2024/001', section: 'VRD', component: 'Engine Gasket', issueDate: '20/01/2024', status: 'In Progress', remarks: 'Under review' },
+                                { sNo: 3, ifaCaseNo: 'IFA/2024/003', lprWoNo: 'LPR/2024/002', section: 'SRD', component: 'Brake Assembly', issueDate: '25/01/2024', status: 'Resolved', remarks: 'Issue resolved' },
+                                { sNo: 4, ifaCaseNo: 'IFA/2024/004', lprWoNo: 'WO/2024/002', section: 'ETD', component: 'Transmission Gear', issueDate: '01/02/2024', status: 'Pending', remarks: '' },
+                                { sNo: 5, ifaCaseNo: 'IFA/2024/005', lprWoNo: 'LPR/2024/003', section: 'ARMT', component: 'Clutch Plate', issueDate: '05/02/2024', status: 'In Progress', remarks: 'Investigation ongoing' },
+                                { sNo: 6, ifaCaseNo: 'IFA/2024/006', lprWoNo: 'WO/2024/003', section: 'T&R', component: 'Suspension Spring', issueDate: '10/02/2024', status: 'Resolved', remarks: 'Closed' },
+                                { sNo: 7, ifaCaseNo: 'IFA/2024/007', lprWoNo: 'LPR/2024/004', section: 'ENG', component: 'Cylinder Head', issueDate: '15/02/2024', status: 'Pending', remarks: '' },
+                                { sNo: 8, ifaCaseNo: 'IFA/2024/008', lprWoNo: 'WO/2024/004', section: 'INST', component: 'Electrical Harness', issueDate: '20/02/2024', status: 'In Progress', remarks: 'Awaiting parts' },
+                                { sNo: 9, ifaCaseNo: 'IFA/2024/009', lprWoNo: 'LPR/2024/005', section: 'VRD', component: 'Oil Filter', issueDate: '25/02/2024', status: 'Resolved', remarks: 'Issue fixed' },
+                                { sNo: 10, ifaCaseNo: 'IFA/2024/010', lprWoNo: 'WO/2024/005', section: 'ARD', component: 'Water Pump', issueDate: '01/03/2024', status: 'Pending', remarks: 'Follow up required' }
+                              ].map((row, index) => (
+                                <tr key={row.sNo} className={`${index % 2 === 0 ? 'bg-gray-50' : 'bg-white'} hover:bg-blue-50 transition-colors`}>
+                                  <td className="border border-gray-300 px-3 py-2 text-center">{row.sNo}</td>
+                                  <td className="border border-gray-300 px-3 py-2 font-mono">{row.ifaCaseNo}</td>
+                                  <td className="border border-gray-300 px-3 py-2 font-mono">{row.lprWoNo}</td>
+                                  <td className="border border-gray-300 px-3 py-2 font-semibold">{row.section}</td>
+                                  <td className="border border-gray-300 px-3 py-2">{row.component}</td>
+                                  <td className="border border-gray-300 px-3 py-2 text-center">{row.issueDate}</td>
+                                  <td className="border border-gray-300 px-3 py-2 text-center">
+                                    <span
+                                      className={`px-3 py-1 rounded-full text-xs font-bold ${
+                                        row.status === 'Resolved'
+                                          ? 'bg-green-100 text-green-800'
+                                          : row.status === 'In Progress'
+                                          ? 'bg-blue-100 text-blue-800'
+                                          : 'bg-yellow-100 text-yellow-800'
+                                      }`}
+                                    >
+                                      {row.status}
+                                    </span>
+                                  </td>
+                                  <td className="border border-gray-300 px-3 py-2 text-sm">{row.remarks || '-'}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
                         </div>
-                        <div className="mt-6 text-center">
-                          <p className="text-xs text-gray-500">Y-axis: Number of IFA Cases | X-axis: Financial Year Quarters</p>
+                      </div>
+
+                      {/* Pie Chart - IFA Cases by Status */}
+                      <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
+                        <h3 className="text-2xl font-bold text-gray-900 mb-6">IFA Cases by Status</h3>
+                        <div className="flex flex-col items-center">
+                          {(() => {
+                            const ifaTableData = [
+                              { sNo: 1, ifaCaseNo: 'IFA/2024/001', lprWoNo: 'LPR/2024/001', section: 'ARD', component: 'Hydraulic Pump', issueDate: '15/01/2024', status: 'Pending', remarks: 'Awaiting vendor response' },
+                              { sNo: 2, ifaCaseNo: 'IFA/2024/002', lprWoNo: 'WO/2024/001', section: 'VRD', component: 'Engine Gasket', issueDate: '20/01/2024', status: 'In Progress', remarks: 'Under review' },
+                              { sNo: 3, ifaCaseNo: 'IFA/2024/003', lprWoNo: 'LPR/2024/002', section: 'SRD', component: 'Brake Assembly', issueDate: '25/01/2024', status: 'Resolved', remarks: 'Issue resolved' },
+                              { sNo: 4, ifaCaseNo: 'IFA/2024/004', lprWoNo: 'WO/2024/002', section: 'ETD', component: 'Transmission Gear', issueDate: '01/02/2024', status: 'Pending', remarks: '' },
+                              { sNo: 5, ifaCaseNo: 'IFA/2024/005', lprWoNo: 'LPR/2024/003', section: 'ARMT', component: 'Clutch Plate', issueDate: '05/02/2024', status: 'In Progress', remarks: 'Investigation ongoing' },
+                              { sNo: 6, ifaCaseNo: 'IFA/2024/006', lprWoNo: 'WO/2024/003', section: 'T&R', component: 'Suspension Spring', issueDate: '10/02/2024', status: 'Resolved', remarks: 'Closed' },
+                              { sNo: 7, ifaCaseNo: 'IFA/2024/007', lprWoNo: 'LPR/2024/004', section: 'ENG', component: 'Cylinder Head', issueDate: '15/02/2024', status: 'Pending', remarks: '' },
+                              { sNo: 8, ifaCaseNo: 'IFA/2024/008', lprWoNo: 'WO/2024/004', section: 'INST', component: 'Electrical Harness', issueDate: '20/02/2024', status: 'In Progress', remarks: 'Awaiting parts' },
+                              { sNo: 9, ifaCaseNo: 'IFA/2024/009', lprWoNo: 'LPR/2024/005', section: 'VRD', component: 'Oil Filter', issueDate: '25/02/2024', status: 'Resolved', remarks: 'Issue fixed' },
+                              { sNo: 10, ifaCaseNo: 'IFA/2024/010', lprWoNo: 'WO/2024/005', section: 'ARD', component: 'Water Pump', issueDate: '01/03/2024', status: 'Pending', remarks: 'Follow up required' }
+                            ];
+                            
+                            const statusCounts = ifaTableData.reduce((acc: any, item) => {
+                              acc[item.status] = (acc[item.status] || 0) + 1;
+                              return acc;
+                            }, {});
+                            
+                            const statusData = [
+                              { status: 'Pending', count: statusCounts['Pending'] || 0, color: '#eab308' },
+                              { status: 'In Progress', count: statusCounts['In Progress'] || 0, color: '#3b82f6' },
+                              { status: 'Resolved', count: statusCounts['Resolved'] || 0, color: '#22c55e' }
+                            ];
+                            
+                            const totalStatusCount = statusData.reduce((sum, item) => sum + item.count, 0);
+                            const percentages = statusData.map(item => totalStatusCount > 0 ? (item.count / totalStatusCount) * 100 : 0);
+                            
+                            return (
+                              <>
+                                <div className="relative w-80 h-80">
+                                  <svg viewBox="0 0 200 200" className="w-full h-full">
+                                    {(() => {
+                                      let currentAngle = 0;
+                                      return percentages.map((percentage, index) => {
+                                        if (percentage === 0) return null;
+                                        const angle = (percentage / 100) * 360;
+                                        const startAngle = currentAngle;
+                                        const endAngle = currentAngle + angle;
+                                        const startRad = (startAngle - 90) * (Math.PI / 180);
+                                        const endRad = (endAngle - 90) * (Math.PI / 180);
+                                        const x1 = 100 + 90 * Math.cos(startRad);
+                                        const y1 = 100 + 90 * Math.sin(startRad);
+                                        const x2 = 100 + 90 * Math.cos(endRad);
+                                        const y2 = 100 + 90 * Math.sin(endRad);
+                                        const largeArcFlag = angle > 180 ? 1 : 0;
+                                        const pathData = [
+                                          `M 100 100`,
+                                          `L ${x1} ${y1}`,
+                                          `A 90 90 0 ${largeArcFlag} 1 ${x2} ${y2}`,
+                                          'Z'
+                                        ].join(' ');
+                                        currentAngle = endAngle;
+                                        return (
+                                          <path
+                                            key={index}
+                                            d={pathData}
+                                            fill={statusData[index].color}
+                                            stroke="white"
+                                            strokeWidth="2"
+                                          />
+                                        );
+                                      });
+                                    })()}
+                                    <circle cx="100" cy="100" r="50" fill="white" />
+                                    <text x="100" y="95" textAnchor="middle" className="text-2xl font-bold fill-gray-900">
+                                      {totalStatusCount}
+                                    </text>
+                                    <text x="100" y="110" textAnchor="middle" className="text-sm fill-gray-600">
+                                      Total Cases
+                                    </text>
+                                  </svg>
+                                </div>
+                                <div className="mt-6 flex flex-wrap justify-center gap-6">
+                                  {statusData.map((item, index) => (
+                                    <div key={index} className="flex items-center gap-2">
+                                      <div className="w-4 h-4 rounded" style={{ backgroundColor: item.color }}></div>
+                                      <div className="text-sm">
+                                        <span className="font-semibold">{item.status}</span>
+                                        <span className="text-gray-600 ml-1">({item.count})</span>
+                                        <span className="text-gray-500 ml-1">
+                                          ({totalStatusCount > 0 ? ((item.count / totalStatusCount) * 100).toFixed(1) : 0}%)
+                                        </span>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </>
+                            );
+                          })()}
                         </div>
                       </div>
                     </>
@@ -1541,7 +1890,7 @@ export default function DGMMTRLLogin() {
                 {/* Scaled Tab Content */}
                 {lmWoPlacedTab === 'scaled' && (
                   <div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-4">SCALED LM 2025-26 STATUS (15/10/25)</h3>
+                    <h3 className="text-xl font-bold text-gray-900 mb-4">Status</h3>
                     
                     {/* Scaled Table Data */}
                     {(() => {
@@ -1629,7 +1978,7 @@ export default function DGMMTRLLogin() {
                 {/* Non Scaled Tab Content */}
                 {lmWoPlacedTab === 'non-scaled' && (
                   <div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-4">NON SCALED LM 2025-26 STATUS (15/10/25)</h3>
+                    <h3 className="text-xl font-bold text-gray-900 mb-4">Status</h3>
                     
                     {/* Non Scaled Table Data */}
                     {(() => {
@@ -1715,6 +2064,144 @@ export default function DGMMTRLLogin() {
                     })()}
                   </div>
                 )}
+
+                {/* Summary Cards Bar Graph for LM Status */}
+                <div className="mt-8 bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+                  <h4 className="text-xl font-bold text-gray-900 mb-8">Summary Cards Visualization</h4>
+                  <div className="flex items-end justify-around h-80 border-l-2 border-b-2 border-gray-400 pl-4 pb-4 gap-2 mt-6">
+                    {(() => {
+                      const scaledTotals = {
+                        awtMtrl: 68,
+                        can: 28,
+                        comp: 9,
+                        oss: 3,
+                        woRel: 67,
+                        meCell: 6
+                      };
+                      const nonScaledTotals = {
+                        awtMtrl: 44,
+                        can: 4,
+                        comp: 13,
+                        oss: 4, // Using ess value from nonScaledData
+                        woRel: 98,
+                        meCell: 12
+                      };
+                      const totals = lmWoPlacedTab === 'scaled' ? scaledTotals : nonScaledTotals;
+                      const maxValue = Math.max(totals.awtMtrl, totals.can, totals.comp, totals.oss, totals.woRel, totals.meCell, 1);
+                      
+                      return (
+                        <>
+                          <div className="flex flex-col items-center gap-2 flex-1">
+                            <div
+                              className="w-full bg-gradient-to-t from-blue-600 to-blue-400 flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg hover:from-blue-700 hover:to-blue-500 transition-all"
+                              style={{ height: `${(totals.awtMtrl / maxValue) * 300}px`, minHeight: '30px' }}
+                              title={`Awt Mtrl: ${totals.awtMtrl}`}
+                            >
+                              {totals.awtMtrl}
+                            </div>
+                            <span className="text-xs font-semibold text-gray-700 mt-2 text-center">Awt Mtrl</span>
+                          </div>
+                          <div className="flex flex-col items-center gap-2 flex-1">
+                            <div
+                              className="w-full bg-gradient-to-t from-green-600 to-green-400 flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg hover:from-green-700 hover:to-green-500 transition-all"
+                              style={{ height: `${(totals.can / maxValue) * 300}px`, minHeight: '30px' }}
+                              title={`Can: ${totals.can}`}
+                            >
+                              {totals.can}
+                            </div>
+                            <span className="text-xs font-semibold text-gray-700 mt-2 text-center">Can</span>
+                          </div>
+                          <div className="flex flex-col items-center gap-2 flex-1">
+                            <div
+                              className="w-full bg-gradient-to-t from-purple-600 to-purple-400 flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg hover:from-purple-700 hover:to-purple-500 transition-all"
+                              style={{ height: `${(totals.comp / maxValue) * 300}px`, minHeight: '30px' }}
+                              title={`Comp: ${totals.comp}`}
+                            >
+                              {totals.comp}
+                            </div>
+                            <span className="text-xs font-semibold text-gray-700 mt-2 text-center">Comp</span>
+                          </div>
+                          <div className="flex flex-col items-center gap-2 flex-1">
+                            <div
+                              className="w-full bg-gradient-to-t from-orange-600 to-orange-400 flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg hover:from-orange-700 hover:to-orange-500 transition-all"
+                              style={{ height: `${(totals.oss / maxValue) * 300}px`, minHeight: '30px' }}
+                              title={`${lmWoPlacedTab === 'scaled' ? 'OSS' : 'ESS'}: ${totals.oss}`}
+                            >
+                              {totals.oss}
+                            </div>
+                            <span className="text-xs font-semibold text-gray-700 mt-2 text-center">{lmWoPlacedTab === 'scaled' ? 'OSS' : 'ESS'}</span>
+                          </div>
+                          <div className="flex flex-col items-center gap-2 flex-1">
+                            <div
+                              className="w-full bg-gradient-to-t from-teal-600 to-teal-400 flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg hover:from-teal-700 hover:to-teal-500 transition-all"
+                              style={{ height: `${(totals.woRel / maxValue) * 300}px`, minHeight: '30px' }}
+                              title={`WO Rel: ${totals.woRel}`}
+                            >
+                              {totals.woRel}
+                            </div>
+                            <span className="text-xs font-semibold text-gray-700 mt-2 text-center">WO Rel</span>
+                          </div>
+                          <div className="flex flex-col items-center gap-2 flex-1">
+                            <div
+                              className="w-full bg-gradient-to-t from-pink-600 to-pink-400 flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg hover:from-pink-700 hover:to-pink-500 transition-all"
+                              style={{ height: `${(totals.meCell / maxValue) * 300}px`, minHeight: '30px' }}
+                              title={`ME Cell: ${totals.meCell}`}
+                            >
+                              {totals.meCell}
+                            </div>
+                            <span className="text-xs font-semibold text-gray-700 mt-2 text-center">ME Cell</span>
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+                </div>
+
+                {/* Graph - Section-wise Distribution */}
+                <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 mt-8">
+                  <h3 className="text-2xl font-bold text-gray-900 mb-6">Section-wise Grand Total Distribution</h3>
+                  <div className="flex items-end justify-around h-96 border-l-2 border-b-2 border-gray-400 pl-4 pb-4 mt-4">
+                    {(() => {
+                      const scaledData = [
+                        { sec: 'ARD', grandTotal: 37 },
+                        { sec: 'ARMT', grandTotal: 38 },
+                        { sec: 'ETD', grandTotal: 2 },
+                        { sec: 'SRD', grandTotal: 60 },
+                        { sec: 'T&R', grandTotal: 14 },
+                        { sec: 'VRD', grandTotal: 30 }
+                      ];
+                      const nonScaledData = [
+                        { sec: 'ARD', grandTotal: 5 },
+                        { sec: 'ARMT', grandTotal: 5 },
+                        { sec: 'ENG', grandTotal: 17 },
+                        { sec: 'ETD', grandTotal: 50 },
+                        { sec: 'INST', grandTotal: 18 },
+                        { sec: 'SRD', grandTotal: 46 },
+                        { sec: 'T&R', grandTotal: 8 },
+                        { sec: 'VRD', grandTotal: 26 }
+                      ];
+                      const data = lmWoPlacedTab === 'scaled' ? scaledData : nonScaledData;
+                      const maxValue = Math.max(...data.map(d => d.grandTotal));
+                      const colors = ['bg-purple-500', 'bg-blue-500', 'bg-green-500', 'bg-orange-500', 'bg-pink-500', 'bg-cyan-500', 'bg-yellow-500', 'bg-red-500'];
+                      
+                      return data.map((row, index) => {
+                        const height = (row.grandTotal / maxValue) * 320;
+                        return (
+                          <div key={row.sec} className="flex flex-col items-center gap-2">
+                            <div
+                              className={`w-16 ${colors[index % colors.length]} flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg hover:opacity-80 transition-all`}
+                              style={{ height: `${height}px`, minHeight: '30px' }}
+                              title={`${row.sec}: ${row.grandTotal}`}
+                            >
+                              {row.grandTotal}
+                            </div>
+                            <span className="text-xs font-semibold text-gray-700 mt-2 text-center">{row.sec}</span>
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+                </div>
               </div>
             </div>
           ) : selectedCard === 'lp-so-placed' ? (
@@ -1796,10 +2283,9 @@ export default function DGMMTRLLogin() {
                             <thead>
                               <tr className="bg-gray-200">
                                 <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Sec</th>
-                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Awt Mtrl</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Awt Spare</th>
                                 <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Can</th>
                                 <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Comp</th>
-                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Hold</th>
                                 <th className="border border-gray-400 px-3 py-2 font-semibold text-left">IFA Case</th>
                                 <th className="border border-gray-400 px-3 py-2 font-semibold text-left">OSS</th>
                                 <th className="border border-gray-400 px-3 py-2 font-semibold text-left">SO Placed</th>
@@ -1814,7 +2300,6 @@ export default function DGMMTRLLogin() {
                                   <td className="border border-gray-300 px-3 py-2 text-center">{row.awtMtrl || ''}</td>
                                   <td className="border border-gray-300 px-3 py-2 text-center">{row.can || ''}</td>
                                   <td className="border border-gray-300 px-3 py-2 text-center">{row.comp || ''}</td>
-                                  <td className="border border-gray-300 px-3 py-2 text-center">{row.hold || ''}</td>
                                   <td className="border border-gray-300 px-3 py-2 text-center">{row.ifaCase || ''}</td>
                                   <td className="border border-gray-300 px-3 py-2 text-center">{row.oss || ''}</td>
                                   <td className="border border-gray-300 px-3 py-2 text-center">{row.soPlaced || ''}</td>
@@ -1827,7 +2312,6 @@ export default function DGMMTRLLogin() {
                                 <td className="border border-gray-400 px-3 py-2 text-center">{grandTotals.awtMtrl}</td>
                                 <td className="border border-gray-400 px-3 py-2 text-center">{grandTotals.can}</td>
                                 <td className="border border-gray-400 px-3 py-2 text-center">{grandTotals.comp}</td>
-                                <td className="border border-gray-400 px-3 py-2 text-center">{grandTotals.hold}</td>
                                 <td className="border border-gray-400 px-3 py-2 text-center">{grandTotals.ifaCase}</td>
                                 <td className="border border-gray-400 px-3 py-2 text-center">{grandTotals.oss}</td>
                                 <td className="border border-gray-400 px-3 py-2 text-center">{grandTotals.soPlaced}</td>
@@ -1915,6 +2399,124 @@ export default function DGMMTRLLogin() {
                     })()}
                   </div>
                 )}
+
+                {/* Summary Cards for LP Status */}
+                <div className="mt-6 grid grid-cols-3 gap-4">
+                  <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+                    <div className="text-blue-700 text-sm font-semibold mb-1">AWT MTRL</div>
+                    <div className="text-2xl font-bold text-blue-600">
+                      {lpSoPlacedTab === 'scaled' ? 17 : 55}
+                    </div>
+                  </div>
+                  <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4">
+                    <div className="text-green-700 text-sm font-semibold mb-1">SO PLACED</div>
+                    <div className="text-2xl font-bold text-green-600">
+                      {lpSoPlacedTab === 'scaled' ? 13 : 38}
+                    </div>
+                  </div>
+                  <div className="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-4">
+                    <div className="text-yellow-700 text-sm font-semibold mb-1">ENQ/U/ENQ</div>
+                    <div className="text-2xl font-bold text-yellow-600">
+                      {lpSoPlacedTab === 'scaled' ? 36 : 15}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Summary Cards Bar Graph */}
+                <div className="mt-8 bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+                  <h4 className="text-xl font-bold text-gray-900 mb-10">Summary Cards Visualization</h4>
+                  <div className="flex items-end justify-around h-80 border-l-2 border-b-2 border-gray-400 pl-4 pb-4 gap-4 mt-6">
+                    {(() => {
+                      const awtMtrl = lpSoPlacedTab === 'scaled' ? 17 : 55;
+                      const soPlaced = lpSoPlacedTab === 'scaled' ? 13 : 38;
+                      const enq = lpSoPlacedTab === 'scaled' ? 36 : 15;
+                      const maxValue = Math.max(awtMtrl, soPlaced, enq, 1);
+                      
+                      return (
+                        <>
+                          <div className="flex flex-col items-center gap-2 flex-1">
+                            <div
+                              className="w-full bg-gradient-to-t from-blue-600 to-blue-400 flex items-start justify-center text-white font-bold text-sm pt-2 rounded-t-lg hover:from-blue-700 hover:to-blue-500 transition-all"
+                              style={{ height: `${(awtMtrl / maxValue) * 300}px`, minHeight: '30px' }}
+                              title={`AWT MTRL: ${awtMtrl}`}
+                            >
+                              {awtMtrl}
+                            </div>
+                            <span className="text-xs font-semibold text-gray-700 mt-2 text-center">AWT MTRL</span>
+                          </div>
+                          <div className="flex flex-col items-center gap-2 flex-1">
+                            <div
+                              className="w-full bg-gradient-to-t from-green-600 to-green-400 flex items-start justify-center text-white font-bold text-sm pt-2 rounded-t-lg hover:from-green-700 hover:to-green-500 transition-all"
+                              style={{ height: `${(soPlaced / maxValue) * 300}px`, minHeight: '30px' }}
+                              title={`SO PLACED: ${soPlaced}`}
+                            >
+                              {soPlaced}
+                            </div>
+                            <span className="text-xs font-semibold text-gray-700 mt-2 text-center">SO PLACED</span>
+                          </div>
+                          <div className="flex flex-col items-center gap-2 flex-1">
+                            <div
+                              className="w-full bg-gradient-to-t from-yellow-600 to-yellow-400 flex items-start justify-center text-white font-bold text-sm pt-2 rounded-t-lg hover:from-yellow-700 hover:to-yellow-500 transition-all"
+                              style={{ height: `${(enq / maxValue) * 300}px`, minHeight: '30px' }}
+                              title={`ENQ/U/ENQ: ${enq}`}
+                            >
+                              {enq}
+                            </div>
+                            <span className="text-xs font-semibold text-gray-700 mt-2 text-center">ENQ/U/ENQ</span>
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+                </div>
+
+                {/* Graph - Section-wise Distribution */}
+                <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 mt-8">
+                  <h3 className="text-2xl font-bold text-gray-900 mb-6">Section-wise Grand Total Distribution</h3>
+                  <div className="flex items-end justify-around h-96 border-l-2 border-b-2 border-gray-400 pl-4 pb-4 mt-4">
+                    {(() => {
+                      const scaledData = [
+                        { sec: 'ARD', grandTotal: 23 },
+                        { sec: 'ARMT', grandTotal: 10 },
+                        { sec: 'ENG', grandTotal: 10 },
+                        { sec: 'ETD', grandTotal: 11 },
+                        { sec: 'INST', grandTotal: 5 },
+                        { sec: 'SRD', grandTotal: 14 },
+                        { sec: 'T&R', grandTotal: 12 },
+                        { sec: 'VRD', grandTotal: 12 }
+                      ];
+                      const nonScaledData = [
+                        { sec: 'ARD', grandTotal: 24 },
+                        { sec: 'ARMT', grandTotal: 10 },
+                        { sec: 'ENG', grandTotal: 20 },
+                        { sec: 'ETD', grandTotal: 98 },
+                        { sec: 'INST', grandTotal: 19 },
+                        { sec: 'SRD', grandTotal: 18 },
+                        { sec: 'T&R', grandTotal: 3 },
+                        { sec: 'VRD', grandTotal: 34 }
+                      ];
+                      const data = lpSoPlacedTab === 'scaled' ? scaledData : nonScaledData;
+                      const maxValue = Math.max(...data.map(d => d.grandTotal));
+                      const colors = ['bg-indigo-500', 'bg-blue-500', 'bg-green-500', 'bg-orange-500', 'bg-pink-500', 'bg-cyan-500', 'bg-yellow-500', 'bg-red-500'];
+                      
+                      return data.map((row, index) => {
+                        const height = (row.grandTotal / maxValue) * 320;
+                        return (
+                          <div key={row.sec} className="flex flex-col items-center gap-2">
+                            <div
+                              className={`w-16 ${colors[index % colors.length]} flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg hover:opacity-80 transition-all`}
+                              style={{ height: `${height}px`, minHeight: '30px' }}
+                              title={`${row.sec}: ${row.grandTotal}`}
+                            >
+                              {row.grandTotal}
+                            </div>
+                            <span className="text-xs font-semibold text-gray-700 mt-2 text-center">{row.sec}</span>
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+                </div>
               </div>
             </div>
           ) : selectedCard === 'pds-lapse-lp' ? (
@@ -1982,6 +2584,68 @@ export default function DGMMTRLLogin() {
                       <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
                         <div className="text-green-600 text-sm mb-1 font-semibold">Low</div>
                         <div className="text-3xl font-bold text-gray-900">{lprSummary.low}</div>
+                      </div>
+                    </div>
+
+                    {/* PDS Lapse LP Table */}
+                    <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
+                      <h3 className="text-2xl font-bold text-gray-900 mb-6">PDS Lapse LP - Detailed List</h3>
+                      <div className="overflow-x-auto">
+                        <table className="w-full border-collapse text-sm">
+                          <thead>
+                            <tr className="bg-gray-200">
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">S.No</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">LPR No</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Vendor</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Component</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">SO No</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">SO Date</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Delivery Date</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Days Lapsed</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Priority</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Remarks</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {[
+                              { sNo: 1, lprNo: 'LPR/2024/001', vendor: 'ABC Engineering Ltd', component: 'Hydraulic Pump', soNo: 'SO/2024/001', soDate: '01/04/2024', deliveryDate: '15/04/2024', daysLapsed: 45, priority: 'Critical', remarks: 'Urgent requirement' },
+                              { sNo: 2, lprNo: 'LPR/2024/002', vendor: 'XYZ Industries', component: 'Gasket Set', soNo: 'SO/2024/002', soDate: '05/04/2024', deliveryDate: '20/04/2024', daysLapsed: 38, priority: 'Moderate', remarks: 'Follow up required' },
+                              { sNo: 3, lprNo: 'LPR/2024/003', vendor: 'Precision Parts Co', component: 'Brake Assembly', soNo: 'SO/2024/003', soDate: '10/04/2024', deliveryDate: '25/04/2024', daysLapsed: 32, priority: 'Moderate', remarks: '' },
+                              { sNo: 4, lprNo: 'LPR/2024/004', vendor: 'Metro Supplies', component: 'Oil Filter', soNo: 'SO/2024/004', soDate: '15/04/2024', deliveryDate: '30/04/2024', daysLapsed: 28, priority: 'Low', remarks: '' },
+                              { sNo: 5, lprNo: 'LPR/2024/005', vendor: 'TechnoMech Solutions', component: 'Clutch Plate', soNo: 'SO/2024/005', soDate: '20/04/2024', deliveryDate: '05/05/2024', daysLapsed: 42, priority: 'Critical', remarks: 'Production impact' },
+                              { sNo: 6, lprNo: 'LPR/2024/006', vendor: 'Elite Parts Inc', component: 'Radiator Core', soNo: 'SO/2024/006', soDate: '25/04/2024', deliveryDate: '10/05/2024', daysLapsed: 35, priority: 'Moderate', remarks: '' },
+                              { sNo: 7, lprNo: 'LPR/2024/007', vendor: 'Global Components', component: 'Fuel Pump', soNo: 'SO/2024/007', soDate: '01/05/2024', deliveryDate: '15/05/2024', daysLapsed: 40, priority: 'Critical', remarks: 'Critical item' },
+                              { sNo: 8, lprNo: 'LPR/2024/008', vendor: 'ABC Engineering Ltd', component: 'Alternator', soNo: 'SO/2024/008', soDate: '05/05/2024', deliveryDate: '20/05/2024', daysLapsed: 30, priority: 'Moderate', remarks: '' },
+                              { sNo: 9, lprNo: 'LPR/2024/009', vendor: 'XYZ Industries', component: 'Steering Box', soNo: 'SO/2024/009', soDate: '10/05/2024', deliveryDate: '25/05/2024', daysLapsed: 25, priority: 'Low', remarks: '' },
+                              { sNo: 10, lprNo: 'LPR/2024/010', vendor: 'Precision Parts Co', component: 'Water Pump', soNo: 'SO/2024/010', soDate: '15/05/2024', deliveryDate: '30/05/2024', daysLapsed: 22, priority: 'Low', remarks: '' }
+                            ].map((row, index) => (
+                              <tr key={row.sNo} className={`${index % 2 === 0 ? 'bg-gray-50' : 'bg-white'} hover:bg-blue-50 transition-colors`}>
+                                <td className="border border-gray-300 px-3 py-2 text-center">{row.sNo}</td>
+                                <td className="border border-gray-300 px-3 py-2 font-mono">{row.lprNo}</td>
+                                <td className="border border-gray-300 px-3 py-2">{row.vendor}</td>
+                                <td className="border border-gray-300 px-3 py-2">{row.component}</td>
+                                <td className="border border-gray-300 px-3 py-2 font-mono">{row.soNo}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center">{row.soDate}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center">{row.deliveryDate}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center font-semibold">{row.daysLapsed}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center">
+                                  <span
+                                    className={`px-3 py-1 rounded-full text-xs font-bold ${
+                                      row.priority === 'Critical'
+                                        ? 'bg-red-100 text-red-800'
+                                        : row.priority === 'Moderate'
+                                        ? 'bg-yellow-100 text-yellow-800'
+                                        : 'bg-green-100 text-green-800'
+                                    }`}
+                                  >
+                                    {row.priority}
+                                  </span>
+                                </td>
+                                <td className="border border-gray-300 px-3 py-2 text-sm">{row.remarks || '-'}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
                     </div>
 
@@ -2086,6 +2750,64 @@ export default function DGMMTRLLogin() {
                       <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
                         <div className="text-green-600 text-sm mb-1 font-semibold">Low</div>
                         <div className="text-3xl font-bold text-gray-900">{lmWoSummary.low}</div>
+                      </div>
+                    </div>
+
+                    {/* PDS Lapse LM Table */}
+                    <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
+                      <h3 className="text-2xl font-bold text-gray-900 mb-6">PDS Lapse LM - Detailed List</h3>
+                      <div className="overflow-x-auto">
+                        <table className="w-full border-collapse text-sm">
+                          <thead>
+                            <tr className="bg-gray-200">
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">S.No</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">WO No</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Section</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Component</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">WO Date</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Delivery Date</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Days Lapsed</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Priority</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Remarks</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {[
+                              { sNo: 1, woNo: 'WO/2024/001', section: 'ARD', component: 'Engine Gasket Set', woDate: '01/04/2024', deliveryDate: '15/04/2024', daysLapsed: 38, priority: 'Critical', remarks: 'Production delay' },
+                              { sNo: 2, woNo: 'WO/2024/002', section: 'VRD', component: 'Hydraulic Pump', woDate: '05/04/2024', deliveryDate: '20/04/2024', daysLapsed: 32, priority: 'Moderate', remarks: '' },
+                              { sNo: 3, woNo: 'WO/2024/003', section: 'SRD', component: 'Brake Pad Assembly', woDate: '10/04/2024', deliveryDate: '25/04/2024', daysLapsed: 28, priority: 'Moderate', remarks: '' },
+                              { sNo: 4, woNo: 'WO/2024/004', section: 'ETD', component: 'Transmission Gear', woDate: '15/04/2024', deliveryDate: '30/04/2024', daysLapsed: 25, priority: 'Low', remarks: '' },
+                              { sNo: 5, woNo: 'WO/2024/005', section: 'ARMT', component: 'Clutch Assembly', woDate: '20/04/2024', deliveryDate: '05/05/2024', daysLapsed: 35, priority: 'Critical', remarks: 'Urgent' },
+                              { sNo: 6, woNo: 'WO/2024/006', section: 'T&R', component: 'Suspension Spring', woDate: '25/04/2024', deliveryDate: '10/05/2024', daysLapsed: 30, priority: 'Moderate', remarks: '' },
+                              { sNo: 7, woNo: 'WO/2024/007', section: 'ENG', component: 'Cylinder Head', woDate: '01/05/2024', deliveryDate: '15/05/2024', daysLapsed: 28, priority: 'Moderate', remarks: '' },
+                              { sNo: 8, woNo: 'WO/2024/008', section: 'INST', component: 'Electrical Harness', woDate: '05/05/2024', deliveryDate: '20/05/2024', daysLapsed: 22, priority: 'Low', remarks: '' }
+                            ].map((row, index) => (
+                              <tr key={row.sNo} className={`${index % 2 === 0 ? 'bg-gray-50' : 'bg-white'} hover:bg-blue-50 transition-colors`}>
+                                <td className="border border-gray-300 px-3 py-2 text-center">{row.sNo}</td>
+                                <td className="border border-gray-300 px-3 py-2 font-mono">{row.woNo}</td>
+                                <td className="border border-gray-300 px-3 py-2 font-semibold">{row.section}</td>
+                                <td className="border border-gray-300 px-3 py-2">{row.component}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center">{row.woDate}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center">{row.deliveryDate}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center font-semibold">{row.daysLapsed}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center">
+                                  <span
+                                    className={`px-3 py-1 rounded-full text-xs font-bold ${
+                                      row.priority === 'Critical'
+                                        ? 'bg-red-100 text-red-800'
+                                        : row.priority === 'Moderate'
+                                        ? 'bg-yellow-100 text-yellow-800'
+                                        : 'bg-green-100 text-green-800'
+                                    }`}
+                                  >
+                                    {row.priority}
+                                  </span>
+                                </td>
+                                <td className="border border-gray-300 px-3 py-2 text-sm">{row.remarks || '-'}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
                     </div>
 
@@ -2614,6 +3336,482 @@ export default function DGMMTRLLogin() {
                 })()}
               </div>
             </div>
+          ) : selectedCard === 'abc-analysis' ? (
+            <div className="space-y-8">
+              {/* Back Button */}
+              <div className="mb-4">
+                <button
+                  onClick={handleBack}
+                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-semibold transition-colors flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                  </svg>
+                  Back to Dashboards
+                </button>
+              </div>
+
+              {/* ABC Analysis MT Grant 2024-25 */}
+              <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
+                <h2 className="text-3xl font-bold text-gray-900 mb-6">ABC ANALYSIS MT GRANT 2024-25</h2>
+                
+                {/* Table */}
+                <div className="mb-8 overflow-x-auto">
+                  <table className="w-full border-collapse text-sm">
+                    <thead>
+                      <tr className="bg-gray-200">
+                        <th className="border border-gray-400 px-4 py-3 font-semibold text-left">TYPES OF ITEMS</th>
+                        <th className="border border-gray-400 px-4 py-3 font-semibold text-left">EXP (IN LAKHS)</th>
+                        <th className="border border-gray-400 px-4 py-3 font-semibold text-left">RANGE OF ITEMS</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr className="hover:bg-gray-50">
+                        <td className="border border-gray-300 px-4 py-2 font-semibold">A ITEMS (70%)</td>
+                        <td className="border border-gray-300 px-4 py-2 text-right">144.22</td>
+                        <td className="border border-gray-300 px-4 py-2 text-right">29</td>
+                      </tr>
+                      <tr className="hover:bg-gray-50 bg-gray-50">
+                        <td className="border border-gray-300 px-4 py-2 font-semibold">B ITEMS (20%)</td>
+                        <td className="border border-gray-300 px-4 py-2 text-right">41.13</td>
+                        <td className="border border-gray-300 px-4 py-2 text-right">47</td>
+                      </tr>
+                      <tr className="hover:bg-gray-50">
+                        <td className="border border-gray-300 px-4 py-2 font-semibold">C ITEMS (10%)</td>
+                        <td className="border border-gray-300 px-4 py-2 text-right">20.33</td>
+                        <td className="border border-gray-300 px-4 py-2 text-right">153</td>
+                      </tr>
+                      <tr className="bg-gray-200 font-bold">
+                        <td className="border border-gray-400 px-4 py-2">TOTAL</td>
+                        <td className="border border-gray-400 px-4 py-2 text-right">205.68</td>
+                        <td className="border border-gray-400 px-4 py-2 text-right">229</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Grouped Bar Chart */}
+                <div className="mt-8">
+                  <h3 className="text-xl font-bold text-gray-900 mb-6">ABC Analysis Chart - MT Grant 2024-25</h3>
+                  <div className="flex items-end justify-around h-96 border-l-2 border-b-2 border-gray-400 pl-4 pb-4 gap-4">
+                    {(() => {
+                      const mtGrantData = [
+                        { type: 'A ITEMS (70%)', exp: 144.22, range: 29 },
+                        { type: 'B ITEMS (20%)', exp: 41.13, range: 47 },
+                        { type: 'C ITEMS (10%)', exp: 20.33, range: 153 }
+                      ];
+                      const maxValue = Math.max(...mtGrantData.flatMap(d => [d.exp, d.range]), 1);
+                      
+                      return (
+                        <>
+                          {mtGrantData.map((data, index) => (
+                            <div key={index} className="flex flex-col items-center gap-2 flex-1">
+                              <div className="flex items-end gap-2 w-full justify-center">
+                                {/* EXP (IN LAKHS) Bar */}
+                                <div className="flex flex-col items-center gap-1 flex-1">
+                                  <div
+                                    className="w-full bg-gradient-to-t from-gray-700 to-gray-600 flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg hover:from-gray-800 hover:to-gray-700 transition-all"
+                                    style={{ height: `${(data.exp / maxValue) * 350}px`, minHeight: '30px' }}
+                                    title={`EXP (IN LAKHS): ${data.exp}`}
+                                  >
+                                    {data.exp}
+                                  </div>
+                                </div>
+                                {/* RANGE OF ITEMS Bar */}
+                                <div className="flex flex-col items-center gap-1 flex-1">
+                                  <div
+                                    className="w-full bg-gradient-to-t from-gray-500 to-gray-400 flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg hover:from-gray-600 hover:to-gray-500 transition-all"
+                                    style={{ height: `${(data.range / maxValue) * 350}px`, minHeight: '30px' }}
+                                    title={`RANGE OF ITEMS: ${data.range}`}
+                                  >
+                                    {data.range}
+                                  </div>
+                                </div>
+                              </div>
+                              <span className="text-xs font-semibold text-gray-700 mt-2 text-center break-words">{data.type}</span>
+                            </div>
+                          ))}
+                        </>
+                      );
+                    })()}
+                  </div>
+                  {/* Legend */}
+                  <div className="mt-6 flex justify-center gap-6">
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 bg-gray-700 rounded"></div>
+                      <span className="text-sm font-semibold text-gray-700">EXP (IN LAKHS)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 bg-gray-500 rounded"></div>
+                      <span className="text-sm font-semibold text-gray-700">RANGE OF ITEMS</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* ABC Analysis ORD Grant 2024-25 */}
+              <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
+                <h2 className="text-3xl font-bold text-gray-900 mb-6">ABC ANALYSIS ORD GRANT 2024-25</h2>
+                
+                {/* Table */}
+                <div className="mb-8 overflow-x-auto">
+                  <table className="w-full border-collapse text-sm">
+                    <thead>
+                      <tr className="bg-gray-200">
+                        <th className="border border-gray-400 px-4 py-3 font-semibold text-left">TYPES OF ITEMS</th>
+                        <th className="border border-gray-400 px-4 py-3 font-semibold text-left">EXP (IN LAKHS)</th>
+                        <th className="border border-gray-400 px-4 py-3 font-semibold text-left">RANGE OF ITEMS</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr className="hover:bg-gray-50">
+                        <td className="border border-gray-300 px-4 py-2 font-semibold">A ITEMS (70%)</td>
+                        <td className="border border-gray-300 px-4 py-2 text-right">157.09</td>
+                        <td className="border border-gray-300 px-4 py-2 text-right">91</td>
+                      </tr>
+                      <tr className="hover:bg-gray-50 bg-gray-50">
+                        <td className="border border-gray-300 px-4 py-2 font-semibold">B ITEMS (20%)</td>
+                        <td className="border border-gray-300 px-4 py-2 text-right">44.85</td>
+                        <td className="border border-gray-300 px-4 py-2 text-right">142</td>
+                      </tr>
+                      <tr className="hover:bg-gray-50">
+                        <td className="border border-gray-300 px-4 py-2 font-semibold">C ITEMS (10%)</td>
+                        <td className="border border-gray-300 px-4 py-2 text-right">22.06</td>
+                        <td className="border border-gray-300 px-4 py-2 text-right">465</td>
+                      </tr>
+                      <tr className="bg-gray-200 font-bold">
+                        <td className="border border-gray-400 px-4 py-2">TOTAL</td>
+                        <td className="border border-gray-400 px-4 py-2 text-right">224.00</td>
+                        <td className="border border-gray-400 px-4 py-2 text-right">698</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Grouped Bar Chart */}
+                <div className="mt-8">
+                  <h3 className="text-xl font-bold text-gray-900 mb-6">ABC Analysis Chart - ORD Grant 2024-25</h3>
+                  <div className="flex items-end justify-around h-96 border-l-2 border-b-2 border-gray-400 pl-4 pb-4 gap-4">
+                    {(() => {
+                      const ordGrantData = [
+                        { type: 'A ITEMS (70%)', exp: 157.09, range: 91 },
+                        { type: 'B ITEMS (20%)', exp: 44.85, range: 142 },
+                        { type: 'C ITEMS (10%)', exp: 22.06, range: 465 }
+                      ];
+                      const maxValue = Math.max(...ordGrantData.flatMap(d => [d.exp, d.range]), 1);
+                      
+                      return (
+                        <>
+                          {ordGrantData.map((data, index) => (
+                            <div key={index} className="flex flex-col items-center gap-2 flex-1">
+                              <div className="flex items-end gap-2 w-full justify-center">
+                                {/* EXP (IN LAKHS) Bar */}
+                                <div className="flex flex-col items-center gap-1 flex-1">
+                                  <div
+                                    className="w-full bg-gradient-to-t from-gray-700 to-gray-600 flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg hover:from-gray-800 hover:to-gray-700 transition-all"
+                                    style={{ height: `${(data.exp / maxValue) * 350}px`, minHeight: '30px' }}
+                                    title={`EXP (IN LAKHS): ${data.exp}`}
+                                  >
+                                    {data.exp}
+                                  </div>
+                                </div>
+                                {/* RANGE OF ITEMS Bar */}
+                                <div className="flex flex-col items-center gap-1 flex-1">
+                                  <div
+                                    className="w-full bg-gradient-to-t from-gray-500 to-gray-400 flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg hover:from-gray-600 hover:to-gray-500 transition-all"
+                                    style={{ height: `${(data.range / maxValue) * 350}px`, minHeight: '30px' }}
+                                    title={`RANGE OF ITEMS: ${data.range}`}
+                                  >
+                                    {data.range}
+                                  </div>
+                                </div>
+                              </div>
+                              <span className="text-xs font-semibold text-gray-700 mt-2 text-center break-words">{data.type}</span>
+                            </div>
+                          ))}
+                        </>
+                      );
+                    })()}
+                  </div>
+                  {/* Legend */}
+                  <div className="mt-6 flex justify-center gap-6">
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 bg-gray-700 rounded"></div>
+                      <span className="text-sm font-semibold text-gray-700">EXP (IN LAKHS)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 bg-gray-500 rounded"></div>
+                      <span className="text-sm font-semibold text-gray-700">RANGE OF ITEMS</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : selectedCard === 'srb' ? (
+            <div className="space-y-8">
+              {/* Back Button */}
+              <div className="mb-4">
+                <button
+                  onClick={handleBack}
+                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-semibold transition-colors flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                  </svg>
+                  Back to Dashboards
+                </button>
+              </div>
+
+              {/* SRB Summary Section */}
+              {(() => {
+                // SRB Data from MPO Dashboard
+                const srbData = [
+                  {
+                    serNo: 1, ohsNo: 1, partNo: '5330-390235 (675-10-29-01)', nomenclature: 'SEAL PLAIN', aU: 'Nos', noOff: 1, scale: 80,
+                    ohOutput: 59, depthReqd: 48,
+                    virUnsv: 0, virDefi: 0, virRepairable: 0, virSer: 0, virTotal: 0,
+                    newOrdRange: 0, newOrdDepth: 0,
+                    newLPRange: 0, newLPDepth: 0,
+                    newLMRange: 0, newLMDepth: 0,
+                    newLRCRange: 0, newLRCDepth: 0,
+                    retrievedRange: 0, retrievedDepth: 0,
+                    repairedRange: 0, repairedDepth: 0,
+                    reclaimedRange: 0, reclaimedDepth: 0,
+                    rolloverRange: 0, rolloverDepth: 0,
+                    totalRange: 48, totalDepth: 48,
+                    reqmtVsIssue: 0,
+                    percIncrDecr: 0,
+                    changeInScaleAuth: 'No Change',
+                    remarks: '-'
+                  },
+                  {
+                    serNo: 2, ohsNo: 2, partNo: '5330-390228 (675-10-20-03)', nomenclature: 'RETAINER PACKING', aU: 'Nos', noOff: 1, scale: 80,
+                    ohOutput: 59, depthReqd: 48,
+                    virUnsv: 0, virDefi: 0, virRepairable: 0, virSer: 0, virTotal: 0,
+                    newOrdRange: 0, newOrdDepth: 0,
+                    newLPRange: 0, newLPDepth: 0,
+                    newLMRange: 0, newLMDepth: 0,
+                    newLRCRange: 0, newLRCDepth: 0,
+                    retrievedRange: 0, retrievedDepth: 0,
+                    repairedRange: 0, repairedDepth: 0,
+                    reclaimedRange: 0, reclaimedDepth: 0,
+                    rolloverRange: 0, rolloverDepth: 0,
+                    totalRange: 48, totalDepth: 48,
+                    reqmtVsIssue: 0,
+                    percIncrDecr: 0,
+                    changeInScaleAuth: 'No Change',
+                    remarks: '-'
+                  },
+                  {
+                    serNo: 3, ohsNo: 3, partNo: '4730-079089 (675-10-27)', nomenclature: 'ADAPTOR BUSHING', aU: 'Nos', noOff: 1, scale: 50,
+                    ohOutput: 59, depthReqd: 30,
+                    virUnsv: 0, virDefi: 0, virRepairable: 0, virSer: 0, virTotal: 0,
+                    newOrdRange: 0, newOrdDepth: 0,
+                    newLPRange: 12, newLPDepth: 12,
+                    newLMRange: 0, newLMDepth: 0,
+                    newLRCRange: 0, newLRCDepth: 0,
+                    retrievedRange: 0, retrievedDepth: 0,
+                    repairedRange: 0, repairedDepth: 0,
+                    reclaimedRange: 0, reclaimedDepth: 0,
+                    rolloverRange: 0, rolloverDepth: 0,
+                    totalRange: 30, totalDepth: 30,
+                    reqmtVsIssue: 0,
+                    percIncrDecr: 0,
+                    changeInScaleAuth: 'No Change',
+                    remarks: '-'
+                  }
+                ];
+
+                // Calculate Summary Metrics
+                const totalItems = srbData.length;
+                const totalDepthReqd = srbData.reduce((sum, item) => sum + item.depthReqd, 0);
+                const totalVirItems = srbData.reduce((sum, item) => sum + item.virTotal, 0);
+                const totalIssueDepth = srbData.reduce((sum, item) => sum + item.totalDepth, 0);
+                const itemsWithScaleChange = srbData.filter(item => item.changeInScaleAuth !== 'No Change').length;
+                const totalNewLP = srbData.reduce((sum, item) => sum + item.newLPDepth, 0);
+                const totalNewLM = srbData.reduce((sum, item) => sum + item.newLMDepth, 0);
+                const totalRepaired = srbData.reduce((sum, item) => sum + item.repairedDepth, 0);
+                const totalReclaimed = srbData.reduce((sum, item) => sum + item.reclaimedDepth, 0);
+                const avgScale = Math.round(srbData.reduce((sum, item) => sum + item.scale, 0) / totalItems);
+
+                return (
+                  <>
+                    {/* Summary Cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                      <div className="bg-gradient-to-br from-rose-500 to-rose-600 rounded-xl shadow-lg p-6 text-white">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-rose-100 text-sm font-semibold mb-1">Total Items</p>
+                            <p className="text-3xl font-bold">{totalItems}</p>
+                          </div>
+                          <div className="bg-white bg-opacity-20 rounded-full p-3">
+                            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                            </svg>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-blue-100 text-sm font-semibold mb-1">Total Depth Required</p>
+                            <p className="text-3xl font-bold">{totalDepthReqd}</p>
+                          </div>
+                          <div className="bg-white bg-opacity-20 rounded-full p-3">
+                            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                            </svg>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-green-100 text-sm font-semibold mb-1">Total Issue Depth</p>
+                            <p className="text-3xl font-bold">{totalIssueDepth}</p>
+                          </div>
+                          <div className="bg-white bg-opacity-20 rounded-full p-3">
+                            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            </svg>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg p-6 text-white">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-purple-100 text-sm font-semibold mb-1">Avg Scale</p>
+                            <p className="text-3xl font-bold">{avgScale}</p>
+                          </div>
+                          <div className="bg-white bg-opacity-20 rounded-full p-3">
+                            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                            </svg>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Additional Summary Cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                      <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl shadow-lg p-6 text-white">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-orange-100 text-sm font-semibold mb-1">Total VIR Items</p>
+                            <p className="text-3xl font-bold">{totalVirItems}</p>
+                          </div>
+                          <div className="bg-white bg-opacity-20 rounded-full p-3">
+                            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-xl shadow-lg p-6 text-white">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-cyan-100 text-sm font-semibold mb-1">New LP Depth</p>
+                            <p className="text-3xl font-bold">{totalNewLP}</p>
+                          </div>
+                          <div className="bg-white bg-opacity-20 rounded-full p-3">
+                            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            </svg>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="bg-gradient-to-br from-teal-500 to-teal-600 rounded-xl shadow-lg p-6 text-white">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-teal-100 text-sm font-semibold mb-1">New LM Depth</p>
+                            <p className="text-3xl font-bold">{totalNewLM}</p>
+                          </div>
+                          <div className="bg-white bg-opacity-20 rounded-full p-3">
+                            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            </svg>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl shadow-lg p-6 text-white">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-indigo-100 text-sm font-semibold mb-1">Scale Changes</p>
+                            <p className="text-3xl font-bold">{itemsWithScaleChange}</p>
+                          </div>
+                          <div className="bg-white bg-opacity-20 rounded-full p-3">
+                            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                            </svg>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* SRB Summary Table */}
+                    <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
+                      <h3 className="text-2xl font-bold text-gray-900 mb-6">SRB Summary - PY 2024-25 (ARD SEC)</h3>
+                      <div className="mb-4 text-sm text-gray-600">
+                        <p>OH Output: 59 vehicles | Total Items: {totalItems}</p>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full border-collapse text-sm">
+                          <thead>
+                            <tr className="bg-gray-200">
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Ser No</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">OHS No</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Part No</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Nomenclature</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-center">Scale</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-center">Depth Reqd</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-center">VIR Total</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-center">New LP</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-center">New LM</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-center">Repaired</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-center">Reclaimed</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-center">Total Depth</th>
+                              <th className="border border-gray-400 px-3 py-2 font-semibold text-center">Scale Change</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {srbData.map((item, index) => (
+                              <tr key={item.serNo} className={`${index % 2 === 0 ? 'bg-gray-50' : 'bg-white'} hover:bg-blue-50 transition-colors`}>
+                                <td className="border border-gray-300 px-3 py-2 text-center">{item.serNo}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center">{item.ohsNo}</td>
+                                <td className="border border-gray-300 px-3 py-2 font-mono text-xs">{item.partNo}</td>
+                                <td className="border border-gray-300 px-3 py-2">{item.nomenclature}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center">{item.scale}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center font-semibold">{item.depthReqd}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center">{item.virTotal}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center">{item.newLPDepth}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center">{item.newLMDepth}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center">{item.repairedDepth}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center">{item.reclaimedDepth}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center font-semibold text-blue-600">{item.totalDepth}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center text-xs">{item.changeInScaleAuth}</td>
+                              </tr>
+                            ))}
+                            {/* Grand Total Row */}
+                            <tr className="bg-gray-200 font-bold">
+                              <td className="border border-gray-400 px-3 py-2 text-center" colSpan={5}>Grand Total</td>
+                              <td className="border border-gray-400 px-3 py-2 text-center">{totalDepthReqd}</td>
+                              <td className="border border-gray-400 px-3 py-2 text-center">{totalVirItems}</td>
+                              <td className="border border-gray-400 px-3 py-2 text-center">{totalNewLP}</td>
+                              <td className="border border-gray-400 px-3 py-2 text-center">{totalNewLM}</td>
+                              <td className="border border-gray-400 px-3 py-2 text-center">{totalRepaired}</td>
+                              <td className="border border-gray-400 px-3 py-2 text-center">{totalReclaimed}</td>
+                              <td className="border border-gray-400 px-3 py-2 text-center text-blue-600">{totalIssueDepth}</td>
+                              <td className="border border-gray-400 px-3 py-2 text-center">-</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
           ) : (
             <div className="space-y-8">
               {/* Back Button */}
@@ -2708,6 +3906,288 @@ export default function DGMMTRLLogin() {
           </div>
         </div>
       </div>
+
+      {/* Floating Action Buttons Container */}
+      <div className="fixed bottom-6 right-6 z-40 flex flex-col gap-4">
+        {/* Notification Button */}
+        <button
+          onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+          className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white rounded-full p-4 shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:scale-110 flex items-center justify-center group relative"
+          aria-label="View notifications"
+        >
+          <svg className="w-6 h-6 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+          </svg>
+          {notifications.length > 0 && (
+            <span className="absolute -top-1 -right-1 bg-yellow-400 text-red-900 text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center animate-pulse">
+              {notifications.length}
+            </span>
+          )}
+        </button>
+
+        {/* Chatbot Floating Button */}
+        {!isChatbotOpen && (
+          <button
+            onClick={() => setIsChatbotOpen(true)}
+            className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-full p-4 shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:scale-110 flex items-center justify-center group"
+            aria-label="Open chatbot"
+          >
+            <svg className="w-6 h-6 group-hover:rotate-12 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+          </button>
+        )}
+      </div>
+
+      {/* Notification Panel */}
+      {isNotificationOpen && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black bg-opacity-30 z-40 transition-opacity"
+            onClick={() => setIsNotificationOpen(false)}
+          ></div>
+          
+          {/* Notification Panel */}
+          <div className="fixed right-6 bottom-24 w-full sm:w-96 bg-white shadow-2xl z-50 rounded-xl overflow-hidden transform transition-all duration-300 ease-in-out max-h-[600px] flex flex-col">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-red-600 to-red-700 text-white p-6 flex items-center justify-between shadow-lg">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg">Alerts & Notifications</h3>
+                  <p className="text-xs text-red-100">
+                    {notifications.length > 0 ? `${notifications.length} active notification${notifications.length > 1 ? 's' : ''}` : 'No notifications'}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsNotificationOpen(false)}
+                className="text-white hover:text-red-200 transition-colors p-1 rounded-full hover:bg-white hover:bg-opacity-20"
+                aria-label="Close notifications"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Notifications Container */}
+            <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
+              {notifications.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-center px-4 py-12">
+                  <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mb-4">
+                    <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                    </svg>
+                  </div>
+                  <h4 className="text-lg font-semibold text-gray-800 mb-2">No Notifications</h4>
+                  <p className="text-sm text-gray-600">You're all caught up! No pending notifications.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {notifications.map((notification) => (
+                    <div key={notification.id} className="bg-white border-l-4 border-blue-500 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="bg-blue-100 rounded-full p-1.5">
+                              <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                            </div>
+                            <div>
+                              <p className="font-bold text-gray-900 text-sm">
+                                From: <span className="text-blue-600">{notification.from}</span>
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                Item: {notification.itemName} (Serial: {notification.serial})
+                              </p>
+                            </div>
+                          </div>
+                          <p className="text-xs text-gray-600 mb-1">
+                            <span className="font-semibold">Action:</span> {notification.action}
+                          </p>
+                          <p className="text-sm text-gray-700 mb-2">
+                            {notification.message}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {new Date(notification.timestamp).toLocaleString()}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => {
+                            handleDismissNotification(notification.id);
+                            if (notifications.length === 1) {
+                              setIsNotificationOpen(false);
+                            }
+                          }}
+                          className="ml-2 text-gray-400 hover:text-red-600 transition-colors p-1"
+                          title="Dismiss this notification"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Footer Actions */}
+            {notifications.length > 0 && (
+              <div className="border-t border-gray-200 bg-white p-4">
+                <button
+                  onClick={() => {
+                    handleDismissAllNotifications();
+                    setIsNotificationOpen(false);
+                  }}
+                  className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-colors text-sm flex items-center justify-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  Dismiss All Notifications
+                </button>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* Chatbot Side Panel */}
+      {isChatbotOpen && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black bg-opacity-30 z-40 transition-opacity"
+            onClick={() => setIsChatbotOpen(false)}
+          ></div>
+          
+          {/* Side Panel */}
+          <div className={`fixed right-0 top-0 h-full w-full sm:w-96 bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out ${
+            isChatbotOpen ? 'translate-x-0' : 'translate-x-full'
+          } flex flex-col`}>
+            {/* Header */}
+            <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 flex items-center justify-between shadow-lg">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg">Dashboard Assistant</h3>
+                  <p className="text-xs text-blue-100">DGM WKS MTRL Support</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsChatbotOpen(false)}
+                className="text-white hover:text-blue-200 transition-colors p-1 rounded-full hover:bg-white hover:bg-opacity-20"
+                aria-label="Close chatbot"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Messages Container */}
+            <div className="flex-1 overflow-y-auto p-4 bg-gray-50 space-y-4">
+              {chatMessages.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-center px-4">
+                  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                    <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                  </div>
+                  <h4 className="text-lg font-semibold text-gray-800 mb-2">Welcome to DGM WKS MTRL Assistant</h4>
+                  <p className="text-sm text-gray-600 mb-6">How can I help you today?</p>
+                  <div className="w-full space-y-2">
+                    <button
+                      onClick={() => {
+                        setChatInput("How do I view LP Status?");
+                        setTimeout(() => handleSendMessage(), 100);
+                      }}
+                      className="w-full text-left px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-colors text-sm text-gray-700"
+                    >
+                      💡 How do I view LP Status?
+                    </button>
+                    <button
+                      onClick={() => {
+                        setChatInput("What is the Fund State?");
+                        setTimeout(() => handleSendMessage(), 100);
+                      }}
+                      className="w-full text-left px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-colors text-sm text-gray-700"
+                    >
+                      💰 What is the Fund State?
+                    </button>
+                    <button
+                      onClick={() => {
+                        setChatInput("How to check LM Status?");
+                        setTimeout(() => handleSendMessage(), 100);
+                      }}
+                      className="w-full text-left px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-colors text-sm text-gray-700"
+                    >
+                      ⚙️ How to check LM Status?
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                chatMessages.map((message) => (
+                  <div
+                    key={message.id}
+                    className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div
+                      className={`max-w-[80%] rounded-lg px-4 py-2 ${
+                        message.sender === 'user'
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-white text-gray-800 border border-gray-200'
+                      }`}
+                    >
+                      <p className="text-sm">{message.text}</p>
+                      <p className={`text-xs mt-1 ${message.sender === 'user' ? 'text-blue-100' : 'text-gray-500'}`}>
+                        {message.timestamp.toLocaleTimeString()}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Input Area */}
+            <div className="border-t border-gray-200 bg-white p-4">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="Type your message..."
+                  className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm"
+                />
+                <button
+                  onClick={handleSendMessage}
+                  disabled={chatInput.trim() === ''}
+                  className="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
+                  aria-label="Send message"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }

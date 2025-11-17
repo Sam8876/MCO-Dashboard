@@ -2,6 +2,8 @@ import React, { useState } from 'react'
 
 export default function LPSLogin() {
   const [selectedSection, setSelectedSection] = useState('inspection-note')
+  const [showImportModal, setShowImportModal] = useState(false)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
   
   // Inspection Note form states
   const [inspectionNotes, setInspectionNotes] = useState<any[]>([])
@@ -14,16 +16,38 @@ export default function LPSLogin() {
     remarks: ''
   })
 
-  // CFV form states
-  const [cfvEntries, setCfvEntries] = useState<any[]>([])
-  const [cfvForm, setCfvForm] = useState({
+  // CRV form states
+  const [crvEntries, setCrvEntries] = useState<any[]>([])
+  const [crvForm, setCrvForm] = useState({
     date: '',
-    cfvNo: '',
+    crvNo: '',
     section: '',
     nomenclature: '',
     quantity: '',
     amount: ''
   })
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setSelectedFile(file)
+    }
+  }
+
+  const handleImport = () => {
+    if (selectedFile) {
+      // Handle file import logic here
+      console.log('Importing file:', selectedFile.name)
+      alert(`File "${selectedFile.name}" imported successfully!`)
+      setSelectedFile(null)
+      setShowImportModal(false)
+    }
+  }
+
+  const handleCancelImport = () => {
+    setSelectedFile(null)
+    setShowImportModal(false)
+  }
 
   const handleInspectionSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -31,10 +55,10 @@ export default function LPSLogin() {
     setInspectionForm({ date: '', inNo: '', vendor: '', item: '', quantity: '', remarks: '' })
   }
 
-  const handleCfvSubmit = (e: React.FormEvent) => {
+  const handleCrvSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    setCfvEntries([...cfvEntries, { ...cfvForm, id: Date.now() }])
-    setCfvForm({ date: '', cfvNo: '', section: '', nomenclature: '', quantity: '', amount: '' })
+    setCrvEntries([...crvEntries, { ...crvForm, id: Date.now() }])
+    setCrvForm({ date: '', crvNo: '', section: '', nomenclature: '', quantity: '', amount: '' })
   }
 
   return (
@@ -55,14 +79,14 @@ export default function LPSLogin() {
             Inspection Note
           </button>
           <button
-            onClick={() => setSelectedSection('cfv')}
+            onClick={() => setSelectedSection('crv')}
             className={`px-6 py-3 font-semibold text-sm transition-all whitespace-nowrap ${
-              selectedSection === 'cfv'
+              selectedSection === 'crv'
                 ? 'text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50'
                 : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
             }`}
           >
-            CFV
+            CRV
           </button>
           <button
             onClick={() => setSelectedSection('material-register')}
@@ -107,10 +131,108 @@ export default function LPSLogin() {
         </nav>
       </div>
 
+      {/* Import Modal */}
+      {showImportModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full mx-4">
+            <h3 className="text-2xl font-bold text-gray-900 mb-6">Import File</h3>
+            <div className="mb-6">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Select File to Upload
+              </label>
+              <input
+                type="file"
+                onChange={handleFileSelect}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                accept=".xlsx,.xls,.csv"
+              />
+              {selectedFile && (
+                <p className="mt-2 text-sm text-gray-600">
+                  Selected: <span className="font-semibold">{selectedFile.name}</span>
+                </p>
+              )}
+            </div>
+            <div className="flex gap-4 justify-end">
+              <button
+                onClick={handleCancelImport}
+                className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-semibold transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleImport}
+                disabled={!selectedFile}
+                className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg font-semibold transition-colors"
+              >
+                Import
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Inspection Note Section */}
       {selectedSection === 'inspection-note' && (
         <div>
-          <h4 className="text-xl font-bold text-gray-900 mb-4">Inspection Note</h4>
+          <div className="flex justify-between items-center mb-4">
+            <h4 className="text-xl font-bold text-gray-900">Inspection Note</h4>
+            <button
+              onClick={() => setShowImportModal(true)}
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold transition-colors flex items-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+              Import
+            </button>
+          </div>
+
+          {/* Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-blue-100 text-sm font-semibold mb-1">Total Inspection Notes</p>
+                  <p className="text-3xl font-bold">{inspectionNotes.length}</p>
+                </div>
+                <div className="bg-white bg-opacity-20 rounded-full p-3">
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+            <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-green-100 text-sm font-semibold mb-1">This Month</p>
+                  <p className="text-3xl font-bold">{inspectionNotes.filter(n => {
+                    const noteDate = new Date(n.date);
+                    const now = new Date();
+                    return noteDate.getMonth() === now.getMonth() && noteDate.getFullYear() === now.getFullYear();
+                  }).length}</p>
+                </div>
+                <div className="bg-white bg-opacity-20 rounded-full p-3">
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+            <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg p-6 text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-purple-100 text-sm font-semibold mb-1">Unique Vendors</p>
+                  <p className="text-3xl font-bold">{new Set(inspectionNotes.map(n => n.vendor)).size}</p>
+                </div>
+                <div className="bg-white bg-opacity-20 rounded-full p-3">
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
           
           {/* Form */}
           <form onSubmit={handleInspectionSubmit} className="bg-gray-50 rounded-lg p-6 mb-6">
@@ -223,32 +345,86 @@ export default function LPSLogin() {
         </div>
       )}
 
-      {/* CFV Section */}
-      {selectedSection === 'cfv' && (
+      {/* CRV Section */}
+      {selectedSection === 'crv' && (
         <div>
-          <h4 className="text-xl font-bold text-gray-900 mb-4">CFV (Cash/Folio Voucher)</h4>
+          <div className="flex justify-between items-center mb-4">
+            <h4 className="text-xl font-bold text-gray-900">CRV (Cash Receipt Voucher)</h4>
+            <button
+              onClick={() => setShowImportModal(true)}
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold transition-colors flex items-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+              Import
+            </button>
+          </div>
+
+          {/* Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl shadow-lg p-6 text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-indigo-100 text-sm font-semibold mb-1">Total CRV Entries</p>
+                  <p className="text-3xl font-bold">{crvEntries.length}</p>
+                </div>
+                <div className="bg-white bg-opacity-20 rounded-full p-3">
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+            <div className="bg-gradient-to-br from-teal-500 to-teal-600 rounded-xl shadow-lg p-6 text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-teal-100 text-sm font-semibold mb-1">Total Amount</p>
+                  <p className="text-3xl font-bold">₹{crvEntries.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0).toLocaleString('en-IN')}</p>
+                </div>
+                <div className="bg-white bg-opacity-20 rounded-full p-3">
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+            <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl shadow-lg p-6 text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-orange-100 text-sm font-semibold mb-1">Total Quantity</p>
+                  <p className="text-3xl font-bold">{crvEntries.reduce((sum, e) => sum + (parseFloat(e.quantity) || 0), 0)}</p>
+                </div>
+                <div className="bg-white bg-opacity-20 rounded-full p-3">
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
           
           {/* Form */}
-          <form onSubmit={handleCfvSubmit} className="bg-gray-50 rounded-lg p-6 mb-6">
+          <form onSubmit={handleCrvSubmit} className="bg-gray-50 rounded-lg p-6 mb-6">
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Date</label>
                 <input
                   type="date"
-                  value={cfvForm.date}
-                  onChange={(e) => setCfvForm({...cfvForm, date: e.target.value})}
+                  value={crvForm.date}
+                  onChange={(e) => setCrvForm({...crvForm, date: e.target.value})}
                   required
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">CFV No</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">CRV No</label>
                 <input
                   type="text"
-                  value={cfvForm.cfvNo}
-                  onChange={(e) => setCfvForm({...cfvForm, cfvNo: e.target.value})}
+                  value={crvForm.crvNo}
+                  onChange={(e) => setCrvForm({...crvForm, crvNo: e.target.value})}
                   required
-                  placeholder="CFV/2025/001"
+                  placeholder="CRV/2025/001"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
@@ -256,8 +432,8 @@ export default function LPSLogin() {
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Section</label>
                 <input
                   type="text"
-                  value={cfvForm.section}
-                  onChange={(e) => setCfvForm({...cfvForm, section: e.target.value})}
+                  value={crvForm.section}
+                  onChange={(e) => setCrvForm({...crvForm, section: e.target.value})}
                   required
                   placeholder="ARD/VRD/SRD"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -267,8 +443,8 @@ export default function LPSLogin() {
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Nomenclature</label>
                 <input
                   type="text"
-                  value={cfvForm.nomenclature}
-                  onChange={(e) => setCfvForm({...cfvForm, nomenclature: e.target.value})}
+                  value={crvForm.nomenclature}
+                  onChange={(e) => setCrvForm({...crvForm, nomenclature: e.target.value})}
                   required
                   placeholder="Item Name"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -278,8 +454,8 @@ export default function LPSLogin() {
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Quantity</label>
                 <input
                   type="text"
-                  value={cfvForm.quantity}
-                  onChange={(e) => setCfvForm({...cfvForm, quantity: e.target.value})}
+                  value={crvForm.quantity}
+                  onChange={(e) => setCrvForm({...crvForm, quantity: e.target.value})}
                   required
                   placeholder="100"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -289,8 +465,8 @@ export default function LPSLogin() {
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Amount (₹)</label>
                 <input
                   type="text"
-                  value={cfvForm.amount}
-                  onChange={(e) => setCfvForm({...cfvForm, amount: e.target.value})}
+                  value={crvForm.amount}
+                  onChange={(e) => setCrvForm({...crvForm, amount: e.target.value})}
                   required
                   placeholder="50000"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -306,15 +482,15 @@ export default function LPSLogin() {
           </form>
 
           {/* Table */}
-          {cfvEntries.length > 0 && (
+          {crvEntries.length > 0 && (
             <div className="overflow-x-auto">
-              <h5 className="text-lg font-bold text-gray-900 mb-3">CFV Entries</h5>
+              <h5 className="text-lg font-bold text-gray-900 mb-3">CRV Entries</h5>
               <table className="w-full border-collapse text-sm">
                 <thead>
                   <tr className="bg-gray-200">
                     <th className="border border-gray-400 px-3 py-2 font-semibold">S.No</th>
                     <th className="border border-gray-400 px-3 py-2 font-semibold">Date</th>
-                    <th className="border border-gray-400 px-3 py-2 font-semibold">CFV No</th>
+                    <th className="border border-gray-400 px-3 py-2 font-semibold">CRV No</th>
                     <th className="border border-gray-400 px-3 py-2 font-semibold">Section</th>
                     <th className="border border-gray-400 px-3 py-2 font-semibold">Nomenclature</th>
                     <th className="border border-gray-400 px-3 py-2 font-semibold">Quantity</th>
@@ -322,11 +498,11 @@ export default function LPSLogin() {
                   </tr>
                 </thead>
                 <tbody>
-                  {cfvEntries.map((entry, index) => (
+                  {crvEntries.map((entry, index) => (
                     <tr key={entry.id} className="hover:bg-gray-50">
                       <td className="border border-gray-300 px-3 py-2 text-center">{index + 1}</td>
                       <td className="border border-gray-300 px-3 py-2">{entry.date}</td>
-                      <td className="border border-gray-300 px-3 py-2">{entry.cfvNo}</td>
+                      <td className="border border-gray-300 px-3 py-2">{entry.crvNo}</td>
                       <td className="border border-gray-300 px-3 py-2">{entry.section}</td>
                       <td className="border border-gray-300 px-3 py-2">{entry.nomenclature}</td>
                       <td className="border border-gray-300 px-3 py-2 text-right">{entry.quantity}</td>
@@ -343,7 +519,74 @@ export default function LPSLogin() {
       {/* Material Register Section */}
       {selectedSection === 'material-register' && (
         <div>
-          <h4 className="text-xl font-bold text-gray-900 mb-4">Material Register</h4>
+          <div className="flex justify-between items-center mb-4">
+            <h4 className="text-xl font-bold text-gray-900">Material Register</h4>
+            <button
+              onClick={() => setShowImportModal(true)}
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold transition-colors flex items-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+              Import
+            </button>
+          </div>
+
+          {/* Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-blue-100 text-sm font-semibold mb-1">Total Entries</p>
+                  <p className="text-3xl font-bold">5</p>
+                </div>
+                <div className="bg-white bg-opacity-20 rounded-full p-3">
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+            <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-green-100 text-sm font-semibold mb-1">Total Receipt Qty</p>
+                  <p className="text-3xl font-bold">1,130</p>
+                </div>
+                <div className="bg-white bg-opacity-20 rounded-full p-3">
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+            <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl shadow-lg p-6 text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-orange-100 text-sm font-semibold mb-1">Total Issue Qty</p>
+                  <p className="text-3xl font-bold">315</p>
+                </div>
+                <div className="bg-white bg-opacity-20 rounded-full p-3">
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 20v-8m-4 4l4-4 4 4" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+            <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg p-6 text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-purple-100 text-sm font-semibold mb-1">Total Balance</p>
+                  <p className="text-3xl font-bold">815</p>
+                </div>
+                <div className="bg-white bg-opacity-20 rounded-full p-3">
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-sm">
               <thead>
@@ -442,7 +685,61 @@ export default function LPSLogin() {
       {/* Supply Order Section */}
       {selectedSection === 'supply-order' && (
         <div>
-          <h4 className="text-xl font-bold text-gray-900 mb-4">Supply Order</h4>
+          <div className="flex justify-between items-center mb-4">
+            <h4 className="text-xl font-bold text-gray-900">Supply Order</h4>
+            <button
+              onClick={() => setShowImportModal(true)}
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold transition-colors flex items-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+              Import
+            </button>
+          </div>
+
+          {/* Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-xl shadow-lg p-6 text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-cyan-100 text-sm font-semibold mb-1">Total Supply Orders</p>
+                  <p className="text-3xl font-bold">8</p>
+                </div>
+                <div className="bg-white bg-opacity-20 rounded-full p-3">
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+            <div className="bg-gradient-to-br from-pink-500 to-pink-600 rounded-xl shadow-lg p-6 text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-pink-100 text-sm font-semibold mb-1">Total Amount</p>
+                  <p className="text-3xl font-bold">₹12.5L</p>
+                </div>
+                <div className="bg-white bg-opacity-20 rounded-full p-3">
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+            <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl shadow-lg p-6 text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-yellow-100 text-sm font-semibold mb-1">Pending Orders</p>
+                  <p className="text-3xl font-bold">3</p>
+                </div>
+                <div className="bg-white bg-opacity-20 rounded-full p-3">
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-sm">
               <thead>
@@ -535,7 +832,61 @@ export default function LPSLogin() {
       {/* CRV Control Register Section */}
       {selectedSection === 'crv-register' && (
         <div>
-          <h4 className="text-xl font-bold text-gray-900 mb-4">CRV Control Register</h4>
+          <div className="flex justify-between items-center mb-4">
+            <h4 className="text-xl font-bold text-gray-900">CRV Control Register</h4>
+            <button
+              onClick={() => setShowImportModal(true)}
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold transition-colors flex items-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+              Import
+            </button>
+          </div>
+
+          {/* Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl shadow-lg p-6 text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-indigo-100 text-sm font-semibold mb-1">Total CRV Entries</p>
+                  <p className="text-3xl font-bold">12</p>
+                </div>
+                <div className="bg-white bg-opacity-20 rounded-full p-3">
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+            <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl shadow-lg p-6 text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-emerald-100 text-sm font-semibold mb-1">Serviceable Items</p>
+                  <p className="text-3xl font-bold">10</p>
+                </div>
+                <div className="bg-white bg-opacity-20 rounded-full p-3">
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+            <div className="bg-gradient-to-br from-rose-500 to-rose-600 rounded-xl shadow-lg p-6 text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-rose-100 text-sm font-semibold mb-1">Unserviceable Items</p>
+                  <p className="text-3xl font-bold">2</p>
+                </div>
+                <div className="bg-white bg-opacity-20 rounded-full p-3">
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-sm">
               <thead>
@@ -670,7 +1021,61 @@ export default function LPSLogin() {
       {/* Supply Order Register Section */}
       {selectedSection === 'supply-order-register' && (
         <div>
-          <h4 className="text-xl font-bold text-gray-900 mb-4">Supply Order Register</h4>
+          <div className="flex justify-between items-center mb-4">
+            <h4 className="text-xl font-bold text-gray-900">Supply Order Register</h4>
+            <button
+              onClick={() => setShowImportModal(true)}
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold transition-colors flex items-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+              Import
+            </button>
+          </div>
+
+          {/* Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-xl shadow-lg p-6 text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-cyan-100 text-sm font-semibold mb-1">Total Orders</p>
+                  <p className="text-3xl font-bold">15</p>
+                </div>
+                <div className="bg-white bg-opacity-20 rounded-full p-3">
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+            <div className="bg-gradient-to-br from-violet-500 to-violet-600 rounded-xl shadow-lg p-6 text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-violet-100 text-sm font-semibold mb-1">Completed Orders</p>
+                  <p className="text-3xl font-bold">12</p>
+                </div>
+                <div className="bg-white bg-opacity-20 rounded-full p-3">
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+            <div className="bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl shadow-lg p-6 text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-amber-100 text-sm font-semibold mb-1">Pending Orders</p>
+                  <p className="text-3xl font-bold">3</p>
+                </div>
+                <div className="bg-white bg-opacity-20 rounded-full p-3">
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-sm">
               <thead>

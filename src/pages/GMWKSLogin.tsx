@@ -1,12 +1,45 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import LoginForm from '../LoginForm'
+
+interface LPRNotification {
+  originatorNo: string
+  totalDays: number
+  date: string
+}
 
 export default function GMWKSLogin() {
   const navigate = useNavigate()
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [selectedCard, setSelectedCard] = useState<string | null>(null)
   const [selectedYear, setSelectedYear] = useState<string>('PY-2024-25')
+  const [lmStatusTab, setLmStatusTab] = useState<'scaled' | 'non-scaled'>('scaled')
+  const [lpStatusTab, setLpStatusTab] = useState<'scaled' | 'non-scaled'>('scaled')
+  const [criticalItemsActions, setCriticalItemsActions] = useState<Record<number, string>>({});
+  const [notificationSent, setNotificationSent] = useState<Record<number, boolean>>({});
+  const [lprNotifications, setLprNotifications] = useState<LPRNotification[]>([]);
+  const [showNotification, setShowNotification] = useState(false);
+  const [isChatbotOpen, setIsChatbotOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState<Array<{ id: number; text: string; sender: 'user' | 'bot'; timestamp: Date }>>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [showNotificationModal, setShowNotificationModal] = useState(false);
+  const [selectedNotificationSerial, setSelectedNotificationSerial] = useState<number | null>(null);
+  const [selectedRecipient, setSelectedRecipient] = useState<string>('');
+  const [notificationMessage, setNotificationMessage] = useState<string>('');
+  const [showSrbPopup, setShowSrbPopup] = useState(false);
+  const [selectedSectionForSrb, setSelectedSectionForSrb] = useState<string>('');
+
+  // Check for LPR notifications on component mount and when logged in
+  useEffect(() => {
+    if (isLoggedIn) {
+      const notifications = JSON.parse(localStorage.getItem('lprNotifications') || '[]');
+      if (notifications.length > 0) {
+        setLprNotifications(notifications);
+        setShowNotification(true);
+      }
+    }
+  }, [isLoggedIn]);
 
   if (!isLoggedIn) {
     return (
@@ -28,7 +61,9 @@ export default function GMWKSLogin() {
     { id: 'daily-output', title: 'Daily Output', description: 'Track daily production output', color: 'bg-teal-500' },
     { id: 'equipments-collected', title: "Equipment's Collected", description: 'Equipment collection tracking', color: 'bg-orange-500' },
     { id: 'dr-summary', title: 'DR Summary', description: 'Defect Report summary and analysis', color: 'bg-pink-500' },
-    { id: 'ifa-cases', title: 'IFA Cases', description: 'Issue For Acknowledgement cases', color: 'bg-cyan-500' }
+    { id: 'ifa-cases', title: 'IFA Cases', description: 'Issue For Acknowledgement cases', color: 'bg-cyan-500' },
+    { id: 'abc-analysis', title: 'ABC Analysis', description: 'ABC Analysis for MT Grant and ORD Grant', color: 'bg-slate-500' },
+    { id: 'misc', title: 'MISC', description: 'Miscellaneous items and information', color: 'bg-gray-500' }
   ]
 
   const handleAccess = (cardId: string) => {
@@ -38,6 +73,53 @@ export default function GMWKSLogin() {
   const handleBack = () => {
     setSelectedCard(null)
   }
+
+  const handleDismissNotification = (originatorNo: string) => {
+    const updatedNotifications = lprNotifications.filter(n => n.originatorNo !== originatorNo);
+    setLprNotifications(updatedNotifications);
+    localStorage.setItem('lprNotifications', JSON.stringify(updatedNotifications));
+    if (updatedNotifications.length === 0) {
+      setShowNotification(false);
+    }
+  };
+
+  const handleDismissAllNotifications = () => {
+    setLprNotifications([]);
+    setShowNotification(false);
+    localStorage.removeItem('lprNotifications');
+  };
+
+  const handleSendMessage = () => {
+    if (chatInput.trim() === '') return;
+
+    const userMessage = {
+      id: Date.now(),
+      text: chatInput,
+      sender: 'user' as const,
+      timestamp: new Date()
+    };
+
+    setChatMessages(prev => [...prev, userMessage]);
+    setChatInput('');
+
+    // Simulate bot response
+    setTimeout(() => {
+      const botResponse = {
+        id: Date.now() + 1,
+        text: "Thank you for your message. I'm here to help you with the GM WKS MTRL dashboard. How can I assist you today?",
+        sender: 'bot' as const,
+        timestamp: new Date()
+      };
+      setChatMessages(prev => [...prev, botResponse]);
+    }, 500);
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
 
   if (selectedCard) {
     // CT Issue Data
@@ -64,6 +146,75 @@ export default function GMWKSLogin() {
       { serial: 11, partNumber: 'PT-2411', ohsScale: '1:45', nomenclature: 'Suspension Spring', section: 'ETD', criticalityStatus: 'P2' },
       { serial: 12, partNumber: 'PT-2412', ohsScale: '1:55', nomenclature: 'Transmission Gear Set', section: 'TAR', criticalityStatus: 'P1' }
     ];
+
+    const handleActionChange = (serial: number, action: string) => {
+      setCriticalItemsActions(prev => ({ ...prev, [serial]: action }));
+    };
+
+    const handleSendNotification = (serial: number) => {
+      const action = criticalItemsActions[serial] || '';
+      if (!action.trim()) {
+        alert('Please enter action taken before sending notification.');
+        return;
+      }
+      // Open notification modal
+      setSelectedNotificationSerial(serial);
+      setShowNotificationModal(true);
+      setSelectedRecipient('');
+      setNotificationMessage('');
+    };
+
+    const handleNotificationRecipientSelect = (recipient: string) => {
+      setSelectedRecipient(recipient);
+    };
+
+    const handleSendNotificationMessage = () => {
+      if (!selectedRecipient) {
+        alert('Please select a recipient.');
+        return;
+      }
+      if (!notificationMessage.trim()) {
+        alert('Please enter a message.');
+        return;
+      }
+      if (selectedNotificationSerial === null) {
+        return;
+      }
+
+      // Store notification in localStorage for the recipient dashboard
+      const notificationData = {
+        id: Date.now(),
+        from: 'GM WKS MTRL',
+        to: selectedRecipient,
+        serial: selectedNotificationSerial,
+        itemName: criticalItemsData.find(item => item.serial === selectedNotificationSerial)?.nomenclature || '',
+        action: criticalItemsActions[selectedNotificationSerial] || '',
+        message: notificationMessage,
+        timestamp: new Date().toISOString()
+      };
+
+      const existingNotifications = JSON.parse(localStorage.getItem(`notifications_${selectedRecipient}`) || '[]');
+      existingNotifications.push(notificationData);
+      localStorage.setItem(`notifications_${selectedRecipient}`, JSON.stringify(existingNotifications));
+
+      // Mark as sent
+      setNotificationSent(prev => ({ ...prev, [selectedNotificationSerial]: true }));
+      
+      // Close modal
+      setShowNotificationModal(false);
+      setSelectedNotificationSerial(null);
+      setSelectedRecipient('');
+      setNotificationMessage('');
+      
+      alert(`Notification sent to ${selectedRecipient} for item ${selectedNotificationSerial}`);
+    };
+
+    const handleCancelNotification = () => {
+      setShowNotificationModal(false);
+      setSelectedNotificationSerial(null);
+      setSelectedRecipient('');
+      setNotificationMessage('');
+    };
 
     // Graph 1 Data: Items by Section and Criticality
     const sectionCriticalityData = [
@@ -178,6 +329,161 @@ export default function GMWKSLogin() {
 
     const maxAmount = Math.max(...sectionFundData.map(s => s.amount));
 
+    // Fund State Grant Data
+    const fundStateGrantData = [
+      {
+        serNo: 1,
+        grantName: 'ORD Grant (415/01)',
+        almt202526: 17359000,
+        soPlacedGem: 12,
+        soPlacedNonGem: 278,
+        expdrGem: 713555,
+        expdrNonGem: 11060706,
+        totalExpdr: 11774261,
+        billsSubmitted: 5365263,
+        amtBooked: 4493190,
+        amtBal: 5584739,
+        remarks: ''
+      },
+      {
+        serNo: 2,
+        grantName: 'MT Grant (417/07)',
+        almt202526: 16252000,
+        soPlacedGem: 8,
+        soPlacedNonGem: 139,
+        expdrGem: 8731713,
+        expdrNonGem: 11916599,
+        totalExpdr: 20648312,
+        billsSubmitted: 7604025,
+        amtBooked: 7320152,
+        amtBal: -4396312,
+        remarks: 'Addl Rs 60 lakhs reqmt already fwd to HQ BWG'
+      },
+      {
+        serNo: 3,
+        grantName: 'IR&D Grant (438/00)',
+        almt202526: 3500000,
+        soPlacedGem: null,
+        soPlacedNonGem: 3,
+        expdrGem: 0,
+        expdrNonGem: 244130,
+        totalExpdr: 244130,
+        billsSubmitted: 199998,
+        amtBooked: null,
+        amtBal: 3255870,
+        remarks: 'Letter fwd to HQ BWG for surrender of Rs 28.75 Lakhs'
+      }
+    ];
+
+    // Calculate totals for graph
+    const totalAlmt = fundStateGrantData.reduce((sum, g) => sum + g.almt202526, 0);
+    const totalExpdr = fundStateGrantData.reduce((sum, g) => sum + g.totalExpdr, 0);
+    const maxGrantAmount = Math.max(...fundStateGrantData.map(g => g.almt202526));
+
+    // LPR Data for LM Status (Scaled)
+    const lmScaledData = [
+      { sec: 'ARD', awtMtrl: 7, can: 3, comp: 5, hold: '', ifaCase: 2, oss: 4, woPlaced: 2, storeRecd: '', grandTotal: 23 },
+      { sec: 'ARMT', awtMtrl: 6, can: 2, comp: 2, hold: '', ifaCase: '', oss: '', woPlaced: '', storeRecd: '', grandTotal: 10 },
+      { sec: 'ENG', awtMtrl: '', can: 2, comp: 1, hold: 2, ifaCase: 2, oss: '', woPlaced: 1, storeRecd: 2, grandTotal: 10 },
+      { sec: 'ETD', awtMtrl: 4, can: 3, comp: '', hold: '', ifaCase: 2, oss: 1, woPlaced: 1, storeRecd: '', grandTotal: 11 },
+      { sec: 'INST', awtMtrl: '', can: 1, comp: 1, hold: 1, ifaCase: '', oss: '', woPlaced: 1, storeRecd: 1, grandTotal: 5 },
+      { sec: 'SRD', awtMtrl: 1, can: 1, comp: 2, hold: '', ifaCase: '', oss: 7, woPlaced: 3, storeRecd: '', grandTotal: 14 },
+      { sec: 'T&R', awtMtrl: 2, can: '', comp: 1, hold: '', ifaCase: '', oss: 9, woPlaced: '', storeRecd: '', grandTotal: 12 },
+      { sec: 'VRD', awtMtrl: 1, can: 1, comp: 3, hold: '', ifaCase: 1, oss: 1, woPlaced: 5, storeRecd: '', grandTotal: 12 }
+    ];
+
+    // LPR Data for LM Status (Non-Scaled)
+    const lmNonScaledData = [
+      { sec: 'ARD', awtMtrl: 3, can: 1, comp: 2, hold: 1, ifaCase: 1, oss: 2, woPlaced: 1, storeRecd: '', grandTotal: 11 },
+      { sec: 'ARMT', awtMtrl: 2, can: 1, comp: 1, hold: '', ifaCase: '', oss: '', woPlaced: '', storeRecd: '', grandTotal: 4 },
+      { sec: 'ENG', awtMtrl: '', can: 1, comp: '', hold: 1, ifaCase: 1, oss: '', woPlaced: '', storeRecd: 1, grandTotal: 4 },
+      { sec: 'ETD', awtMtrl: 2, can: 1, comp: '', hold: '', ifaCase: 1, oss: '', woPlaced: '', storeRecd: '', grandTotal: 4 },
+      { sec: 'INST', awtMtrl: '', can: '', comp: '', hold: '', ifaCase: '', oss: '', woPlaced: '', storeRecd: '', grandTotal: 0 },
+      { sec: 'SRD', awtMtrl: '', can: '', comp: 1, hold: '', ifaCase: '', oss: 3, woPlaced: 1, storeRecd: '', grandTotal: 5 },
+      { sec: 'T&R', awtMtrl: 1, can: '', comp: '', hold: '', ifaCase: '', oss: 4, woPlaced: '', storeRecd: '', grandTotal: 5 },
+      { sec: 'VRD', awtMtrl: '', can: '', comp: 1, hold: '', ifaCase: '', oss: '', woPlaced: 2, storeRecd: '', grandTotal: 3 }
+    ];
+
+    // LPR Data for LP Status (Scaled)
+    const lpScaledData = [
+      { sec: 'ARD', awtMtrl: 7, can: 3, comp: 5, hold: '', ifaCase: 2, oss: 4, soPlaced: 2, storeRecd: '', grandTotal: 23 },
+      { sec: 'ARMT', awtMtrl: 6, can: 2, comp: 2, hold: '', ifaCase: '', oss: '', soPlaced: '', storeRecd: '', grandTotal: 10 },
+      { sec: 'ENG', awtMtrl: '', can: 2, comp: 1, hold: 2, ifaCase: 2, oss: '', soPlaced: 1, storeRecd: 2, grandTotal: 10 },
+      { sec: 'ETD', awtMtrl: 4, can: 3, comp: '', hold: '', ifaCase: 2, oss: 1, soPlaced: 1, storeRecd: '', grandTotal: 11 },
+      { sec: 'INST', awtMtrl: '', can: 1, comp: 1, hold: 1, ifaCase: '', oss: '', soPlaced: 1, storeRecd: 1, grandTotal: 5 },
+      { sec: 'SRD', awtMtrl: 1, can: 1, comp: 2, hold: '', ifaCase: '', oss: 7, soPlaced: 3, storeRecd: '', grandTotal: 14 },
+      { sec: 'T&R', awtMtrl: 2, can: '', comp: 1, hold: '', ifaCase: '', oss: 9, soPlaced: '', storeRecd: '', grandTotal: 12 },
+      { sec: 'VRD', awtMtrl: 1, can: 1, comp: 3, hold: '', ifaCase: 1, oss: 1, soPlaced: 5, storeRecd: '', grandTotal: 12 }
+    ];
+
+    // LPR Data for LP Status (Non-Scaled)
+    const lpNonScaledData = [
+      { sec: 'ARD', awtMtrl: 3, can: 1, comp: 2, hold: 1, ifaCase: 1, oss: 2, soPlaced: 1, storeRecd: '', grandTotal: 11 },
+      { sec: 'ARMT', awtMtrl: 2, can: 1, comp: 1, hold: '', ifaCase: '', oss: '', soPlaced: '', storeRecd: '', grandTotal: 4 },
+      { sec: 'ENG', awtMtrl: '', can: 1, comp: '', hold: 1, ifaCase: 1, oss: '', soPlaced: '', storeRecd: 1, grandTotal: 4 },
+      { sec: 'ETD', awtMtrl: 2, can: 1, comp: '', hold: '', ifaCase: 1, oss: '', soPlaced: '', storeRecd: '', grandTotal: 4 },
+      { sec: 'INST', awtMtrl: '', can: '', comp: '', hold: '', ifaCase: '', oss: '', soPlaced: '', storeRecd: '', grandTotal: 0 },
+      { sec: 'SRD', awtMtrl: '', can: '', comp: 1, hold: '', ifaCase: '', oss: 3, soPlaced: 1, storeRecd: '', grandTotal: 5 },
+      { sec: 'T&R', awtMtrl: 1, can: '', comp: '', hold: '', ifaCase: '', oss: 4, soPlaced: '', storeRecd: '', grandTotal: 5 },
+      { sec: 'VRD', awtMtrl: '', can: '', comp: 1, hold: '', ifaCase: '', oss: '', soPlaced: 2, storeRecd: '', grandTotal: 3 }
+    ];
+
+    // Calculate Grand Totals
+    const calculateGrandTotal = (data: any[], field: string) => {
+      return data.reduce((sum, row) => {
+        const value = row[field];
+        return sum + (typeof value === 'number' ? value : 0);
+      }, 0);
+    };
+
+    const lmScaledGrandTotal = {
+      awtMtrl: calculateGrandTotal(lmScaledData, 'awtMtrl'),
+      can: calculateGrandTotal(lmScaledData, 'can'),
+      comp: calculateGrandTotal(lmScaledData, 'comp'),
+      hold: calculateGrandTotal(lmScaledData, 'hold'),
+      ifaCase: calculateGrandTotal(lmScaledData, 'ifaCase'),
+      oss: calculateGrandTotal(lmScaledData, 'oss'),
+      woPlaced: calculateGrandTotal(lmScaledData, 'woPlaced'),
+      storeRecd: calculateGrandTotal(lmScaledData, 'storeRecd'),
+      grandTotal: calculateGrandTotal(lmScaledData, 'grandTotal')
+    };
+
+    const lmNonScaledGrandTotal = {
+      awtMtrl: calculateGrandTotal(lmNonScaledData, 'awtMtrl'),
+      can: calculateGrandTotal(lmNonScaledData, 'can'),
+      comp: calculateGrandTotal(lmNonScaledData, 'comp'),
+      hold: calculateGrandTotal(lmNonScaledData, 'hold'),
+      ifaCase: calculateGrandTotal(lmNonScaledData, 'ifaCase'),
+      oss: calculateGrandTotal(lmNonScaledData, 'oss'),
+      woPlaced: calculateGrandTotal(lmNonScaledData, 'woPlaced'),
+      storeRecd: calculateGrandTotal(lmNonScaledData, 'storeRecd'),
+      grandTotal: calculateGrandTotal(lmNonScaledData, 'grandTotal')
+    };
+
+    const lpScaledGrandTotal = {
+      awtMtrl: calculateGrandTotal(lpScaledData, 'awtMtrl'),
+      can: calculateGrandTotal(lpScaledData, 'can'),
+      comp: calculateGrandTotal(lpScaledData, 'comp'),
+      hold: calculateGrandTotal(lpScaledData, 'hold'),
+      ifaCase: calculateGrandTotal(lpScaledData, 'ifaCase'),
+      oss: calculateGrandTotal(lpScaledData, 'oss'),
+      soPlaced: calculateGrandTotal(lpScaledData, 'soPlaced'),
+      storeRecd: calculateGrandTotal(lpScaledData, 'storeRecd'),
+      grandTotal: calculateGrandTotal(lpScaledData, 'grandTotal')
+    };
+
+    const lpNonScaledGrandTotal = {
+      awtMtrl: calculateGrandTotal(lpNonScaledData, 'awtMtrl'),
+      can: calculateGrandTotal(lpNonScaledData, 'can'),
+      comp: calculateGrandTotal(lpNonScaledData, 'comp'),
+      hold: calculateGrandTotal(lpNonScaledData, 'hold'),
+      ifaCase: calculateGrandTotal(lpNonScaledData, 'ifaCase'),
+      oss: calculateGrandTotal(lpNonScaledData, 'oss'),
+      soPlaced: calculateGrandTotal(lpNonScaledData, 'soPlaced'),
+      storeRecd: calculateGrandTotal(lpNonScaledData, 'storeRecd'),
+      grandTotal: calculateGrandTotal(lpNonScaledData, 'grandTotal')
+    };
+
     // Daily Output Data
     const dailyOutputData = [
       { label: 'Today', value: 45, target: 50, color: 'bg-blue-500' },
@@ -260,28 +566,22 @@ export default function GMWKSLogin() {
     const maxOnTimeCount = Math.max(...Object.values(vendorOnTimeCount), 1);
 
     return (
+      <React.Fragment>
       <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 p-8">
         <div className="max-w-7xl mx-auto">
-          <button
-            onClick={handleBack}
-            className="mb-6 px-6 py-2 bg-green-700 text-white rounded-lg hover:bg-green-800 transition"
-          >
-            ← Back to Dashboard
-          </button>
-          
           {selectedCard === 'target' ? (
             <div className="space-y-8">
               {/* Back Button */}
               <div className="mb-4">
-                <button
-                  onClick={handleBack}
+          <button
+            onClick={handleBack}
                   className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-semibold transition-colors flex items-center gap-2"
-                >
+          >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                   </svg>
                   Back to Dashboards
-                </button>
+          </button>
               </div>
               
               {/* Year Selection Dropdown */}
@@ -304,6 +604,531 @@ export default function GMWKSLogin() {
 
               {/* Content based on selected year */}
               {selectedYear === 'PY-2023-24' ? (
+            <div className="space-y-8">
+                  <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
+                    <h2 className="text-3xl font-bold text-gray-900 mb-6">Target Module - PY-2023-24</h2>
+                    <p className="text-gray-600">No target data available for this financial year.</p>
+                  </div>
+                </div>
+              ) : selectedYear === 'PY-2024-25' ? (
+                <div className="space-y-8">
+                  {(() => {
+                    // PY-2024-25 Data: CT ISSUED IN 2024-25 and TARGET FOR 2024-25
+                    const ctIssuedData = {
+                      veh: {
+                        total: 208,
+                        cfCt: { total: 143, bmpII: 33, iik: 101, cmt: 4, ohII: 5 },
+                        freshCt: { total: 65, bmpII: 15, iik: 10, cmt: 15, ohII: 25 },
+                        output: { total: 72, bmpII: 12, iik: 41, cmt: 8, ohII: 5 }
+                      },
+                      eng: {
+                        total: 223,
+                        cfCt: { total: 123, utd20: 123 },
+                        freshCt: { total: 100, utd20: 100 },
+                        output: { total: 183, utd20: 183 }
+                      }
+                    };
+                    const targetData = {
+                      veh: {
+                        ohI: { bmpII: 21, iik: 10 },
+                        ohII: 89,
+                        cmt: 15,
+                        vt72b: 2
+                      },
+                      eng: {
+                        utd20: 300,
+                        slk: 5
+                      }
+                    };
+                    const carryFwdVehicles = 136;
+                    const carryFwdEngs = 40;
+
+                    return (
+                      <>
+                        {/* Summary Cards */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="bg-gradient-to-br from-purple-50 to-purple-100 border-2 border-purple-200 rounded-lg p-6 shadow-sm">
+                            <div className="text-purple-700 text-sm mb-1 font-semibold">Target VEH</div>
+                            <div className="text-3xl font-bold text-purple-600">{targetData.veh.ohI.bmpII + targetData.veh.ohI.iik + targetData.veh.ohII + targetData.veh.cmt + targetData.veh.vt72b}</div>
+                          </div>
+                          <div className="bg-gradient-to-br from-orange-50 to-orange-100 border-2 border-orange-200 rounded-lg p-6 shadow-sm">
+                            <div className="text-orange-700 text-sm mb-1 font-semibold">Target ENG</div>
+                            <div className="text-3xl font-bold text-orange-600">{targetData.eng.utd20 + targetData.eng.slk}</div>
+                          </div>
+                        </div>
+
+                        {/* Target Table */}
+                        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
+                          <h2 className="text-3xl font-bold text-gray-900 mb-6">TARGET FOR 2024-25</h2>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div>
+                              <h3 className="text-xl font-bold text-gray-800 mb-4">VEH (Vehicles)</h3>
+                              <div className="overflow-x-auto">
+                                <table className="w-full border-collapse text-xs">
+                                  <thead>
+                                    <tr className="bg-gray-200">
+                                      <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Type</th>
+                                      <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Quantity</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    <tr className="bg-gray-50">
+                                      <td className="border border-gray-300 px-3 py-2">OH-I - BMP II</td>
+                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.veh.ohI.bmpII}</td>
+                                    </tr>
+                                    <tr className="bg-white">
+                                      <td className="border border-gray-300 px-3 py-2">OH-I - BMP IIK</td>
+                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.veh.ohI.iik}</td>
+                                    </tr>
+                                    <tr className="bg-gray-50">
+                                      <td className="border border-gray-300 px-3 py-2">OH-II</td>
+                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.veh.ohII}</td>
+                                    </tr>
+                                    <tr className="bg-white">
+                                      <td className="border border-gray-300 px-3 py-2">CMT</td>
+                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.veh.cmt}</td>
+                                    </tr>
+                                    <tr className="bg-gray-50">
+                                      <td className="border border-gray-300 px-3 py-2">VT-72B</td>
+                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.veh.vt72b}</td>
+                                    </tr>
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                            <div>
+                              <h3 className="text-xl font-bold text-gray-800 mb-4">ENGs (Engines)</h3>
+                              <div className="overflow-x-auto">
+                                <table className="w-full border-collapse text-xs">
+                                  <thead>
+                                    <tr className="bg-gray-200">
+                                      <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Type</th>
+                                      <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Quantity</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    <tr className="bg-gray-50">
+                                      <td className="border border-gray-300 px-3 py-2">UTD-20 ENG</td>
+                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.eng.utd20}</td>
+                                    </tr>
+                                    <tr className="bg-white">
+                                      <td className="border border-gray-300 px-3 py-2">SLK ENG</td>
+                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.eng.slk}</td>
+                                    </tr>
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Bar Graph: Target Values from Table - Merged VEH and ENG */}
+                        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
+                          <h3 className="text-2xl font-bold text-gray-900 mb-6">Target Values - VEH & ENG</h3>
+                          <div className="flex items-end justify-around h-96 border-l-2 border-b-2 border-gray-400 pl-4 pb-4 gap-2">
+                            {(() => {
+                              const vehTargets = [
+                                { label: 'OH-I\nBMP II', value: targetData.veh.ohI.bmpII, color: 'from-blue-600 to-blue-400' },
+                                { label: 'OH-I\nBMP IIK', value: targetData.veh.ohI.iik, color: 'from-purple-600 to-purple-400' },
+                                { label: 'OH-II', value: targetData.veh.ohII, color: 'from-green-600 to-green-400' },
+                                { label: 'CMT', value: targetData.veh.cmt, color: 'from-orange-600 to-orange-400' },
+                                { label: 'VT-72B', value: targetData.veh.vt72b, color: 'from-red-600 to-red-400' }
+                              ];
+                              const engTargets = [
+                                { label: 'UTD-20 ENG', value: targetData.eng.utd20, color: 'from-indigo-600 to-indigo-400' },
+                                { label: 'SLK ENG', value: targetData.eng.slk, color: 'from-teal-600 to-teal-400' }
+                              ];
+                              const allTargets = [...vehTargets, ...engTargets];
+                              const maxValue = Math.max(...allTargets.map(t => t.value), 1);
+                              return allTargets.map((target, index) => (
+                                <div key={index} className="flex flex-col items-center gap-2 flex-1">
+                                  <div
+                                    className={`w-full bg-gradient-to-t ${target.color} flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg`}
+                                    style={{ height: `${(target.value / maxValue) * 350}px`, minHeight: '30px' }}
+                                  >
+                                    {target.value}
+                                  </div>
+                                  <span className="text-xs font-semibold text-gray-700 mt-2 text-center whitespace-pre-line">{target.label}</span>
+                                </div>
+                              ));
+                            })()}
+                          </div>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              ) : selectedYear === 'PY-2025-26' ? (
+                <div className="space-y-8">
+                  {(() => {
+                    // PY-2025-26 Data: TARGET FOR 2025-26 and CT ISSUED IN PY 2025-26
+                    const targetData = {
+                      veh: {
+                        ohI: { bmpII: 72, iik: 0 },
+                        ohII: { bmpII: 48 },
+                        cmt: 15,
+                        vt72b: 2,
+                        gun30mm: 20
+                      },
+                      eng: {
+                        utd20: 280,
+                        baz: 6,
+                        slk: 8
+                      }
+                    };
+                    const ctIssuedData = {
+                      veh: {
+                        cfCt: { total: 136, bmpII: 36, iik: 64, cmt: 11, ohII: 25 },
+                        freshCt: { cmt: 10, ohII: 20, ohI: 15, gun30mm: 10 }
+                      },
+                      eng: {
+                        cfCt: { utd20: 40 },
+                        freshCt: { utd20: 95, baz: 5 }
+                      }
+                    };
+
+                    return (
+                      <>
+                        {/* Summary Cards */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 rounded-lg p-6 shadow-sm">
+                            <div className="text-blue-700 text-sm mb-1 font-semibold">Target VEH</div>
+                            <div className="text-3xl font-bold text-blue-600">{targetData.veh.ohI.bmpII + targetData.veh.ohII.bmpII + targetData.veh.cmt + targetData.veh.vt72b + targetData.veh.gun30mm}</div>
+                          </div>
+                          <div className="bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-200 rounded-lg p-6 shadow-sm">
+                            <div className="text-green-700 text-sm mb-1 font-semibold">Target ENG</div>
+                            <div className="text-3xl font-bold text-green-600">{targetData.eng.utd20 + targetData.eng.baz + targetData.eng.slk}</div>
+                          </div>
+                        </div>
+
+                        {/* Target Table */}
+                        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
+                          <h2 className="text-3xl font-bold text-gray-900 mb-6">TARGET FOR 2025-26</h2>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div>
+                              <h3 className="text-xl font-bold text-gray-800 mb-4">VEH (Vehicles)</h3>
+                              <div className="overflow-x-auto">
+                                <table className="w-full border-collapse text-xs">
+                                  <thead>
+                                    <tr className="bg-gray-200">
+                                      <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Type</th>
+                                      <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Quantity</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    <tr className="bg-gray-50">
+                                      <td className="border border-gray-300 px-3 py-2">OH-I - BMP II</td>
+                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.veh.ohI.bmpII}</td>
+                                    </tr>
+                                    <tr className="bg-white">
+                                      <td className="border border-gray-300 px-3 py-2">OH-II - BMP II</td>
+                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.veh.ohII.bmpII}</td>
+                                    </tr>
+                                    <tr className="bg-gray-50">
+                                      <td className="border border-gray-300 px-3 py-2">CMT</td>
+                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.veh.cmt}</td>
+                                    </tr>
+                                    <tr className="bg-white">
+                                      <td className="border border-gray-300 px-3 py-2">VT-72B</td>
+                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.veh.vt72b}</td>
+                                    </tr>
+                                    <tr className="bg-gray-50">
+                                      <td className="border border-gray-300 px-3 py-2">30 MM Gun</td>
+                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.veh.gun30mm}</td>
+                                    </tr>
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                            <div>
+                              <h3 className="text-xl font-bold text-gray-800 mb-4">ENGs (Engines)</h3>
+                              <div className="overflow-x-auto">
+                                <table className="w-full border-collapse text-xs">
+                                  <thead>
+                                    <tr className="bg-gray-200">
+                                      <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Type</th>
+                                      <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Quantity</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    <tr className="bg-gray-50">
+                                      <td className="border border-gray-300 px-3 py-2">UTD-20 ENG</td>
+                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.eng.utd20}</td>
+                                    </tr>
+                                    <tr className="bg-white">
+                                      <td className="border border-gray-300 px-3 py-2">BAZ ENG</td>
+                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.eng.baz}</td>
+                                    </tr>
+                                    <tr className="bg-gray-50">
+                                      <td className="border border-gray-300 px-3 py-2">SLK ENG</td>
+                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.eng.slk}</td>
+                                    </tr>
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Bar Graph: Target Values from Table - Merged VEH and ENG */}
+                        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
+                          <h3 className="text-2xl font-bold text-gray-900 mb-6">Target Values - VEH & ENG</h3>
+                          <div className="flex items-end justify-around h-96 border-l-2 border-b-2 border-gray-400 pl-4 pb-4 gap-2">
+                            {(() => {
+                              const vehTargets = [
+                                { label: 'OH-I\nBMP II', value: targetData.veh.ohI.bmpII, color: 'from-blue-600 to-blue-400' },
+                                { label: 'OH-II\nBMP II', value: targetData.veh.ohII.bmpII, color: 'from-green-600 to-green-400' },
+                                { label: 'CMT', value: targetData.veh.cmt, color: 'from-orange-600 to-orange-400' },
+                                { label: 'VT-72B', value: targetData.veh.vt72b, color: 'from-red-600 to-red-400' },
+                                ...(targetData.veh.gun30mm ? [{ label: '30 MM\nGun', value: targetData.veh.gun30mm, color: 'from-pink-600 to-pink-400' }] : [])
+                              ];
+                              const engTargets = [
+                                { label: 'UTD-20 ENG', value: targetData.eng.utd20, color: 'from-indigo-600 to-indigo-400' },
+                                ...(targetData.eng.baz ? [{ label: 'BAZ ENG', value: targetData.eng.baz, color: 'from-cyan-600 to-cyan-400' }] : []),
+                                { label: 'SLK ENG', value: targetData.eng.slk, color: 'from-teal-600 to-teal-400' }
+                              ];
+                              const allTargets = [...vehTargets, ...engTargets];
+                              const maxValue = Math.max(...allTargets.map(t => t.value), 1);
+                              return allTargets.map((target, index) => (
+                                <div key={index} className="flex flex-col items-center gap-2 flex-1">
+                                  <div
+                                    className={`w-full bg-gradient-to-t ${target.color} flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg`}
+                                    style={{ height: `${(target.value / maxValue) * 350}px`, minHeight: '30px' }}
+                                  >
+                                    {target.value}
+                                  </div>
+                                  <span className="text-xs font-semibold text-gray-700 mt-2 text-center whitespace-pre-line">{target.label}</span>
+                                </div>
+                              ));
+                            })()}
+                          </div>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              ) : selectedYear === 'PY-2026-27' ? (
+                <div className="space-y-8">
+                  {(() => {
+                    // PY-2026-27 Data: TARGET FOR PY 2026-27
+                    const targetData = {
+                      veh: {
+                        ohI: { bmpII: 25, iik: 30 },
+                        ohII: { bmpII: 65 },
+                        cmt: 15,
+                        vt72b: 3
+                      },
+                      eng: {
+                        utd20: 280,
+                        slk: 4
+                      }
+                    };
+
+                    return (
+                      <>
+                        {/* Summary Cards */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 rounded-lg p-6 shadow-sm">
+                            <div className="text-blue-700 text-sm mb-1 font-semibold">Target VEH</div>
+                            <div className="text-3xl font-bold text-blue-600">{targetData.veh.ohI.bmpII + targetData.veh.ohI.iik + targetData.veh.ohII.bmpII + targetData.veh.cmt + targetData.veh.vt72b}</div>
+                          </div>
+                          <div className="bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-200 rounded-lg p-6 shadow-sm">
+                            <div className="text-green-700 text-sm mb-1 font-semibold">Target ENG</div>
+                            <div className="text-3xl font-bold text-green-600">{targetData.eng.utd20 + targetData.eng.slk}</div>
+                          </div>
+                        </div>
+
+                        {/* Target Table */}
+                        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
+                          <h2 className="text-3xl font-bold text-gray-900 mb-6">TARGET FOR PY 2026-27</h2>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div>
+                              <h3 className="text-xl font-bold text-gray-800 mb-4">VEH (Vehicles)</h3>
+                              <div className="overflow-x-auto">
+                                <table className="w-full border-collapse text-xs">
+                                  <thead>
+                                    <tr className="bg-gray-200">
+                                      <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Type</th>
+                                      <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Quantity</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    <tr className="bg-gray-50">
+                                      <td className="border border-gray-300 px-3 py-2">OH-I - BMP II</td>
+                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.veh.ohI.bmpII}</td>
+                                    </tr>
+                                    <tr className="bg-white">
+                                      <td className="border border-gray-300 px-3 py-2">OH-I - BMP IIK</td>
+                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.veh.ohI.iik}</td>
+                                    </tr>
+                                    <tr className="bg-gray-50">
+                                      <td className="border border-gray-300 px-3 py-2">OH-II - BMP II</td>
+                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.veh.ohII.bmpII}</td>
+                                    </tr>
+                                    <tr className="bg-white">
+                                      <td className="border border-gray-300 px-3 py-2">CMT</td>
+                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.veh.cmt}</td>
+                                    </tr>
+                                    <tr className="bg-gray-50">
+                                      <td className="border border-gray-300 px-3 py-2">VT-72B</td>
+                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.veh.vt72b}</td>
+                                    </tr>
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                            <div>
+                              <h3 className="text-xl font-bold text-gray-800 mb-4">ENGs (Engines)</h3>
+                              <div className="overflow-x-auto">
+                                <table className="w-full border-collapse text-xs">
+                                  <thead>
+                                    <tr className="bg-gray-200">
+                                      <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Type</th>
+                                      <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Quantity</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    <tr className="bg-gray-50">
+                                      <td className="border border-gray-300 px-3 py-2">UTD-20 ENG</td>
+                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.eng.utd20}</td>
+                                    </tr>
+                                    <tr className="bg-white">
+                                      <td className="border border-gray-300 px-3 py-2">SLK ENG</td>
+                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.eng.slk}</td>
+                                    </tr>
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Bar Graph: Target Values from Table - Merged VEH and ENG */}
+                        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
+                          <h3 className="text-2xl font-bold text-gray-900 mb-6">Target Values - VEH & ENG</h3>
+                          <div className="flex items-end justify-around h-96 border-l-2 border-b-2 border-gray-400 pl-4 pb-4 gap-2">
+                            {(() => {
+                              const vehTargets = [
+                                { label: 'OH-I\nBMP II', value: targetData.veh.ohI.bmpII, color: 'from-blue-600 to-blue-400' },
+                                { label: 'OH-I\nBMP IIK', value: targetData.veh.ohI.iik, color: 'from-purple-600 to-purple-400' },
+                                { label: 'OH-II\nBMP II', value: targetData.veh.ohII.bmpII, color: 'from-green-600 to-green-400' },
+                                { label: 'CMT', value: targetData.veh.cmt, color: 'from-orange-600 to-orange-400' },
+                                { label: 'VT-72B', value: targetData.veh.vt72b, color: 'from-red-600 to-red-400' },
+                                ...(targetData.veh.gun30mm ? [{ label: '30 MM\nGun', value: targetData.veh.gun30mm, color: 'from-pink-600 to-pink-400' }] : [])
+                              ];
+                              const engTargets = [
+                                { label: 'UTD-20 ENG', value: targetData.eng.utd20, color: 'from-indigo-600 to-indigo-400' },
+                                ...(targetData.eng.baz ? [{ label: 'BAZ ENG', value: targetData.eng.baz, color: 'from-cyan-600 to-cyan-400' }] : []),
+                                { label: 'SLK ENG', value: targetData.eng.slk, color: 'from-teal-600 to-teal-400' }
+                              ];
+                              const allTargets = [...vehTargets, ...engTargets];
+                              const maxValue = Math.max(...allTargets.map(t => t.value), 1);
+                              return allTargets.map((target, index) => (
+                                <div key={index} className="flex flex-col items-center gap-2 flex-1">
+                                  <div
+                                    className={`w-full bg-gradient-to-t ${target.color} flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg`}
+                                    style={{ height: `${(target.value / maxValue) * 350}px`, minHeight: '30px' }}
+                                  >
+                                    {target.value}
+                                  </div>
+                                  <span className="text-xs font-semibold text-gray-700 mt-2 text-center whitespace-pre-line">{target.label}</span>
+                                </div>
+                              ));
+                            })()}
+                          </div>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              ) : null}
+            </div>
+          ) : selectedCard === 'ct-issue' ? (
+            <div className="space-y-8">
+              {/* Back Button */}
+              <div className="mb-4">
+                <button
+                  onClick={handleBack}
+                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-semibold transition-colors flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                  </svg>
+                  Back to Dashboards
+                </button>
+              </div>
+              
+              {/* Year Selection Dropdown */}
+              <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+                <label htmlFor="year-select-ct" className="block text-sm font-semibold text-gray-700 mb-2">
+                  Select Financial Year
+                </label>
+                <div className="flex items-center gap-3">
+                  <select
+                    id="year-select-ct"
+                    value={selectedYear}
+                    onChange={(e) => setSelectedYear(e.target.value)}
+                    className="w-full md:w-64 px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm font-semibold"
+                  >
+                    <option value="">-- Select a Year --</option>
+                    <option value="PY-2023-24">PY-2023-24</option>
+                    <option value="PY-2024-25">PY-2024-25</option>
+                    <option value="PY-2025-26">PY-2025-26</option>
+                    <option value="PY-2026-27">PY-2026-27</option>
+                  </select>
+                  {selectedYear && (
+                    <button
+                      onClick={() => setSelectedYear('')}
+                      className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-semibold transition-colors text-sm"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Content based on selected year */}
+              {!selectedYear ? (
+                <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
+                  <h2 className="text-3xl font-bold text-gray-900 mb-6">CT Issue</h2>
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse text-xs">
+                      <thead>
+                        <tr className="bg-gray-200">
+                          <th className="border border-gray-400 px-2 py-2 font-semibold text-left">SER NO</th>
+                          <th className="border border-gray-400 px-2 py-2 font-semibold text-left">OHS SER NO</th>
+                          <th className="border border-gray-400 px-2 py-2 font-semibold text-left">COMP NO</th>
+                          <th className="border border-gray-400 px-2 py-2 font-semibold text-left">MTRL NO</th>
+                          <th className="border border-gray-400 px-2 py-2 font-semibold text-left">COS/SECTION</th>
+                          <th className="border border-gray-400 px-2 py-2 font-semibold text-left">PART No</th>
+                          <th className="border border-gray-400 px-2 py-2 font-semibold text-left">NOMENCLATURE</th>
+                          <th className="border border-gray-400 px-2 py-2 font-semibold text-left">NO OFF</th>
+                          <th className="border border-gray-400 px-2 py-2 font-semibold text-left">SCALE</th>
+                          <th className="border border-gray-400 px-2 py-2 font-semibold text-left">REQD QTY</th>
+                          <th className="border border-gray-400 px-2 py-2 font-semibold text-left">ISSUE QTY</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {ctIssueData.map((item) => (
+                          <tr key={item.serNo} className="hover:bg-gray-50">
+                            <td className="border border-gray-300 px-2 py-2 text-center">{item.serNo}</td>
+                            <td className="border border-gray-300 px-2 py-2 text-center">{item.ohsSerNo}</td>
+                            <td className="border border-gray-300 px-2 py-2 text-center">{item.compNo}</td>
+                            <td className="border border-gray-300 px-2 py-2 text-center font-mono">{item.mtrlNo}</td>
+                            <td className="border border-gray-300 px-2 py-2 text-center">{item.cosSection}</td>
+                            <td className="border border-gray-300 px-2 py-2 font-mono text-sm">{item.partNo}</td>
+                            <td className="border border-gray-300 px-2 py-2">{item.nomenclature}</td>
+                            <td className="border border-gray-300 px-2 py-2 text-center">{item.noOff}</td>
+                            <td className="border border-gray-300 px-2 py-2 text-center">{item.scale}</td>
+                            <td className="border border-gray-300 px-2 py-2 text-center">{item.reqdQty || '-'}</td>
+                            <td className="border border-gray-300 px-2 py-2 text-center">{item.issueQty || '-'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ) : selectedYear === 'PY-2023-24' ? (
                 <div className="space-y-8">
                   {(() => {
                     // PY-2023-24 Data: CT ISSUE IN 2023-24
@@ -364,7 +1189,7 @@ export default function GMWKSLogin() {
                           </div>
                         </div>
 
-                        {/* VEH Table */}
+                        {/* CT Issued VEH Table */}
                         <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
                           <h2 className="text-3xl font-bold text-gray-900 mb-6">CT ISSUE IN 2023-24 - VEH (Vehicles)</h2>
                           <div className="overflow-x-auto">
@@ -423,7 +1248,7 @@ export default function GMWKSLogin() {
                           </div>
                         </div>
 
-                        {/* ENG Table */}
+                        {/* CT Issued ENG Table */}
                         <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
                           <h2 className="text-3xl font-bold text-gray-900 mb-6">CT ISSUE IN 2023-24 - ENGs (Engines)</h2>
                           <div className="overflow-x-auto">
@@ -542,7 +1367,7 @@ export default function GMWKSLogin() {
               ) : selectedYear === 'PY-2024-25' ? (
                 <div className="space-y-8">
                   {(() => {
-                    // PY-2024-25 Data: CT ISSUED IN 2024-25 and TARGET FOR 2024-25
+                    // PY-2024-25 Data: CT ISSUED IN 2024-25
                     const ctIssuedData = {
                       veh: {
                         total: 208,
@@ -557,43 +1382,11 @@ export default function GMWKSLogin() {
                         output: { total: 183, utd20: 183 }
                       }
                     };
-                    const targetData = {
-                      veh: {
-                        ohI: { bmpII: 21, iik: 10 },
-                        ohII: 89,
-                        cmt: 15,
-                        vt72b: 2
-                      },
-                      eng: {
-                        utd20: 300,
-                        slk: 5
-                      }
-                    };
                     const carryFwdVehicles = 136;
                     const carryFwdEngs = 40;
 
                     return (
                       <>
-                        {/* Summary Cards */}
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                          <div className="bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 rounded-lg p-6 shadow-sm">
-                            <div className="text-blue-700 text-sm mb-1 font-semibold">CT Issued VEH</div>
-                            <div className="text-3xl font-bold text-blue-600">{ctIssuedData.veh.total}</div>
-                          </div>
-                          <div className="bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-200 rounded-lg p-6 shadow-sm">
-                            <div className="text-green-700 text-sm mb-1 font-semibold">CT Issued ENG</div>
-                            <div className="text-3xl font-bold text-green-600">{ctIssuedData.eng.total}</div>
-                          </div>
-                          <div className="bg-gradient-to-br from-purple-50 to-purple-100 border-2 border-purple-200 rounded-lg p-6 shadow-sm">
-                            <div className="text-purple-700 text-sm mb-1 font-semibold">Target VEH</div>
-                            <div className="text-3xl font-bold text-purple-600">{targetData.veh.ohI.bmpII + targetData.veh.ohI.iik + targetData.veh.ohII + targetData.veh.cmt + targetData.veh.vt72b}</div>
-                          </div>
-                          <div className="bg-gradient-to-br from-orange-50 to-orange-100 border-2 border-orange-200 rounded-lg p-6 shadow-sm">
-                            <div className="text-orange-700 text-sm mb-1 font-semibold">Target ENG</div>
-                            <div className="text-3xl font-bold text-orange-600">{targetData.eng.utd20 + targetData.eng.slk}</div>
-                          </div>
-                        </div>
-
                         {/* CT Issued VEH Table */}
                         <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
                           <h2 className="text-3xl font-bold text-gray-900 mb-6">CT ISSUED IN 2024-25 - VEH (Vehicles)</h2>
@@ -680,105 +1473,6 @@ export default function GMWKSLogin() {
                             <p><strong>Carry Forward in 2025-26:</strong> {carryFwdEngs} ENGs</p>
                           </div>
                         </div>
-
-                        {/* Target Table */}
-                        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
-                          <h2 className="text-3xl font-bold text-gray-900 mb-6">TARGET FOR 2024-25</h2>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div>
-                              <h3 className="text-xl font-bold text-gray-800 mb-4">VEH (Vehicles)</h3>
-                              <div className="overflow-x-auto">
-                                <table className="w-full border-collapse text-xs">
-                                  <thead>
-                                    <tr className="bg-gray-200">
-                                      <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Type</th>
-                                      <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Quantity</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    <tr className="bg-gray-50">
-                                      <td className="border border-gray-300 px-3 py-2">OH-I - BMP II</td>
-                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.veh.ohI.bmpII}</td>
-                                    </tr>
-                                    <tr className="bg-white">
-                                      <td className="border border-gray-300 px-3 py-2">OH-I - BMP IIK</td>
-                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.veh.ohI.iik}</td>
-                                    </tr>
-                                    <tr className="bg-gray-50">
-                                      <td className="border border-gray-300 px-3 py-2">OH-II</td>
-                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.veh.ohII}</td>
-                                    </tr>
-                                    <tr className="bg-white">
-                                      <td className="border border-gray-300 px-3 py-2">CMT</td>
-                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.veh.cmt}</td>
-                                    </tr>
-                                    <tr className="bg-gray-50">
-                                      <td className="border border-gray-300 px-3 py-2">VT-72B</td>
-                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.veh.vt72b}</td>
-                                    </tr>
-                                  </tbody>
-                                </table>
-                              </div>
-                            </div>
-                            <div>
-                              <h3 className="text-xl font-bold text-gray-800 mb-4">ENGs (Engines)</h3>
-                              <div className="overflow-x-auto">
-                                <table className="w-full border-collapse text-xs">
-                                  <thead>
-                                    <tr className="bg-gray-200">
-                                      <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Type</th>
-                                      <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Quantity</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    <tr className="bg-gray-50">
-                                      <td className="border border-gray-300 px-3 py-2">UTD-20 ENG</td>
-                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.eng.utd20}</td>
-                                    </tr>
-                                    <tr className="bg-white">
-                                      <td className="border border-gray-300 px-3 py-2">SLK ENG</td>
-                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.eng.slk}</td>
-                                    </tr>
-                                  </tbody>
-                                </table>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Graph: CT Issued vs Output */}
-                        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
-                          <h3 className="text-2xl font-bold text-gray-900 mb-6">CT Issued vs Output vs Target - VEH</h3>
-                          <div className="flex items-end justify-around h-96 border-l-2 border-b-2 border-gray-400 pl-4 pb-4">
-                            <div className="flex flex-col items-center gap-2">
-                              <div
-                                className="w-24 bg-gradient-to-t from-blue-600 to-blue-400 flex items-start justify-center text-white font-bold text-sm pt-2 rounded-t-lg"
-                                style={{ height: `${(ctIssuedData.veh.total / 250) * 350}px`, minHeight: '30px' }}
-                              >
-                                {ctIssuedData.veh.total}
-                              </div>
-                              <span className="text-sm font-semibold text-gray-700 mt-2 text-center">CT Issued</span>
-                            </div>
-                            <div className="flex flex-col items-center gap-2">
-                              <div
-                                className="w-24 bg-gradient-to-t from-green-600 to-green-400 flex items-start justify-center text-white font-bold text-sm pt-2 rounded-t-lg"
-                                style={{ height: `${(ctIssuedData.veh.output.total / 250) * 350}px`, minHeight: '30px' }}
-                              >
-                                {ctIssuedData.veh.output.total}
-                              </div>
-                              <span className="text-sm font-semibold text-gray-700 mt-2 text-center">Output</span>
-                            </div>
-                            <div className="flex flex-col items-center gap-2">
-                              <div
-                                className="w-24 bg-gradient-to-t from-purple-600 to-purple-400 flex items-start justify-center text-white font-bold text-sm pt-2 rounded-t-lg"
-                                style={{ height: `${((targetData.veh.ohI.bmpII + targetData.veh.ohI.iik + targetData.veh.ohII + targetData.veh.cmt + targetData.veh.vt72b) / 250) * 350}px`, minHeight: '30px' }}
-                              >
-                                {targetData.veh.ohI.bmpII + targetData.veh.ohI.iik + targetData.veh.ohII + targetData.veh.cmt + targetData.veh.vt72b}
-                              </div>
-                              <span className="text-sm font-semibold text-gray-700 mt-2 text-center">Target</span>
-                            </div>
-                          </div>
-                        </div>
                       </>
                     );
                   })()}
@@ -786,21 +1480,7 @@ export default function GMWKSLogin() {
               ) : selectedYear === 'PY-2025-26' ? (
                 <div className="space-y-8">
                   {(() => {
-                    // PY-2025-26 Data: TARGET FOR 2025-26 and CT ISSUED IN PY 2025-26
-                    const targetData = {
-                      veh: {
-                        ohI: { bmpII: 72, iik: 0 },
-                        ohII: { bmpII: 48 },
-                        cmt: 15,
-                        vt72b: 2,
-                        gun30mm: 20
-                      },
-                      eng: {
-                        utd20: 280,
-                        baz: 6,
-                        slk: 8
-                      }
-                    };
+                    // PY-2025-26 Data: CT ISSUED IN PY 2025-26
                     const ctIssuedData = {
                       veh: {
                         cfCt: { total: 136, bmpII: 36, iik: 64, cmt: 11, ohII: 25 },
@@ -814,95 +1494,6 @@ export default function GMWKSLogin() {
 
                     return (
                       <>
-                        {/* Summary Cards */}
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                          <div className="bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 rounded-lg p-6 shadow-sm">
-                            <div className="text-blue-700 text-sm mb-1 font-semibold">Target VEH</div>
-                            <div className="text-3xl font-bold text-blue-600">{targetData.veh.ohI.bmpII + targetData.veh.ohII.bmpII + targetData.veh.cmt + targetData.veh.vt72b + targetData.veh.gun30mm}</div>
-                          </div>
-                          <div className="bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-200 rounded-lg p-6 shadow-sm">
-                            <div className="text-green-700 text-sm mb-1 font-semibold">Target ENG</div>
-                            <div className="text-3xl font-bold text-green-600">{targetData.eng.utd20 + targetData.eng.baz + targetData.eng.slk}</div>
-                          </div>
-                          <div className="bg-gradient-to-br from-purple-50 to-purple-100 border-2 border-purple-200 rounded-lg p-6 shadow-sm">
-                            <div className="text-purple-700 text-sm mb-1 font-semibold">CT Issued VEH</div>
-                            <div className="text-3xl font-bold text-purple-600">{ctIssuedData.veh.cfCt.total + 55}</div>
-                          </div>
-                          <div className="bg-gradient-to-br from-orange-50 to-orange-100 border-2 border-orange-200 rounded-lg p-6 shadow-sm">
-                            <div className="text-orange-700 text-sm mb-1 font-semibold">CT Issued ENG</div>
-                            <div className="text-3xl font-bold text-orange-600">{ctIssuedData.eng.cfCt.utd20 + ctIssuedData.eng.freshCt.utd20 + ctIssuedData.eng.freshCt.baz}</div>
-                          </div>
-                        </div>
-
-                        {/* Target Table */}
-                        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
-                          <h2 className="text-3xl font-bold text-gray-900 mb-6">TARGET FOR 2025-26</h2>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div>
-                              <h3 className="text-xl font-bold text-gray-800 mb-4">VEH (Vehicles)</h3>
-                              <div className="overflow-x-auto">
-                                <table className="w-full border-collapse text-xs">
-                                  <thead>
-                                    <tr className="bg-gray-200">
-                                      <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Type</th>
-                                      <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Quantity</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    <tr className="bg-gray-50">
-                                      <td className="border border-gray-300 px-3 py-2">OH-I - BMP II</td>
-                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.veh.ohI.bmpII}</td>
-                                    </tr>
-                                    <tr className="bg-white">
-                                      <td className="border border-gray-300 px-3 py-2">OH-II - BMP II</td>
-                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.veh.ohII.bmpII}</td>
-                                    </tr>
-                                    <tr className="bg-gray-50">
-                                      <td className="border border-gray-300 px-3 py-2">CMT</td>
-                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.veh.cmt}</td>
-                                    </tr>
-                                    <tr className="bg-white">
-                                      <td className="border border-gray-300 px-3 py-2">VT-72B</td>
-                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.veh.vt72b}</td>
-                                    </tr>
-                                    <tr className="bg-gray-50">
-                                      <td className="border border-gray-300 px-3 py-2">30 MM Gun</td>
-                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.veh.gun30mm}</td>
-                                    </tr>
-                                  </tbody>
-                                </table>
-                              </div>
-                            </div>
-                            <div>
-                              <h3 className="text-xl font-bold text-gray-800 mb-4">ENGs (Engines)</h3>
-                              <div className="overflow-x-auto">
-                                <table className="w-full border-collapse text-xs">
-                                  <thead>
-                                    <tr className="bg-gray-200">
-                                      <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Type</th>
-                                      <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Quantity</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    <tr className="bg-gray-50">
-                                      <td className="border border-gray-300 px-3 py-2">UTD-20 ENG</td>
-                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.eng.utd20}</td>
-                                    </tr>
-                                    <tr className="bg-white">
-                                      <td className="border border-gray-300 px-3 py-2">BAZ ENG</td>
-                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.eng.baz}</td>
-                                    </tr>
-                                    <tr className="bg-gray-50">
-                                      <td className="border border-gray-300 px-3 py-2">SLK ENG</td>
-                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.eng.slk}</td>
-                                    </tr>
-                                  </tbody>
-                                </table>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
                         {/* CT Issued Table */}
                         <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
                           <h2 className="text-3xl font-bold text-gray-900 mb-6">CT ISSUED IN PY 2025-26</h2>
@@ -989,257 +1580,27 @@ export default function GMWKSLogin() {
                             </div>
                           </div>
                         </div>
-
-                        {/* Graph: Target vs CT Issued */}
-                        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
-                          <h3 className="text-2xl font-bold text-gray-900 mb-6">Target vs CT Issued - VEH</h3>
-                          <div className="flex items-end justify-around h-96 border-l-2 border-b-2 border-gray-400 pl-4 pb-4">
-                            <div className="flex flex-col items-center gap-2">
-                              <div
-                                className="w-24 bg-gradient-to-t from-purple-600 to-purple-400 flex items-start justify-center text-white font-bold text-sm pt-2 rounded-t-lg"
-                                style={{ height: `${((targetData.veh.ohI.bmpII + targetData.veh.ohII.bmpII + targetData.veh.cmt + targetData.veh.vt72b + targetData.veh.gun30mm) / 200) * 350}px`, minHeight: '30px' }}
-                              >
-                                {targetData.veh.ohI.bmpII + targetData.veh.ohII.bmpII + targetData.veh.cmt + targetData.veh.vt72b + targetData.veh.gun30mm}
-                              </div>
-                              <span className="text-sm font-semibold text-gray-700 mt-2 text-center">Target</span>
-                            </div>
-                            <div className="flex flex-col items-center gap-2">
-                              <div
-                                className="w-24 bg-gradient-to-t from-blue-600 to-blue-400 flex items-start justify-center text-white font-bold text-sm pt-2 rounded-t-lg"
-                                style={{ height: `${((ctIssuedData.veh.cfCt.total + 55) / 200) * 350}px`, minHeight: '30px' }}
-                              >
-                                {ctIssuedData.veh.cfCt.total + 55}
-                              </div>
-                              <span className="text-sm font-semibold text-gray-700 mt-2 text-center">CT Issued</span>
-                            </div>
-                          </div>
-                        </div>
-                      </>
-                    );
-                  })()}
-                </div>
-              ) : selectedYear === 'PY-2026-27' ? (
-                <div className="space-y-8">
-                  {(() => {
-                    // PY-2026-27 Data: TARGET FOR PY 2026-27
-                    const targetData = {
-                      veh: {
-                        ohI: { bmpII: 25, iik: 30 },
-                        ohII: { bmpII: 65 },
-                        cmt: 15,
-                        vt72b: 3
-                      },
-                      eng: {
-                        utd20: 280,
-                        slk: 4
-                      }
-                    };
-
-                    return (
-                      <>
-                        {/* Summary Cards */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <div className="bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 rounded-lg p-6 shadow-sm">
-                            <div className="text-blue-700 text-sm mb-1 font-semibold">Target VEH</div>
-                            <div className="text-3xl font-bold text-blue-600">{targetData.veh.ohI.bmpII + targetData.veh.ohI.iik + targetData.veh.ohII.bmpII + targetData.veh.cmt + targetData.veh.vt72b}</div>
-                          </div>
-                          <div className="bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-200 rounded-lg p-6 shadow-sm">
-                            <div className="text-green-700 text-sm mb-1 font-semibold">Target ENG</div>
-                            <div className="text-3xl font-bold text-green-600">{targetData.eng.utd20 + targetData.eng.slk}</div>
-                          </div>
-                        </div>
-
-                        {/* Target Table */}
-                        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
-                          <h2 className="text-3xl font-bold text-gray-900 mb-6">TARGET FOR PY 2026-27</h2>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div>
-                              <h3 className="text-xl font-bold text-gray-800 mb-4">VEH (Vehicles)</h3>
-                              <div className="overflow-x-auto">
-                                <table className="w-full border-collapse text-xs">
-                                  <thead>
-                                    <tr className="bg-gray-200">
-                                      <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Type</th>
-                                      <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Quantity</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    <tr className="bg-gray-50">
-                                      <td className="border border-gray-300 px-3 py-2">OH-I - BMP II</td>
-                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.veh.ohI.bmpII}</td>
-                                    </tr>
-                                    <tr className="bg-white">
-                                      <td className="border border-gray-300 px-3 py-2">OH-I - BMP IIK</td>
-                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.veh.ohI.iik}</td>
-                                    </tr>
-                                    <tr className="bg-gray-50">
-                                      <td className="border border-gray-300 px-3 py-2">OH-II - BMP II</td>
-                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.veh.ohII.bmpII}</td>
-                                    </tr>
-                                    <tr className="bg-white">
-                                      <td className="border border-gray-300 px-3 py-2">CMT</td>
-                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.veh.cmt}</td>
-                                    </tr>
-                                    <tr className="bg-gray-50">
-                                      <td className="border border-gray-300 px-3 py-2">VT-72B</td>
-                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.veh.vt72b}</td>
-                                    </tr>
-                                  </tbody>
-                                </table>
-                              </div>
-                            </div>
-                            <div>
-                              <h3 className="text-xl font-bold text-gray-800 mb-4">ENGs (Engines)</h3>
-                              <div className="overflow-x-auto">
-                                <table className="w-full border-collapse text-xs">
-                                  <thead>
-                                    <tr className="bg-gray-200">
-                                      <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Type</th>
-                                      <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Quantity</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    <tr className="bg-gray-50">
-                                      <td className="border border-gray-300 px-3 py-2">UTD-20 ENG</td>
-                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.eng.utd20}</td>
-                                    </tr>
-                                    <tr className="bg-white">
-                                      <td className="border border-gray-300 px-3 py-2">SLK ENG</td>
-                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold">{targetData.eng.slk}</td>
-                                    </tr>
-                                  </tbody>
-                                </table>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Graph: Target Distribution */}
-                        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
-                          <h3 className="text-2xl font-bold text-gray-900 mb-6">Target Distribution - VEH</h3>
-                          <div className="flex items-end justify-around h-96 border-l-2 border-b-2 border-gray-400 pl-4 pb-4">
-                            <div className="flex flex-col items-center gap-2">
-                              <div
-                                className="w-20 bg-gradient-to-t from-blue-600 to-blue-400 flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg"
-                                style={{ height: `${(targetData.veh.ohI.bmpII / 100) * 350}px`, minHeight: '30px' }}
-                              >
-                                {targetData.veh.ohI.bmpII}
-                              </div>
-                              <span className="text-xs font-semibold text-gray-700 mt-2 text-center">OH-I<br/>BMP II</span>
-                            </div>
-                            <div className="flex flex-col items-center gap-2">
-                              <div
-                                className="w-20 bg-gradient-to-t from-purple-600 to-purple-400 flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg"
-                                style={{ height: `${(targetData.veh.ohI.iik / 100) * 350}px`, minHeight: '30px' }}
-                              >
-                                {targetData.veh.ohI.iik}
-                              </div>
-                              <span className="text-xs font-semibold text-gray-700 mt-2 text-center">OH-I<br/>BMP IIK</span>
-                            </div>
-                            <div className="flex flex-col items-center gap-2">
-                              <div
-                                className="w-20 bg-gradient-to-t from-green-600 to-green-400 flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg"
-                                style={{ height: `${(targetData.veh.ohII.bmpII / 100) * 350}px`, minHeight: '30px' }}
-                              >
-                                {targetData.veh.ohII.bmpII}
-                              </div>
-                              <span className="text-xs font-semibold text-gray-700 mt-2 text-center">OH-II<br/>BMP II</span>
-                            </div>
-                            <div className="flex flex-col items-center gap-2">
-                              <div
-                                className="w-20 bg-gradient-to-t from-orange-600 to-orange-400 flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg"
-                                style={{ height: `${(targetData.veh.cmt / 100) * 350}px`, minHeight: '30px' }}
-                              >
-                                {targetData.veh.cmt}
-                              </div>
-                              <span className="text-xs font-semibold text-gray-700 mt-2 text-center">CMT</span>
-                            </div>
-                            <div className="flex flex-col items-center gap-2">
-                              <div
-                                className="w-20 bg-gradient-to-t from-red-600 to-red-400 flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg"
-                                style={{ height: `${(targetData.veh.vt72b / 100) * 350}px`, minHeight: '30px' }}
-                              >
-                                {targetData.veh.vt72b}
-                              </div>
-                              <span className="text-xs font-semibold text-gray-700 mt-2 text-center">VT-72B</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
-                          <h3 className="text-2xl font-bold text-gray-900 mb-6">Target Distribution - ENG</h3>
-                          <div className="flex items-end justify-around h-96 border-l-2 border-b-2 border-gray-400 pl-4 pb-4">
-                            <div className="flex flex-col items-center gap-2">
-                              <div
-                                className="w-24 bg-gradient-to-t from-indigo-600 to-indigo-400 flex items-start justify-center text-white font-bold text-sm pt-2 rounded-t-lg"
-                                style={{ height: `${(targetData.eng.utd20 / 300) * 350}px`, minHeight: '30px' }}
-                              >
-                                {targetData.eng.utd20}
-                              </div>
-                              <span className="text-sm font-semibold text-gray-700 mt-2 text-center">UTD-20 ENG</span>
-                            </div>
-                            <div className="flex flex-col items-center gap-2">
-                              <div
-                                className="w-24 bg-gradient-to-t from-teal-600 to-teal-400 flex items-start justify-center text-white font-bold text-sm pt-2 rounded-t-lg"
-                                style={{ height: `${(targetData.eng.slk / 300) * 350}px`, minHeight: '30px' }}
-                              >
-                                {targetData.eng.slk}
-                              </div>
-                              <span className="text-sm font-semibold text-gray-700 mt-2 text-center">SLK ENG</span>
-                            </div>
-                          </div>
-                        </div>
                       </>
                     );
                   })()}
                 </div>
               ) : null}
             </div>
-          ) : selectedCard === 'ct-issue' ? (
-            <div className="space-y-8">
-              {/* Table Section */}
-              <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
-                <h2 className="text-3xl font-bold text-gray-900 mb-6">CT Issue</h2>
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse text-xs">
-                    <thead>
-                      <tr className="bg-gray-200">
-                        <th className="border border-gray-400 px-2 py-2 font-semibold text-left">SER NO</th>
-                        <th className="border border-gray-400 px-2 py-2 font-semibold text-left">OHS SER NO</th>
-                        <th className="border border-gray-400 px-2 py-2 font-semibold text-left">COMP NO</th>
-                        <th className="border border-gray-400 px-2 py-2 font-semibold text-left">MTRL NO</th>
-                        <th className="border border-gray-400 px-2 py-2 font-semibold text-left">COS/SECTION</th>
-                        <th className="border border-gray-400 px-2 py-2 font-semibold text-left">PART No</th>
-                        <th className="border border-gray-400 px-2 py-2 font-semibold text-left">NOMENCLATURE</th>
-                        <th className="border border-gray-400 px-2 py-2 font-semibold text-left">NO OFF</th>
-                        <th className="border border-gray-400 px-2 py-2 font-semibold text-left">SCALE</th>
-                        <th className="border border-gray-400 px-2 py-2 font-semibold text-left">REQD QTY</th>
-                        <th className="border border-gray-400 px-2 py-2 font-semibold text-left">ISSUE QTY</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {ctIssueData.map((item) => (
-                        <tr key={item.serNo} className="hover:bg-gray-50">
-                          <td className="border border-gray-300 px-2 py-2 text-center">{item.serNo}</td>
-                          <td className="border border-gray-300 px-2 py-2 text-center">{item.ohsSerNo}</td>
-                          <td className="border border-gray-300 px-2 py-2 text-center">{item.compNo}</td>
-                          <td className="border border-gray-300 px-2 py-2 text-center font-mono">{item.mtrlNo}</td>
-                          <td className="border border-gray-300 px-2 py-2 text-center">{item.cosSection}</td>
-                          <td className="border border-gray-300 px-2 py-2 font-mono text-sm">{item.partNo}</td>
-                          <td className="border border-gray-300 px-2 py-2">{item.nomenclature}</td>
-                          <td className="border border-gray-300 px-2 py-2 text-center">{item.noOff}</td>
-                          <td className="border border-gray-300 px-2 py-2 text-center">{item.scale}</td>
-                          <td className="border border-gray-300 px-2 py-2 text-center">{item.reqdQty || '-'}</td>
-                          <td className="border border-gray-300 px-2 py-2 text-center">{item.issueQty || '-'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
           ) : selectedCard === 'critical-items' ? (
             <div className="space-y-8">
+              {/* Back Button */}
+              <div className="mb-4">
+                <button
+                  onClick={handleBack}
+                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-semibold transition-colors flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                  </svg>
+                  Back to Dashboards
+                </button>
+              </div>
+              
               {/* Table Section */}
               <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
                 <h2 className="text-3xl font-bold text-gray-900 mb-6">Critical Items Status</h2>
@@ -1253,6 +1614,8 @@ export default function GMWKSLogin() {
                         <th className="border border-gray-400 px-4 py-3 font-semibold text-left">Nomenclature</th>
                         <th className="border border-gray-400 px-4 py-3 font-semibold text-left">Section</th>
                         <th className="border border-gray-400 px-4 py-3 font-semibold text-left">Criticality Status</th>
+                        <th className="border border-gray-400 px-4 py-3 font-semibold text-left">Action Taken</th>
+                        <th className="border border-gray-400 px-4 py-3 font-semibold text-left">Action</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1276,12 +1639,127 @@ export default function GMWKSLogin() {
                               {item.criticalityStatus}
                             </span>
                           </td>
+                          <td className="border border-gray-300 px-4 py-2">
+                            <textarea
+                              value={criticalItemsActions[item.serial] || ''}
+                              onChange={(e) => handleActionChange(item.serial, e.target.value)}
+                              placeholder="Enter action taken..."
+                              className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                              rows={2}
+                            />
+                          </td>
+                          <td className="border border-gray-300 px-4 py-2 text-center">
+                            <button
+                              onClick={() => handleSendNotification(item.serial)}
+                              disabled={notificationSent[item.serial]}
+                              className={`px-3 py-1 rounded text-xs font-semibold transition-colors ${
+                                notificationSent[item.serial]
+                                  ? 'bg-green-100 text-green-700 cursor-not-allowed'
+                                  : 'bg-blue-500 text-white hover:bg-blue-600'
+                              }`}
+                            >
+                              {notificationSent[item.serial] ? (
+                                <span className="flex items-center gap-1">
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                  Sent
+                                </span>
+                              ) : (
+                                'Send Notification'
+                              )}
+                            </button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
               </div>
+
+              {/* Notification Modal */}
+              {showNotificationModal && selectedNotificationSerial !== null && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                  <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-xl font-bold text-gray-900">Send Notification</h3>
+                      <button
+                        onClick={handleCancelNotification}
+                        className="text-gray-400 hover:text-gray-600 transition-colors"
+                      >
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                    
+                    <div className="mb-4">
+                      <p className="text-sm text-gray-600 mb-2">
+                        Item: <span className="font-semibold text-gray-900">
+                          {criticalItemsData.find(item => item.serial === selectedNotificationSerial)?.nomenclature}
+                        </span>
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        Action Taken: <span className="font-semibold text-gray-900">
+                          {criticalItemsActions[selectedNotificationSerial] || 'N/A'}
+                        </span>
+                      </p>
+                    </div>
+
+                    <div className="mb-4">
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">Select Recipient</label>
+                      <div className="grid grid-cols-2 gap-3">
+                        {['DGM WKS MTRL', 'DGM Purchase', 'DGM Prod', 'Section Incharge'].map((recipient) => (
+                          <button
+                            key={recipient}
+                            onClick={() => handleNotificationRecipientSelect(recipient)}
+                            className={`px-4 py-3 rounded-lg border-2 transition-all font-semibold text-sm ${
+                              selectedRecipient === recipient
+                                ? 'border-blue-500 bg-blue-50 text-blue-700'
+                                : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400 hover:bg-gray-50'
+                            }`}
+                          >
+                            {recipient}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {selectedRecipient && (
+                      <div className="mb-4">
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">Message</label>
+                        <textarea
+                          value={notificationMessage}
+                          onChange={(e) => setNotificationMessage(e.target.value)}
+                          placeholder="Enter your message here..."
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                          rows={4}
+                        />
+                      </div>
+                    )}
+
+                    <div className="flex gap-3">
+                      <button
+                        onClick={handleCancelNotification}
+                        className="flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-semibold transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleSendNotificationMessage}
+                        disabled={!selectedRecipient || !notificationMessage.trim()}
+                        className={`flex-1 px-4 py-2 rounded-lg font-semibold transition-colors ${
+                          !selectedRecipient || !notificationMessage.trim()
+                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                            : 'bg-blue-500 text-white hover:bg-blue-600'
+                        }`}
+                      >
+                        Send
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Graph 1: Items by Section and Criticality */}
               <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
@@ -1363,174 +1841,435 @@ export default function GMWKSLogin() {
             </div>
           ) : selectedCard === 'lm-completed' ? (
             <div className="space-y-8">
-              {/* Table Section */}
+              {/* Back Button */}
+              <div className="mb-4">
+                <button
+                  onClick={handleBack}
+                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-semibold transition-colors flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                  </svg>
+                  Back to Dashboards
+                </button>
+              </div>
+
+              {/* Title */}
               <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
-                <h2 className="text-3xl font-bold text-gray-900 mb-6">LM Completed - Work Orders Status</h2>
+                <h2 className="text-3xl font-bold text-gray-900 mb-6">DETLS OF LM WK ORDERS :2025-26</h2>
+
+                {/* Tabs */}
+                <div className="flex border-b border-gray-300 mb-6">
+                  <button
+                    onClick={() => setLmStatusTab('scaled')}
+                    className={`px-6 py-3 font-semibold text-sm transition-all ${
+                      lmStatusTab === 'scaled'
+                        ? 'text-purple-600 border-b-2 border-purple-600 bg-purple-50'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                    }`}
+                  >
+                    Scaled
+                  </button>
+                  <button
+                    onClick={() => setLmStatusTab('non-scaled')}
+                    className={`px-6 py-3 font-semibold text-sm transition-all ${
+                      lmStatusTab === 'non-scaled'
+                        ? 'text-purple-600 border-b-2 border-purple-600 bg-purple-50'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                    }`}
+                  >
+                    Non Scaled
+                  </button>
+                </div>
+
+                {/* Scaled Tab Content */}
+                {lmStatusTab === 'scaled' && (
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-4">Status</h3>
+                    
+                    {/* Scaled Table Data */}
+                    {(() => {
+                      const scaledData = [
+                        { sec: 'ARD', awtMtrl: 5, can: 12, comp: 0, oss: 0, woRel: 20, meCell: 0, grandTotal: 37 },
+                        { sec: 'ARMT', awtMtrl: 14, can: 5, comp: 1, oss: 3, woRel: 10, meCell: 5, grandTotal: 38 },
+                        { sec: 'ETD', awtMtrl: 0, can: 0, comp: 2, oss: 0, woRel: 0, meCell: 0, grandTotal: 2 },
+                        { sec: 'SRD', awtMtrl: 41, can: 2, comp: 1, oss: 0, woRel: 15, meCell: 1, grandTotal: 60 },
+                        { sec: 'T&R', awtMtrl: 4, can: 1, comp: 5, oss: 0, woRel: 4, meCell: 0, grandTotal: 14 },
+                        { sec: 'VRD', awtMtrl: 4, can: 8, comp: 0, oss: 0, woRel: 18, meCell: 0, grandTotal: 30 }
+                      ];
+
+                      const grandTotals = {
+                        awtMtrl: 68,
+                        can: 28,
+                        comp: 9,
+                        oss: 3,
+                        woRel: 67,
+                        meCell: 6,
+                        grandTotal: 181
+                      };
+
+                      return (
                 <div className="overflow-x-auto">
                   <table className="w-full border-collapse text-sm">
                     <thead>
                       <tr className="bg-gray-200">
-                        <th className="border border-gray-400 px-4 py-3 font-semibold text-left">Serial Number</th>
-                        <th className="border border-gray-400 px-4 py-3 font-semibold text-left">Work Order Number</th>
-                        <th className="border border-gray-400 px-4 py-3 font-semibold text-left">Man Hours Count</th>
-                        <th className="border border-gray-400 px-4 py-3 font-semibold text-left">Progress Status</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Sec</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Awt Mtrl</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Can</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Comp</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">OSS</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">WO Rel</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">ME Cell</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Grand Total</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {lmCompletedData.map((item) => (
-                        <tr key={item.serial} className="hover:bg-gray-50">
-                          <td className="border border-gray-300 px-4 py-2 text-center">{item.serial}</td>
-                          <td className="border border-gray-300 px-4 py-2 font-mono">{item.workOrderNumber}</td>
-                          <td className="border border-gray-300 px-4 py-2 text-center font-semibold">{item.manHoursCount}</td>
-                          <td className="border border-gray-300 px-4 py-2 text-center">
-                            <span
-                              className={`px-3 py-1 rounded-full text-xs font-bold ${
-                                item.progressStatus === 'Completed'
-                                  ? 'bg-green-100 text-green-800'
-                                  : item.progressStatus === 'In Progress'
-                                  ? 'bg-blue-100 text-blue-800'
-                                  : item.progressStatus === 'Held Up'
-                                  ? 'bg-yellow-100 text-yellow-800'
-                                  : 'bg-red-100 text-red-800'
-                              }`}
-                            >
-                              {item.progressStatus}
-                            </span>
-                          </td>
+                              {scaledData.map((row, index) => (
+                                <tr key={row.sec} className={`${index % 2 === 0 ? 'bg-gray-50' : 'bg-white'} hover:bg-blue-50 transition-colors`}>
+                                  <td className="border border-gray-300 px-3 py-2 font-semibold">{row.sec}</td>
+                                  <td className="border border-gray-300 px-3 py-2 text-center">{row.awtMtrl || ''}</td>
+                                  <td className="border border-gray-300 px-3 py-2 text-center">{row.can || ''}</td>
+                                  <td className="border border-gray-300 px-3 py-2 text-center">{row.comp || ''}</td>
+                                  <td className="border border-gray-300 px-3 py-2 text-center">{row.oss || ''}</td>
+                                  <td className="border border-gray-300 px-3 py-2 text-center">{row.woRel || ''}</td>
+                                  <td className="border border-gray-300 px-3 py-2 text-center">{row.meCell || ''}</td>
+                                  <td className="border border-gray-300 px-3 py-2 text-center font-semibold">{row.grandTotal}</td>
                         </tr>
                       ))}
+                              <tr className="bg-gray-300 font-bold">
+                                <td className="border border-gray-400 px-3 py-2">Grand Total</td>
+                                <td className="border border-gray-400 px-3 py-2 text-center">{grandTotals.awtMtrl}</td>
+                                <td className="border border-gray-400 px-3 py-2 text-center">{grandTotals.can}</td>
+                                <td className="border border-gray-400 px-3 py-2 text-center">{grandTotals.comp}</td>
+                                <td className="border border-gray-400 px-3 py-2 text-center">{grandTotals.oss}</td>
+                                <td className="border border-gray-400 px-3 py-2 text-center">{grandTotals.woRel}</td>
+                                <td className="border border-gray-400 px-3 py-2 text-center">{grandTotals.meCell}</td>
+                                <td className="border border-gray-400 px-3 py-2 text-center">{grandTotals.grandTotal}</td>
+                              </tr>
                     </tbody>
                   </table>
+                          
+                          {/* Summary below table */}
+                          <div className="mt-6 grid grid-cols-3 gap-4">
+                            <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+                              <div className="text-blue-700 text-sm font-semibold mb-1">AWT MTRL</div>
+                              <div className="text-2xl font-bold text-blue-600">68</div>
+                            </div>
+                            <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4">
+                              <div className="text-green-700 text-sm font-semibold mb-1">SO PLACED</div>
+                              <div className="text-2xl font-bold text-green-600">40</div>
+                            </div>
+                            <div className="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-4">
+                              <div className="text-yellow-700 text-sm font-semibold mb-1">ENQ</div>
+                              <div className="text-2xl font-bold text-yellow-600">28</div>
                 </div>
               </div>
 
-              {/* Pie Chart Section */}
-              <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
-                <h3 className="text-2xl font-bold text-gray-900 mb-6">Work Orders Distribution</h3>
-                <p className="text-gray-600 mb-8 text-sm">Status breakdown of all work orders with reasons for delays</p>
-                
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  {/* Pie Chart Visualization */}
-                  <div className="flex flex-col items-center">
-                    <div className="relative w-80 h-80">
-                      <svg viewBox="0 0 200 200" className="w-full h-full">
+                          {/* Summary Cards Bar Graph */}
+                          <div className="mt-8 bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+                            <h4 className="text-xl font-bold text-gray-900 mb-8">Summary Cards Visualization</h4>
+                            <div className="flex items-end justify-around h-80 border-l-2 border-b-2 border-gray-400 pl-4 pb-4 gap-2 mt-6">
                         {(() => {
-                          const colors = ['#22c55e', '#3b82f6', '#eab308', '#ef4444'];
-                          const percentages = [41.67, 25, 16.67, 16.67];
-                          let currentAngle = 0;
-                          
-                          return percentages.map((percentage, index) => {
-                            const angle = (percentage / 100) * 360;
-                            const startAngle = currentAngle;
-                            const endAngle = currentAngle + angle;
-                            
-                            const startRad = (startAngle - 90) * (Math.PI / 180);
-                            const endRad = (endAngle - 90) * (Math.PI / 180);
-                            
-                            const x1 = 100 + 90 * Math.cos(startRad);
-                            const y1 = 100 + 90 * Math.sin(startRad);
-                            const x2 = 100 + 90 * Math.cos(endRad);
-                            const y2 = 100 + 90 * Math.sin(endRad);
-                            
-                            const largeArcFlag = angle > 180 ? 1 : 0;
-                            
-                            const pathData = [
-                              `M 100 100`,
-                              `L ${x1} ${y1}`,
-                              `A 90 90 0 ${largeArcFlag} 1 ${x2} ${y2}`,
-                              'Z'
-                            ].join(' ');
-                            
-                            currentAngle = endAngle;
-                            
-                            return (
-                              <path
-                                key={index}
-                                d={pathData}
-                                fill={colors[index]}
-                                stroke="white"
-                                strokeWidth="2"
-                              />
-                            );
-                          });
-                        })()}
-                        {/* Center white circle for donut effect */}
-                        <circle cx="100" cy="100" r="50" fill="white" />
-                      </svg>
-                    </div>
-                    <div className="mt-6 grid grid-cols-2 gap-4">
-                      {pieChartData.map((data) => (
-                        <div key={data.status} className="flex items-center gap-2">
-                          <div className={`w-4 h-4 ${data.color} rounded`}></div>
-                          <div className="text-sm">
-                            <span className="font-semibold">{data.status}</span>
-                            <span className="text-gray-600 ml-1">({data.count})</span>
+                                const maxValue = Math.max(grandTotals.awtMtrl, grandTotals.can, grandTotals.comp, grandTotals.oss, grandTotals.woRel, grandTotals.meCell, 1);
+                                return (
+                                  <>
+                                    <div className="flex flex-col items-center gap-2 flex-1">
+                                      <div
+                                        className="w-full bg-gradient-to-t from-blue-600 to-blue-400 flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg hover:from-blue-700 hover:to-blue-500 transition-all"
+                                        style={{ height: `${(grandTotals.awtMtrl / maxValue) * 300}px`, minHeight: '30px' }}
+                                        title={`Awt Mtrl: ${grandTotals.awtMtrl}`}
+                                      >
+                                        {grandTotals.awtMtrl}
+                                      </div>
+                                      <span className="text-xs font-semibold text-gray-700 mt-2 text-center">Awt Mtrl</span>
+                                    </div>
+                                    <div className="flex flex-col items-center gap-2 flex-1">
+                                      <div
+                                        className="w-full bg-gradient-to-t from-green-600 to-green-400 flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg hover:from-green-700 hover:to-green-500 transition-all"
+                                        style={{ height: `${(grandTotals.can / maxValue) * 300}px`, minHeight: '30px' }}
+                                        title={`Can: ${grandTotals.can}`}
+                                      >
+                                        {grandTotals.can}
+                                      </div>
+                                      <span className="text-xs font-semibold text-gray-700 mt-2 text-center">Can</span>
+                                    </div>
+                                    <div className="flex flex-col items-center gap-2 flex-1">
+                                      <div
+                                        className="w-full bg-gradient-to-t from-purple-600 to-purple-400 flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg hover:from-purple-700 hover:to-purple-500 transition-all"
+                                        style={{ height: `${(grandTotals.comp / maxValue) * 300}px`, minHeight: '30px' }}
+                                        title={`Comp: ${grandTotals.comp}`}
+                                      >
+                                        {grandTotals.comp}
+                                      </div>
+                                      <span className="text-xs font-semibold text-gray-700 mt-2 text-center">Comp</span>
+                                    </div>
+                                    <div className="flex flex-col items-center gap-2 flex-1">
+                                      <div
+                                        className="w-full bg-gradient-to-t from-orange-600 to-orange-400 flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg hover:from-orange-700 hover:to-orange-500 transition-all"
+                                        style={{ height: `${(grandTotals.oss / maxValue) * 300}px`, minHeight: '30px' }}
+                                        title={`OSS: ${grandTotals.oss}`}
+                                      >
+                                        {grandTotals.oss}
+                                      </div>
+                                      <span className="text-xs font-semibold text-gray-700 mt-2 text-center">OSS</span>
+                                    </div>
+                                    <div className="flex flex-col items-center gap-2 flex-1">
+                                      <div
+                                        className="w-full bg-gradient-to-t from-teal-600 to-teal-400 flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg hover:from-teal-700 hover:to-teal-500 transition-all"
+                                        style={{ height: `${(grandTotals.woRel / maxValue) * 300}px`, minHeight: '30px' }}
+                                        title={`WO Rel: ${grandTotals.woRel}`}
+                                      >
+                                        {grandTotals.woRel}
+                                      </div>
+                                      <span className="text-xs font-semibold text-gray-700 mt-2 text-center">WO Rel</span>
+                                    </div>
+                                    <div className="flex flex-col items-center gap-2 flex-1">
+                                      <div
+                                        className="w-full bg-gradient-to-t from-pink-600 to-pink-400 flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg hover:from-pink-700 hover:to-pink-500 transition-all"
+                                        style={{ height: `${(grandTotals.meCell / maxValue) * 300}px`, minHeight: '30px' }}
+                                        title={`ME Cell: ${grandTotals.meCell}`}
+                                      >
+                                        {grandTotals.meCell}
+                                      </div>
+                                      <span className="text-xs font-semibold text-gray-700 mt-2 text-center">ME Cell</span>
+                                    </div>
+                                  </>
+                                );
+                              })()}
+                            </div>
                           </div>
                         </div>
-                      ))}
-                    </div>
+                      );
+                    })()}
                   </div>
+                )}
 
-                  {/* Statistics and Reasons */}
-                  <div className="space-y-6">
-                    {pieChartData.map((data) => (
-                      <div key={data.status} className="border-l-4 border-gray-300 pl-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <h4 className="font-bold text-lg">{data.status}</h4>
-                          <span className="text-2xl font-bold text-gray-700">{data.count}</span>
-                        </div>
-                        <div className="mb-2">
-                          <div className="flex justify-between text-sm text-gray-600 mb-1">
-                            <span>Percentage</span>
-                            <span className="font-semibold">{data.percentage.toFixed(2)}%</span>
-                          </div>
-                          <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div
-                              className={`h-2 rounded-full ${data.color}`}
-                              style={{ width: `${data.percentage}%` }}
-                            ></div>
-                          </div>
-                        </div>
-                        {data.reasons.length > 0 && (
-                          <div className="mt-3">
-                            <p className="text-xs font-semibold text-gray-700 mb-1">Reasons:</p>
-                            <ul className="text-xs text-gray-600 list-disc list-inside space-y-1">
-                              {data.reasons.map((reason, idx) => (
-                                <li key={idx}>{reason}</li>
+                {/* Non Scaled Tab Content */}
+                {lmStatusTab === 'non-scaled' && (
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-4">Status</h3>
+                    
+                    {/* Non Scaled Table Data */}
+                    {(() => {
+                      const nonScaledData = [
+                        { sec: 'ARD', awtMtrl: 0, can: 3, comp: 0, ess: 0, meCell: 0, woRel: 2, grandTotal: 5 },
+                        { sec: 'ARMT', awtMtrl: 1, can: 0, comp: 1, ess: 0, meCell: 2, woRel: 1, grandTotal: 5 },
+                        { sec: 'ENG', awtMtrl: 13, can: 0, comp: 0, ess: 0, meCell: 4, woRel: 0, grandTotal: 17 },
+                        { sec: 'ETD', awtMtrl: 2, can: 0, comp: 2, ess: 3, meCell: 0, woRel: 43, grandTotal: 50 },
+                        { sec: 'INST', awtMtrl: 2, can: 1, comp: 1, ess: 0, meCell: 0, woRel: 14, grandTotal: 18 },
+                        { sec: 'SRD', awtMtrl: 18, can: 0, comp: 6, ess: 1, meCell: 0, woRel: 21, grandTotal: 46 },
+                        { sec: 'T&R', awtMtrl: 1, can: 0, comp: 2, ess: 0, meCell: 3, woRel: 2, grandTotal: 8 },
+                        { sec: 'VRD', awtMtrl: 7, can: 0, comp: 1, ess: 0, meCell: 3, woRel: 15, grandTotal: 26 }
+                      ];
+
+                      const grandTotals = {
+                        awtMtrl: 44,
+                        can: 4,
+                        comp: 13,
+                        ess: 4,
+                        meCell: 12,
+                        woRel: 98,
+                        grandTotal: 175
+                      };
+
+                      return (
+                        <div className="overflow-x-auto">
+                          <table className="w-full border-collapse text-sm">
+                            <thead>
+                              <tr className="bg-gray-200">
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Sec</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Awt Mtrl</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Can</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Comp</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">ESS</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">ME Cell</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">WO Rel</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Grand Total</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {nonScaledData.map((row, index) => (
+                                <tr key={row.sec} className={`${index % 2 === 0 ? 'bg-gray-50' : 'bg-white'} hover:bg-blue-50 transition-colors`}>
+                                  <td className="border border-gray-300 px-3 py-2 font-semibold">{row.sec}</td>
+                                  <td className="border border-gray-300 px-3 py-2 text-center">{row.awtMtrl || ''}</td>
+                                  <td className="border border-gray-300 px-3 py-2 text-center">{row.can || ''}</td>
+                                  <td className="border border-gray-300 px-3 py-2 text-center">{row.comp || ''}</td>
+                                  <td className="border border-gray-300 px-3 py-2 text-center">{row.ess || ''}</td>
+                                  <td className="border border-gray-300 px-3 py-2 text-center">{row.meCell || ''}</td>
+                                  <td className="border border-gray-300 px-3 py-2 text-center">{row.woRel || ''}</td>
+                                  <td className="border border-gray-300 px-3 py-2 text-center font-semibold">{row.grandTotal}</td>
+                                </tr>
                               ))}
-                            </ul>
+                              <tr className="bg-gray-300 font-bold">
+                                <td className="border border-gray-400 px-3 py-2">Grand Total</td>
+                                <td className="border border-gray-400 px-3 py-2 text-center">{grandTotals.awtMtrl}</td>
+                                <td className="border border-gray-400 px-3 py-2 text-center">{grandTotals.can}</td>
+                                <td className="border border-gray-400 px-3 py-2 text-center">{grandTotals.comp}</td>
+                                <td className="border border-gray-400 px-3 py-2 text-center">{grandTotals.ess}</td>
+                                <td className="border border-gray-400 px-3 py-2 text-center">{grandTotals.meCell}</td>
+                                <td className="border border-gray-400 px-3 py-2 text-center">{grandTotals.woRel}</td>
+                                <td className="border border-gray-400 px-3 py-2 text-center">{grandTotals.grandTotal}</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                          
+                          {/* Summary below table */}
+                          <div className="mt-6 grid grid-cols-3 gap-4">
+                            <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+                              <div className="text-blue-700 text-sm font-semibold mb-1">AWT MTRL</div>
+                              <div className="text-2xl font-bold text-blue-600">44</div>
+                            </div>
+                            <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4">
+                              <div className="text-green-700 text-sm font-semibold mb-1">SO PLACED</div>
+                              <div className="text-2xl font-bold text-green-600">15</div>
+                            </div>
+                            <div className="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-4">
+                              <div className="text-yellow-700 text-sm font-semibold mb-1">U/ENQ</div>
+                              <div className="text-2xl font-bold text-yellow-600">29</div>
+                            </div>
                           </div>
-                        )}
+
+                          {/* Summary Cards Bar Graph */}
+                          <div className="mt-8 bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+                            <h4 className="text-xl font-bold text-gray-900 mb-8">Summary Cards Visualization</h4>
+                            <div className="flex items-end justify-around h-80 border-l-2 border-b-2 border-gray-400 pl-4 pb-4 gap-2 mt-6">
+                              {(() => {
+                                const maxValue = Math.max(grandTotals.awtMtrl, grandTotals.can, grandTotals.comp, grandTotals.ess, grandTotals.woRel, grandTotals.meCell, 1);
+                            return (
+                                  <>
+                                    <div className="flex flex-col items-center gap-2 flex-1">
+                                      <div
+                                        className="w-full bg-gradient-to-t from-blue-600 to-blue-400 flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg hover:from-blue-700 hover:to-blue-500 transition-all"
+                                        style={{ height: `${(grandTotals.awtMtrl / maxValue) * 300}px`, minHeight: '30px' }}
+                                        title={`Awt Mtrl: ${grandTotals.awtMtrl}`}
+                                      >
+                                        {grandTotals.awtMtrl}
+                    </div>
+                                      <span className="text-xs font-semibold text-gray-700 mt-2 text-center">Awt Mtrl</span>
+                          </div>
+                                    <div className="flex flex-col items-center gap-2 flex-1">
+                                      <div
+                                        className="w-full bg-gradient-to-t from-green-600 to-green-400 flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg hover:from-green-700 hover:to-green-500 transition-all"
+                                        style={{ height: `${(grandTotals.can / maxValue) * 300}px`, minHeight: '30px' }}
+                                        title={`Can: ${grandTotals.can}`}
+                                      >
+                                        {grandTotals.can}
+                        </div>
+                                      <span className="text-xs font-semibold text-gray-700 mt-2 text-center">Can</span>
+                    </div>
+                                    <div className="flex flex-col items-center gap-2 flex-1">
+                                      <div
+                                        className="w-full bg-gradient-to-t from-purple-600 to-purple-400 flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg hover:from-purple-700 hover:to-purple-500 transition-all"
+                                        style={{ height: `${(grandTotals.comp / maxValue) * 300}px`, minHeight: '30px' }}
+                                        title={`Comp: ${grandTotals.comp}`}
+                                      >
+                                        {grandTotals.comp}
+                  </div>
+                                      <span className="text-xs font-semibold text-gray-700 mt-2 text-center">Comp</span>
+                        </div>
+                                    <div className="flex flex-col items-center gap-2 flex-1">
+                                      <div
+                                        className="w-full bg-gradient-to-t from-orange-600 to-orange-400 flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg hover:from-orange-700 hover:to-orange-500 transition-all"
+                                        style={{ height: `${(grandTotals.ess / maxValue) * 300}px`, minHeight: '30px' }}
+                                        title={`ESS: ${grandTotals.ess}`}
+                                      >
+                                        {grandTotals.ess}
+                          </div>
+                                      <span className="text-xs font-semibold text-gray-700 mt-2 text-center">ESS</span>
+                                    </div>
+                                    <div className="flex flex-col items-center gap-2 flex-1">
+                                      <div
+                                        className="w-full bg-gradient-to-t from-teal-600 to-teal-400 flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg hover:from-teal-700 hover:to-teal-500 transition-all"
+                                        style={{ height: `${(grandTotals.woRel / maxValue) * 300}px`, minHeight: '30px' }}
+                                        title={`WO Rel: ${grandTotals.woRel}`}
+                                      >
+                                        {grandTotals.woRel}
+                          </div>
+                                      <span className="text-xs font-semibold text-gray-700 mt-2 text-center">WO Rel</span>
+                        </div>
+                                    <div className="flex flex-col items-center gap-2 flex-1">
+                                      <div
+                                        className="w-full bg-gradient-to-t from-pink-600 to-pink-400 flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg hover:from-pink-700 hover:to-pink-500 transition-all"
+                                        style={{ height: `${(grandTotals.meCell / maxValue) * 300}px`, minHeight: '30px' }}
+                                        title={`ME Cell: ${grandTotals.meCell}`}
+                                      >
+                                        {grandTotals.meCell}
+                          </div>
+                                      <span className="text-xs font-semibold text-gray-700 mt-2 text-center">ME Cell</span>
                       </div>
-                    ))}
+                                  </>
+                                );
+                              })()}
                   </div>
                 </div>
+                    </div>
+                      );
+                    })()}
+                    </div>
+                )}
 
-                <div className="mt-8">
-                  <h4 className="font-bold text-lg text-gray-900 mb-4">Summary</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div className="bg-white border-2 border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition">
-                      <div className="text-gray-600 text-sm mb-1">Total Work Orders</div>
-                      <div className="text-3xl font-bold text-gray-900">12</div>
+                {/* Graph - Section-wise Distribution */}
+                <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 mt-8">
+                  <h3 className="text-2xl font-bold text-gray-900 mb-6">Section-wise Grand Total Distribution</h3>
+                  <div className="flex items-end justify-around h-96 border-l-2 border-b-2 border-gray-400 pl-4 pb-4 mt-4">
+                    {(() => {
+                      const scaledData = [
+                        { sec: 'ARD', grandTotal: 37 },
+                        { sec: 'ARMT', grandTotal: 38 },
+                        { sec: 'ETD', grandTotal: 2 },
+                        { sec: 'SRD', grandTotal: 60 },
+                        { sec: 'T&R', grandTotal: 14 },
+                        { sec: 'VRD', grandTotal: 30 }
+                      ];
+                      const nonScaledData = [
+                        { sec: 'ARD', grandTotal: 5 },
+                        { sec: 'ARMT', grandTotal: 5 },
+                        { sec: 'ENG', grandTotal: 17 },
+                        { sec: 'ETD', grandTotal: 50 },
+                        { sec: 'INST', grandTotal: 18 },
+                        { sec: 'SRD', grandTotal: 46 },
+                        { sec: 'T&R', grandTotal: 8 },
+                        { sec: 'VRD', grandTotal: 26 }
+                      ];
+                      const data = lmStatusTab === 'scaled' ? scaledData : nonScaledData;
+                      const maxValue = Math.max(...data.map(d => d.grandTotal));
+                      const colors = ['bg-purple-500', 'bg-blue-500', 'bg-green-500', 'bg-orange-500', 'bg-pink-500', 'bg-cyan-500', 'bg-yellow-500', 'bg-red-500'];
+                      
+                      return data.map((row, index) => {
+                        const height = (row.grandTotal / maxValue) * 320;
+                        return (
+                          <div key={row.sec} className="flex flex-col items-center gap-2">
+                            <div
+                              className={`w-16 ${colors[index % colors.length]} flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg hover:opacity-80 transition-all`}
+                              style={{ height: `${height}px`, minHeight: '30px' }}
+                              title={`${row.sec}: ${row.grandTotal}`}
+                            >
+                              {row.grandTotal}
                     </div>
-                    <div className="bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-200 rounded-lg p-4 shadow-sm hover:shadow-md transition">
-                      <div className="text-green-700 text-sm mb-1">Completion Rate</div>
-                      <div className="text-3xl font-bold text-green-600">41.67%</div>
+                            <span className="text-xs font-semibold text-gray-700 mt-2 text-center">{row.sec}</span>
                     </div>
-                    <div className="bg-gradient-to-br from-red-50 to-red-100 border-2 border-red-200 rounded-lg p-4 shadow-sm hover:shadow-md transition">
-                      <div className="text-red-700 text-sm mb-1">Work Orders Needing Attention</div>
-                      <div className="text-3xl font-bold text-red-600">4 <span className="text-sm font-normal text-red-500">(Held Up + Overdue)</span></div>
-                    </div>
-                    <div className="bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 rounded-lg p-4 shadow-sm hover:shadow-md transition">
-                      <div className="text-blue-700 text-sm mb-1">Active Work Orders</div>
-                      <div className="text-3xl font-bold text-blue-600">3</div>
-                    </div>
+                        );
+                      });
+                    })()}
                   </div>
                 </div>
               </div>
             </div>
           ) : selectedCard === 'lp-completed' ? (
             <div className="space-y-8">
+              {/* Back Button */}
+              <div className="mb-4">
+                <button
+                  onClick={handleBack}
+                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-semibold transition-colors flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                      </svg>
+                  Back to Dashboards
+                </button>
+                    </div>
+
               {/* Summary Cards */}
               <div>
                 <h3 className="text-2xl font-bold text-gray-900 mb-4">Summary</h3>
@@ -1554,48 +2293,163 @@ export default function GMWKSLogin() {
 
               {/* Table Section */}
               <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
-                <h2 className="text-3xl font-bold text-gray-900 mb-6">LP Completed - Supply Orders</h2>
+                <h2 className="text-3xl font-bold text-gray-900 mb-6">DETLS OF LPR's :2025-26</h2>
+                
+                {/* Tabs */}
+                <div className="flex gap-4 mb-6 border-b border-gray-200">
+                  <button
+                    onClick={() => setLpStatusTab('scaled')}
+                    className={`px-6 py-3 font-semibold transition-colors ${
+                      lpStatusTab === 'scaled'
+                        ? 'text-indigo-600 border-b-2 border-indigo-600'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    Scaled
+                  </button>
+                  <button
+                    onClick={() => setLpStatusTab('non-scaled')}
+                    className={`px-6 py-3 font-semibold transition-colors ${
+                      lpStatusTab === 'non-scaled'
+                        ? 'text-indigo-600 border-b-2 border-indigo-600'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    Non Scaled
+                  </button>
+                </div>
+
+                {/* Table */}
                 <div className="overflow-x-auto">
-                  <table className="w-full border-collapse text-sm">
+                  <h3 className="text-xl font-bold text-gray-900 mb-4">
+                    {lpStatusTab === 'scaled' ? 'SCALED LPR\'s 2025-26 STATUS (15/10/25)' : 'NON-SCALED LPR\'s 2025-26 STATUS (15/10/25)'}
+                  </h3>
+                  <table className="w-full border-collapse text-xs">
                     <thead>
                       <tr className="bg-gray-200">
-                        <th className="border border-gray-400 px-3 py-3 font-semibold text-left">S.No</th>
-                        <th className="border border-gray-400 px-3 py-3 font-semibold text-left">Supply Order No</th>
-                        <th className="border border-gray-400 px-3 py-3 font-semibold text-left">Vendor</th>
-                        <th className="border border-gray-400 px-3 py-3 font-semibold text-left">Vendor Contact</th>
-                        <th className="border border-gray-400 px-3 py-3 font-semibold text-left">Component</th>
-                        <th className="border border-gray-400 px-3 py-3 font-semibold text-left">LPR</th>
-                        <th className="border border-gray-400 px-3 py-3 font-semibold text-left">Progress Status</th>
+                        <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Sec</th>
+                        <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Awt Spare</th>
+                        <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Can</th>
+                        <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Comp</th>
+                        <th className="border border-gray-400 px-3 py-2 font-semibold text-left">IFA Case</th>
+                        <th className="border border-gray-400 px-3 py-2 font-semibold text-left">OSS</th>
+                        <th className="border border-gray-400 px-3 py-2 font-semibold text-left">SO Placed</th>
+                        <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Store Recd</th>
+                        <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Grand Total</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {lpCompletedData.map((item) => (
-                        <tr key={item.serial} className="hover:bg-gray-50">
-                          <td className="border border-gray-300 px-3 py-2 text-center">{item.serial}</td>
-                          <td className="border border-gray-300 px-3 py-2 font-mono">{item.supplyOrderNo}</td>
-                          <td className="border border-gray-300 px-3 py-2">{item.vendor}</td>
-                          <td className="border border-gray-300 px-3 py-2 text-center">{item.vendorContact}</td>
-                          <td className="border border-gray-300 px-3 py-2">{item.component}</td>
-                          <td className="border border-gray-300 px-3 py-2 font-mono text-center">{item.lpr}</td>
-                          <td className="border border-gray-300 px-3 py-2 text-center">
-                            <span
-                              className={`px-3 py-1 rounded-full text-xs font-bold ${
-                                item.progressStatus === 'Completed'
-                                  ? 'bg-green-100 text-green-800'
-                                  : item.progressStatus === 'In Progress'
-                                  ? 'bg-blue-100 text-blue-800'
-                                  : item.progressStatus === 'Held Up'
-                                  ? 'bg-yellow-100 text-yellow-800'
-                                  : 'bg-gray-100 text-gray-800'
-                              }`}
-                            >
-                              {item.progressStatus}
-                            </span>
-                          </td>
+                      {(lpStatusTab === 'scaled' ? lpScaledData : lpNonScaledData).map((row, index) => (
+                        <tr key={row.sec} className={`${index % 2 === 0 ? 'bg-gray-50' : 'bg-white'} hover:bg-blue-50 transition-colors`}>
+                          <td className="border border-gray-300 px-3 py-2 font-semibold">{row.sec}</td>
+                          <td className="border border-gray-300 px-3 py-2 text-center">{row.awtMtrl || '-'}</td>
+                          <td className="border border-gray-300 px-3 py-2 text-center">{row.can || '-'}</td>
+                          <td className="border border-gray-300 px-3 py-2 text-center">{row.comp || '-'}</td>
+                          <td className="border border-gray-300 px-3 py-2 text-center">{row.ifaCase || '-'}</td>
+                          <td className="border border-gray-300 px-3 py-2 text-center">{row.oss || '-'}</td>
+                          <td className="border border-gray-300 px-3 py-2 text-center">{row.soPlaced || '-'}</td>
+                          <td className="border border-gray-300 px-3 py-2 text-center">{row.storeRecd || '-'}</td>
+                          <td className="border border-gray-300 px-3 py-2 text-center font-bold">{row.grandTotal}</td>
                         </tr>
                       ))}
+                      <tr className="bg-gray-200 font-bold">
+                        <td className="border border-gray-400 px-3 py-2">Grand Total</td>
+                        <td className="border border-gray-400 px-3 py-2 text-center">
+                          {(lpStatusTab === 'scaled' ? lpScaledGrandTotal : lpNonScaledGrandTotal).awtMtrl || '-'}
+                        </td>
+                        <td className="border border-gray-400 px-3 py-2 text-center">
+                          {(lpStatusTab === 'scaled' ? lpScaledGrandTotal : lpNonScaledGrandTotal).can || '-'}
+                        </td>
+                        <td className="border border-gray-400 px-3 py-2 text-center">
+                          {(lpStatusTab === 'scaled' ? lpScaledGrandTotal : lpNonScaledGrandTotal).comp || '-'}
+                        </td>
+                        <td className="border border-gray-400 px-3 py-2 text-center">
+                          {(lpStatusTab === 'scaled' ? lpScaledGrandTotal : lpNonScaledGrandTotal).ifaCase || '-'}
+                        </td>
+                        <td className="border border-gray-400 px-3 py-2 text-center">
+                          {(lpStatusTab === 'scaled' ? lpScaledGrandTotal : lpNonScaledGrandTotal).oss || '-'}
+                        </td>
+                        <td className="border border-gray-400 px-3 py-2 text-center">
+                          {(lpStatusTab === 'scaled' ? lpScaledGrandTotal : lpNonScaledGrandTotal).soPlaced || '-'}
+                        </td>
+                        <td className="border border-gray-400 px-3 py-2 text-center">
+                          {(lpStatusTab === 'scaled' ? lpScaledGrandTotal : lpNonScaledGrandTotal).storeRecd || '-'}
+                        </td>
+                        <td className="border border-gray-400 px-3 py-2 text-center">
+                          {(lpStatusTab === 'scaled' ? lpScaledGrandTotal : lpNonScaledGrandTotal).grandTotal}
+                        </td>
+                      </tr>
                     </tbody>
                   </table>
+                </div>
+
+                {/* Summary Cards for LP Status */}
+                <div className="mt-6 grid grid-cols-3 gap-4">
+                  <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+                    <div className="text-blue-700 text-sm font-semibold mb-1">AWT MTRL</div>
+                    <div className="text-2xl font-bold text-blue-600">
+                      {(lpStatusTab === 'scaled' ? lpScaledGrandTotal : lpNonScaledGrandTotal).awtMtrl || 0}
+                    </div>
+                  </div>
+                  <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4">
+                    <div className="text-green-700 text-sm font-semibold mb-1">SO PLACED</div>
+                    <div className="text-2xl font-bold text-green-600">
+                      {(lpStatusTab === 'scaled' ? lpScaledGrandTotal : lpNonScaledGrandTotal).soPlaced || 0}
+                    </div>
+                  </div>
+                  <div className="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-4">
+                    <div className="text-yellow-700 text-sm font-semibold mb-1">ENQ/U/ENQ</div>
+                    <div className="text-2xl font-bold text-yellow-600">
+                      {((lpStatusTab === 'scaled' ? lpScaledGrandTotal : lpNonScaledGrandTotal).can || 0) + 
+                       ((lpStatusTab === 'scaled' ? lpScaledGrandTotal : lpNonScaledGrandTotal).oss || 0)}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Summary Cards Bar Graph */}
+                <div className="mt-8 bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+                  <h4 className="text-xl font-bold text-gray-900 mb-10">Summary Cards Visualization</h4>
+                  <div className="flex items-end justify-around h-80 border-l-2 border-b-2 border-gray-400 pl-4 pb-4 gap-2 mt-6">
+                    {(() => {
+                      const grandTotal = lpStatusTab === 'scaled' ? lpScaledGrandTotal : lpNonScaledGrandTotal;
+                      const awtSpare = grandTotal.awtMtrl || 0;
+                      const can = grandTotal.can || 0;
+                      const comp = grandTotal.comp || 0;
+                      const ifaCase = grandTotal.ifaCase || 0;
+                      const oss = grandTotal.oss || 0;
+                      const soPlaced = grandTotal.soPlaced || 0;
+                      const storeRecd = grandTotal.storeRecd || 0;
+                      
+                      const maxValue = Math.max(awtSpare, can, comp, ifaCase, oss, soPlaced, storeRecd, 1);
+                      
+                      const barData = [
+                        { label: 'Awt Spare', value: awtSpare, colorClass: 'bg-gradient-to-t from-blue-600 to-blue-400 hover:from-blue-700 hover:to-blue-500' },
+                        { label: 'Can', value: can, colorClass: 'bg-gradient-to-t from-green-600 to-green-400 hover:from-green-700 hover:to-green-500' },
+                        { label: 'Comp', value: comp, colorClass: 'bg-gradient-to-t from-purple-600 to-purple-400 hover:from-purple-700 hover:to-purple-500' },
+                        { label: 'IFA Case', value: ifaCase, colorClass: 'bg-gradient-to-t from-orange-600 to-orange-400 hover:from-orange-700 hover:to-orange-500' },
+                        { label: 'OSS', value: oss, colorClass: 'bg-gradient-to-t from-yellow-600 to-yellow-400 hover:from-yellow-700 hover:to-yellow-500' },
+                        { label: 'SO Placed', value: soPlaced, colorClass: 'bg-gradient-to-t from-indigo-600 to-indigo-400 hover:from-indigo-700 hover:to-indigo-500' },
+                        { label: 'Store Recd', value: storeRecd, colorClass: 'bg-gradient-to-t from-pink-600 to-pink-400 hover:from-pink-700 hover:to-pink-500' }
+                      ];
+                      
+                      return (
+                        <>
+                          {barData.map((bar, index) => (
+                            <div key={index} className="flex flex-col items-center gap-2 flex-1">
+                              <div
+                                className={`w-full ${bar.colorClass} flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg transition-all`}
+                                style={{ height: `${(bar.value / maxValue) * 300}px`, minHeight: '30px' }}
+                                title={`${bar.label}: ${bar.value}`}
+                              >
+                                {bar.value}
+                              </div>
+                              <span className="text-xs font-semibold text-gray-700 mt-2 text-center break-words">{bar.label}</span>
+                            </div>
+                          ))}
+                        </>
+                      );
+                    })()}
+                  </div>
                 </div>
               </div>
 
@@ -1806,103 +2660,207 @@ export default function GMWKSLogin() {
             </div>
           ) : selectedCard === 'fund-state' ? (
             <div className="space-y-8">
+              {/* Back Button */}
+              <div className="mb-4">
+                <button
+                  onClick={handleBack}
+                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-semibold transition-colors flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                  </svg>
+                  Back to Dashboards
+                </button>
+              </div>
+              
               {/* Summary Cards */}
               <div>
                 <h3 className="text-2xl font-bold text-gray-900 mb-4">Fund State Summary</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 rounded-lg p-6 shadow-sm hover:shadow-md transition">
-                    <div className="text-blue-700 text-sm mb-1 font-semibold">Total Budget</div>
-                    <div className="text-3xl font-bold text-blue-600">₹{(totalBudget / 10000000).toFixed(2)} Cr</div>
+                    <div className="text-blue-700 text-sm mb-1 font-semibold">ORD Grant (415/01)</div>
+                    <div className="text-3xl font-bold text-blue-600">₹{fundStateGrantData[0].almt202526.toLocaleString('en-IN')}</div>
                   </div>
                   <div className="bg-gradient-to-br from-red-50 to-red-100 border-2 border-red-200 rounded-lg p-6 shadow-sm hover:shadow-md transition">
-                    <div className="text-red-700 text-sm mb-1 font-semibold">Funds Used</div>
-                    <div className="text-3xl font-bold text-red-600">₹{(usedFunds / 10000000).toFixed(2)} Cr</div>
-                    <div className="text-sm text-red-500 mt-1">{usedPercentage.toFixed(1)}% utilized</div>
+                    <div className="text-red-700 text-sm mb-1 font-semibold">MT Grant (417/07)</div>
+                    <div className="text-3xl font-bold text-red-600">₹{fundStateGrantData[1].almt202526.toLocaleString('en-IN')}</div>
                   </div>
                   <div className="bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-200 rounded-lg p-6 shadow-sm hover:shadow-md transition">
-                    <div className="text-green-700 text-sm mb-1 font-semibold">Remaining Funds</div>
-                    <div className="text-3xl font-bold text-green-600">₹{(remainingFunds / 10000000).toFixed(2)} Cr</div>
-                    <div className="text-sm text-green-500 mt-1">{remainingPercentage.toFixed(1)}% available</div>
+                    <div className="text-green-700 text-sm mb-1 font-semibold">IR&D Grant (438/00)</div>
+                    <div className="text-3xl font-bold text-green-600">₹{fundStateGrantData[2].almt202526.toLocaleString('en-IN')}</div>
                   </div>
                 </div>
               </div>
 
-              {/* Pie Chart - Fund Utilization */}
+              {/* Fund State Table */}
               <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
-                <h3 className="text-2xl font-bold text-gray-900 mb-6">Fund Utilization</h3>
-                <div className="flex flex-col items-center">
-                  <div className="relative w-80 h-80">
-                    <svg viewBox="0 0 200 200" className="w-full h-full">
-                      {(() => {
-                        const colors = ['#ef4444', '#22c55e'];
-                        const percentages = [usedPercentage, remainingPercentage];
-                        let currentAngle = 0;
+                <h2 className="text-3xl font-bold text-gray-900 mb-6">Fund State Report 2025-26</h2>
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse text-xs">
+                    <thead>
+                      <tr className="bg-gray-200">
+                        <th className="border border-gray-400 px-2 py-2 font-semibold text-left">Ser No</th>
+                        <th className="border border-gray-400 px-2 py-2 font-semibold text-left">Name of Grant (Code Head)</th>
+                        <th className="border border-gray-400 px-2 py-2 font-semibold text-left">Almt 2025-26</th>
+                        <th className="border border-gray-400 px-2 py-2 font-semibold text-center" colSpan={2}>No of SO Placed</th>
+                        <th className="border border-gray-400 px-2 py-2 font-semibold text-center" colSpan={3}>Expdr</th>
+                        <th className="border border-gray-400 px-2 py-2 font-semibold text-left">Bills Submitted to CDA</th>
+                        <th className="border border-gray-400 px-2 py-2 font-semibold text-left">Amt Booked by CDA</th>
+                        <th className="border border-gray-400 px-2 py-2 font-semibold text-left">Amt Bal</th>
+                        <th className="border border-gray-400 px-2 py-2 font-semibold text-left">Remarks</th>
+                      </tr>
+                      <tr className="bg-gray-100">
+                        <th className="border border-gray-400 px-2 py-1"></th>
+                        <th className="border border-gray-400 px-2 py-1"></th>
+                        <th className="border border-gray-400 px-2 py-1"></th>
+                        <th className="border border-gray-400 px-2 py-1 font-semibold text-center">GeM</th>
+                        <th className="border border-gray-400 px-2 py-1 font-semibold text-center">Non GeM</th>
+                        <th className="border border-gray-400 px-2 py-1 font-semibold text-center">Cost / Expdr</th>
+                        <th className="border border-gray-400 px-2 py-1 font-semibold text-center">Total Expdr</th>
+                        <th className="border border-gray-400 px-2 py-1"></th>
+                        <th className="border border-gray-400 px-2 py-1"></th>
+                        <th className="border border-gray-400 px-2 py-1"></th>
+                        <th className="border border-gray-400 px-2 py-1"></th>
+                        <th className="border border-gray-400 px-2 py-1"></th>
+                      </tr>
+                      <tr className="bg-gray-50">
+                        <th className="border border-gray-400 px-2 py-1"></th>
+                        <th className="border border-gray-400 px-2 py-1"></th>
+                        <th className="border border-gray-400 px-2 py-1"></th>
+                        <th className="border border-gray-400 px-2 py-1"></th>
+                        <th className="border border-gray-400 px-2 py-1"></th>
+                        <th className="border border-gray-400 px-2 py-1 font-semibold text-center">GeM</th>
+                        <th className="border border-gray-400 px-2 py-1 font-semibold text-center">Non GeM</th>
+                        <th className="border border-gray-400 px-2 py-1"></th>
+                        <th className="border border-gray-400 px-2 py-1"></th>
+                        <th className="border border-gray-400 px-2 py-1"></th>
+                        <th className="border border-gray-400 px-2 py-1"></th>
+                        <th className="border border-gray-400 px-2 py-1"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {fundStateGrantData.map((grant, index) => {
+                        const expdrPercentage = ((grant.totalExpdr / grant.almt202526) * 100).toFixed(2);
+                        const billsPercentage = grant.billsSubmitted ? ((grant.billsSubmitted / grant.almt202526) * 100).toFixed(2) : '-';
+                        const bookedPercentage = grant.amtBooked ? ((grant.amtBooked / grant.almt202526) * 100).toFixed(2) : '-';
+                        const balPercentage = ((grant.amtBal / grant.almt202526) * 100).toFixed(2);
                         
-                        return percentages.map((percentage, index) => {
-                          const angle = (percentage / 100) * 360;
-                          const startAngle = currentAngle;
-                          const endAngle = currentAngle + angle;
-                          const startRad = (startAngle - 90) * (Math.PI / 180);
-                          const endRad = (endAngle - 90) * (Math.PI / 180);
-                          const x1 = 100 + 90 * Math.cos(startRad);
-                          const y1 = 100 + 90 * Math.sin(startRad);
-                          const x2 = 100 + 90 * Math.cos(endRad);
-                          const y2 = 100 + 90 * Math.sin(endRad);
-                          const largeArcFlag = angle > 180 ? 1 : 0;
-                          const pathData = [
-                            `M 100 100`,
-                            `L ${x1} ${y1}`,
-                            `A 90 90 0 ${largeArcFlag} 1 ${x2} ${y2}`,
-                            'Z'
-                          ].join(' ');
-                          currentAngle = endAngle;
-                          return (
-                            <path
-                              key={index}
-                              d={pathData}
-                              fill={colors[index]}
-                              stroke="white"
-                              strokeWidth="2"
-                            />
-                          );
-                        })
-                      })()}
-                      <circle cx="100" cy="100" r="50" fill="white" />
-                    </svg>
-                  </div>
-                  <div className="mt-6 flex gap-8">
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 bg-red-500 rounded"></div>
-                      <div className="text-sm font-semibold">Used</div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 bg-green-500 rounded"></div>
-                      <div className="text-sm font-semibold">Remaining</div>
-                    </div>
-                  </div>
+                        return (
+                          <React.Fragment key={grant.serNo}>
+                            <tr className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors`}>
+                              <td className="border border-gray-300 px-2 py-2 text-center font-semibold">{grant.serNo}</td>
+                              <td className="border border-gray-300 px-2 py-2 font-semibold">{grant.grantName}</td>
+                              <td className="border border-gray-300 px-2 py-2 text-right">{grant.almt202526.toLocaleString('en-IN')}</td>
+                              <td className="border border-gray-300 px-2 py-2 text-center">{grant.soPlacedGem ?? '-'}</td>
+                              <td className="border border-gray-300 px-2 py-2 text-center">{grant.soPlacedNonGem}</td>
+                              <td className="border border-gray-300 px-2 py-2 text-right">{grant.expdrGem.toLocaleString('en-IN')}</td>
+                              <td className="border border-gray-300 px-2 py-2 text-right">{grant.expdrNonGem.toLocaleString('en-IN')}</td>
+                              <td className="border border-gray-300 px-2 py-2 text-right font-semibold">{grant.totalExpdr.toLocaleString('en-IN')}</td>
+                              <td className="border border-gray-300 px-2 py-2 text-right">{grant.billsSubmitted.toLocaleString('en-IN')}</td>
+                              <td className="border border-gray-300 px-2 py-2 text-right">{grant.amtBooked ? grant.amtBooked.toLocaleString('en-IN') : '-'}</td>
+                              <td className={`border border-gray-300 px-2 py-2 text-right font-semibold ${grant.amtBal < 0 ? 'text-red-600' : ''}`}>
+                                {grant.amtBal.toLocaleString('en-IN')}
+                              </td>
+                              <td className="border border-gray-300 px-2 py-2 text-sm">{grant.remarks}</td>
+                            </tr>
+                            <tr className={`${index % 2 === 0 ? 'bg-gray-50' : 'bg-white'} text-xs`}>
+                              <td className="border border-gray-300 px-2 py-1"></td>
+                              <td className="border border-gray-300 px-2 py-1"></td>
+                              <td className="border border-gray-300 px-2 py-1"></td>
+                              <td className="border border-gray-300 px-2 py-1"></td>
+                              <td className="border border-gray-300 px-2 py-1"></td>
+                              <td className="border border-gray-300 px-2 py-1"></td>
+                              <td className="border border-gray-300 px-2 py-1 text-right font-semibold">{expdrPercentage}%</td>
+                              <td className="border border-gray-300 px-2 py-1 text-right">{billsPercentage}%</td>
+                              <td className="border border-gray-300 px-2 py-1 text-right">{bookedPercentage}%</td>
+                              <td className="border border-gray-300 px-2 py-1 text-right font-semibold">{balPercentage}%</td>
+                              <td className="border border-gray-300 px-2 py-1"></td>
+                            </tr>
+                          </React.Fragment>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
               </div>
 
-              {/* Bar Graph - Section-wise Fund Usage */}
+              {/* Bar Graph - Grant Allocation vs Expenditure vs Bills Submitted */}
               <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
-                <h3 className="text-2xl font-bold text-gray-900 mb-6">Section-wise Fund Usage</h3>
-                <div className="flex items-end justify-around h-96 border-l-2 border-b-2 border-gray-400 pl-4 pb-4">
-                  {sectionFundData.map((data) => (
-                    <div key={data.section} className="flex flex-col items-center gap-2">
-                      <div
-                        className={`w-20 ${data.color} flex items-start justify-center text-white font-bold text-sm pt-2 rounded-t-lg hover:opacity-80 transition-all`}
-                        style={{ height: `${(data.amount / maxAmount) * 300}px`, minHeight: '40px' }}
-                      >
-                        ₹{(data.amount / 1000000).toFixed(1)}M
+                <h3 className="text-2xl font-bold text-gray-900 mb-6">Grant Allocation vs Expenditure vs Bills Submitted</h3>
+                <div className="flex items-end justify-around h-96 border-l-2 border-b-2 border-gray-400 pl-4 pb-4 mt-4">
+                  {fundStateGrantData.map((grant) => {
+                    const grantShortName = grant.grantName.split(' ')[0]; // ORD, MT, IR&D
+                    const almtHeight = (grant.almt202526 / maxGrantAmount) * 320;
+                    const expdrHeight = (Math.abs(grant.totalExpdr) / maxGrantAmount) * 320;
+                    const billsHeight = grant.billsSubmitted ? (grant.billsSubmitted / maxGrantAmount) * 320 : 0;
+                    
+                    return (
+                      <div key={grant.serNo} className="flex flex-col items-center gap-2">
+                        <div className="flex items-end gap-1">
+                          <div
+                            className="w-14 bg-blue-500 flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg hover:opacity-80 transition-all"
+                            style={{ height: `${almtHeight}px`, minHeight: '30px' }}
+                            title={`Allocation: ₹${(grant.almt202526 / 1000000).toFixed(2)}M`}
+                          >
+                            ₹{(grant.almt202526 / 1000000).toFixed(1)}M
+                          </div>
+                          <div
+                            className={`w-14 ${grant.totalExpdr > grant.almt202526 ? 'bg-red-500' : 'bg-green-500'} flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg hover:opacity-80 transition-all`}
+                            style={{ height: `${expdrHeight}px`, minHeight: '30px' }}
+                            title={`Expenditure: ₹${(grant.totalExpdr / 1000000).toFixed(2)}M`}
+                          >
+                            ₹{(grant.totalExpdr / 1000000).toFixed(1)}M
+                          </div>
+                          {grant.billsSubmitted && (
+                            <div
+                              className="w-14 bg-orange-500 flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg hover:opacity-80 transition-all"
+                              style={{ height: `${billsHeight}px`, minHeight: '30px' }}
+                              title={`Bills Submitted: ₹${(grant.billsSubmitted / 1000000).toFixed(2)}M`}
+                            >
+                              ₹{(grant.billsSubmitted / 1000000).toFixed(1)}M
+                            </div>
+                          )}
+                        </div>
+                        <span className="text-xs font-semibold text-gray-700 mt-2 text-center">{grantShortName}</span>
                       </div>
-                      <span className="text-sm font-semibold text-gray-700 mt-2">{data.section}</span>
-                    </div>
-                  ))}
+                    );
+                  })}
+                </div>
+                <div className="mt-6 flex justify-center gap-8 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-blue-500 rounded"></div>
+                    <div className="text-sm font-semibold">Allocation</div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-green-500 rounded"></div>
+                    <div className="text-sm font-semibold">Expenditure (Within Budget)</div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-red-500 rounded"></div>
+                    <div className="text-sm font-semibold">Expenditure (Over Budget)</div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-orange-500 rounded"></div>
+                    <div className="text-sm font-semibold">Bills Submitted to CDA</div>
+                  </div>
                 </div>
               </div>
             </div>
           ) : selectedCard === 'daily-output' ? (
             <div className="space-y-8">
+              {/* Back Button */}
+              <div className="mb-4">
+                <button
+                  onClick={handleBack}
+                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-semibold transition-colors flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                  </svg>
+                  Back to Dashboards
+                </button>
+              </div>
+              
               {/* Daily Output Cards */}
               <div>
                 <h3 className="text-2xl font-bold text-gray-900 mb-4">Daily Output Summary</h3>
@@ -1958,6 +2916,19 @@ export default function GMWKSLogin() {
             </div>
           ) : selectedCard === 'equipments-collected' ? (
             <div className="space-y-8">
+              {/* Back Button */}
+              <div className="mb-4">
+                <button
+                  onClick={handleBack}
+                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-semibold transition-colors flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                  </svg>
+                  Back to Dashboards
+                </button>
+              </div>
+              
               {/* Summary Cards */}
               <div>
                 <h3 className="text-2xl font-bold text-gray-900 mb-4">Equipment Collection Summary</h3>
@@ -1983,79 +2954,79 @@ export default function GMWKSLogin() {
                 <p className="text-gray-600 mb-8 text-sm">Distribution of vendors who have delivered goods vs those left to deliver</p>
                 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  <div className="flex flex-col items-center">
-                    <div className="relative w-80 h-80">
-                      <svg viewBox="0 0 200 200" className="w-full h-full">
-                        {(() => {
+                <div className="flex flex-col items-center">
+                  <div className="relative w-80 h-80">
+                    <svg viewBox="0 0 200 200" className="w-full h-full">
+                      {(() => {
                           const totalVendors = vendorsWithDeliveries + vendorsOnlyPending;
                           const deliveredVendorPercentage = totalVendors > 0 ? (vendorsWithDeliveries / totalVendors) * 100 : 0;
                           const pendingVendorPercentage = totalVendors > 0 ? (vendorsOnlyPending / totalVendors) * 100 : 0;
                           const colors = ['#22c55e', '#f97316'];
                           const percentages = [deliveredVendorPercentage, pendingVendorPercentage];
-                          let currentAngle = 0;
-                          
-                          return percentages.map((percentage, index) => {
+                        let currentAngle = 0;
+                        
+                        return percentages.map((percentage, index) => {
                             if (percentage === 0) return null;
-                            const angle = (percentage / 100) * 360;
-                            const startAngle = currentAngle;
-                            const endAngle = currentAngle + angle;
+                          const angle = (percentage / 100) * 360;
+                          const startAngle = currentAngle;
+                          const endAngle = currentAngle + angle;
                             
-                            const startRad = (startAngle - 90) * (Math.PI / 180);
-                            const endRad = (endAngle - 90) * (Math.PI / 180);
+                          const startRad = (startAngle - 90) * (Math.PI / 180);
+                          const endRad = (endAngle - 90) * (Math.PI / 180);
                             
-                            const x1 = 100 + 90 * Math.cos(startRad);
-                            const y1 = 100 + 90 * Math.sin(startRad);
-                            const x2 = 100 + 90 * Math.cos(endRad);
-                            const y2 = 100 + 90 * Math.sin(endRad);
+                          const x1 = 100 + 90 * Math.cos(startRad);
+                          const y1 = 100 + 90 * Math.sin(startRad);
+                          const x2 = 100 + 90 * Math.cos(endRad);
+                          const y2 = 100 + 90 * Math.sin(endRad);
                             
-                            const largeArcFlag = angle > 180 ? 1 : 0;
+                          const largeArcFlag = angle > 180 ? 1 : 0;
                             
-                            const pathData = [
-                              `M 100 100`,
-                              `L ${x1} ${y1}`,
-                              `A 90 90 0 ${largeArcFlag} 1 ${x2} ${y2}`,
-                              'Z'
-                            ].join(' ');
+                          const pathData = [
+                            `M 100 100`,
+                            `L ${x1} ${y1}`,
+                            `A 90 90 0 ${largeArcFlag} 1 ${x2} ${y2}`,
+                            'Z'
+                          ].join(' ');
                             
-                            currentAngle = endAngle;
+                          currentAngle = endAngle;
                             
-                            return (
-                              <path
-                                key={index}
-                                d={pathData}
-                                fill={colors[index]}
-                                stroke="white"
-                                strokeWidth="2"
-                              />
-                            );
+                          return (
+                            <path
+                              key={index}
+                              d={pathData}
+                              fill={colors[index]}
+                              stroke="white"
+                              strokeWidth="2"
+                            />
+                          );
                           });
-                        })()}
-                        <circle cx="100" cy="100" r="50" fill="white" />
+                      })()}
+                      <circle cx="100" cy="100" r="50" fill="white" />
                         <text x="100" y="95" textAnchor="middle" className="text-2xl font-bold fill-gray-900">
                           {vendorsWithDeliveries + vendorsOnlyPending}
                         </text>
                         <text x="100" y="110" textAnchor="middle" className="text-sm fill-gray-600">
                           Vendors
                         </text>
-                      </svg>
-                    </div>
+                    </svg>
+                  </div>
                     <div className="mt-6 grid grid-cols-2 gap-4">
-                      <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2">
                         <div className="w-4 h-4 bg-green-500 rounded"></div>
                         <div className="text-sm">
                           <span className="font-semibold">Delivered</span>
                           <span className="text-gray-600 ml-1">({vendorsWithDeliveries})</span>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-2">
+                    </div>
+                    <div className="flex items-center gap-2">
                         <div className="w-4 h-4 bg-orange-500 rounded"></div>
                         <div className="text-sm">
                           <span className="font-semibold">Pending</span>
                           <span className="text-gray-600 ml-1">({vendorsOnlyPending})</span>
-                        </div>
-                      </div>
                     </div>
                   </div>
+                </div>
+              </div>
 
                   <div className="space-y-6">
                     <div className="border-l-4 border-green-500 pl-4">
@@ -2134,8 +3105,8 @@ export default function GMWKSLogin() {
                 </div>
                 <div className="mt-6 text-center">
                   <p className="text-xs text-gray-500">Y-axis: Number of On-Time Deliveries | X-axis: Vendors</p>
-                </div>
               </div>
+            </div>
 
               {/* Chart 3: Bar Chart - Average Days to Deliver per Vendor */}
               <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
@@ -2207,6 +3178,19 @@ export default function GMWKSLogin() {
             </div>
           ) : selectedCard === 'ifa-cases' ? (
             <div className="space-y-8">
+              {/* Back Button */}
+              <div className="mb-4">
+                <button
+                  onClick={handleBack}
+                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-semibold transition-colors flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                  </svg>
+                  Back to Dashboards
+                </button>
+              </div>
+              
               {/* IFA Cases Count */}
               <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
                 <h2 className="text-3xl font-bold text-gray-900 mb-6">IFA Cases</h2>
@@ -2231,24 +3215,158 @@ export default function GMWKSLogin() {
                         </div>
                       </div>
 
-                      {/* Bar Graph - IFA Cases per Quarter */}
-                      <div>
-                        <h3 className="text-2xl font-bold text-gray-900 mb-6">IFA Cases by Quarter</h3>
-                        <div className="flex items-end justify-around h-96 border-l-2 border-b-2 border-gray-400 pl-4 pb-4">
-                          {ifaCasesData.map((data) => (
-                            <div key={data.quarter} className="flex flex-col items-center gap-2">
-                              <div
-                                className="w-24 bg-gradient-to-t from-cyan-600 to-cyan-400 flex items-start justify-center text-white font-bold text-sm pt-2 rounded-t-lg hover:from-cyan-700 hover:to-cyan-500 transition-all"
-                                style={{ height: `${(data.count / maxIfaCount) * 350}px`, minHeight: '30px' }}
-                              >
-                                {data.count}
-                              </div>
-                              <span className="text-sm font-semibold text-gray-700 mt-2 text-center">{data.quarter}</span>
-                            </div>
-                          ))}
+                      {/* IFA Cases Table */}
+                      <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 mb-8">
+                        <h3 className="text-2xl font-bold text-gray-900 mb-6">IFA Cases - Detailed List</h3>
+                        <div className="overflow-x-auto">
+                          <table className="w-full border-collapse text-sm">
+                            <thead>
+                              <tr className="bg-gray-200">
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">S.No</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">IFA Case No</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">LPR/WO No</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Section</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Component</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Issue Date</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Status</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Remarks</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {[
+                                { sNo: 1, ifaCaseNo: 'IFA/2024/001', lprWoNo: 'LPR/2024/001', section: 'ARD', component: 'Hydraulic Pump', issueDate: '15/01/2024', status: 'Pending', remarks: 'Awaiting vendor response' },
+                                { sNo: 2, ifaCaseNo: 'IFA/2024/002', lprWoNo: 'WO/2024/001', section: 'VRD', component: 'Engine Gasket', issueDate: '20/01/2024', status: 'In Progress', remarks: 'Under review' },
+                                { sNo: 3, ifaCaseNo: 'IFA/2024/003', lprWoNo: 'LPR/2024/002', section: 'SRD', component: 'Brake Assembly', issueDate: '25/01/2024', status: 'Resolved', remarks: 'Issue resolved' },
+                                { sNo: 4, ifaCaseNo: 'IFA/2024/004', lprWoNo: 'WO/2024/002', section: 'ETD', component: 'Transmission Gear', issueDate: '01/02/2024', status: 'Pending', remarks: '' },
+                                { sNo: 5, ifaCaseNo: 'IFA/2024/005', lprWoNo: 'LPR/2024/003', section: 'ARMT', component: 'Clutch Plate', issueDate: '05/02/2024', status: 'In Progress', remarks: 'Investigation ongoing' },
+                                { sNo: 6, ifaCaseNo: 'IFA/2024/006', lprWoNo: 'WO/2024/003', section: 'T&R', component: 'Suspension Spring', issueDate: '10/02/2024', status: 'Resolved', remarks: 'Closed' },
+                                { sNo: 7, ifaCaseNo: 'IFA/2024/007', lprWoNo: 'LPR/2024/004', section: 'ENG', component: 'Cylinder Head', issueDate: '15/02/2024', status: 'Pending', remarks: '' },
+                                { sNo: 8, ifaCaseNo: 'IFA/2024/008', lprWoNo: 'WO/2024/004', section: 'INST', component: 'Electrical Harness', issueDate: '20/02/2024', status: 'In Progress', remarks: 'Awaiting parts' },
+                                { sNo: 9, ifaCaseNo: 'IFA/2024/009', lprWoNo: 'LPR/2024/005', section: 'VRD', component: 'Oil Filter', issueDate: '25/02/2024', status: 'Resolved', remarks: 'Issue fixed' },
+                                { sNo: 10, ifaCaseNo: 'IFA/2024/010', lprWoNo: 'WO/2024/005', section: 'ARD', component: 'Water Pump', issueDate: '01/03/2024', status: 'Pending', remarks: 'Follow up required' }
+                              ].map((row, index) => (
+                                <tr key={row.sNo} className={`${index % 2 === 0 ? 'bg-gray-50' : 'bg-white'} hover:bg-blue-50 transition-colors`}>
+                                  <td className="border border-gray-300 px-3 py-2 text-center">{row.sNo}</td>
+                                  <td className="border border-gray-300 px-3 py-2 font-mono">{row.ifaCaseNo}</td>
+                                  <td className="border border-gray-300 px-3 py-2 font-mono">{row.lprWoNo}</td>
+                                  <td className="border border-gray-300 px-3 py-2 font-semibold">{row.section}</td>
+                                  <td className="border border-gray-300 px-3 py-2">{row.component}</td>
+                                  <td className="border border-gray-300 px-3 py-2 text-center">{row.issueDate}</td>
+                                  <td className="border border-gray-300 px-3 py-2 text-center">
+                                    <span
+                                      className={`px-3 py-1 rounded-full text-xs font-bold ${
+                                        row.status === 'Resolved'
+                                          ? 'bg-green-100 text-green-800'
+                                          : row.status === 'In Progress'
+                                          ? 'bg-blue-100 text-blue-800'
+                                          : 'bg-yellow-100 text-yellow-800'
+                                      }`}
+                                    >
+                                      {row.status}
+                                    </span>
+                                  </td>
+                                  <td className="border border-gray-300 px-3 py-2 text-sm">{row.remarks || '-'}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
                         </div>
-                        <div className="mt-6 text-center">
-                          <p className="text-xs text-gray-500">Y-axis: Number of IFA Cases | X-axis: Financial Year Quarters</p>
+                      </div>
+
+                      {/* Pie Chart - IFA Cases by Status */}
+                      <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
+                        <h3 className="text-2xl font-bold text-gray-900 mb-6">IFA Cases by Status</h3>
+                        <div className="flex flex-col items-center">
+                          {(() => {
+                            const ifaTableData = [
+                              { sNo: 1, ifaCaseNo: 'IFA/2024/001', lprWoNo: 'LPR/2024/001', section: 'ARD', component: 'Hydraulic Pump', issueDate: '15/01/2024', status: 'Pending', remarks: 'Awaiting vendor response' },
+                              { sNo: 2, ifaCaseNo: 'IFA/2024/002', lprWoNo: 'WO/2024/001', section: 'VRD', component: 'Engine Gasket', issueDate: '20/01/2024', status: 'In Progress', remarks: 'Under review' },
+                              { sNo: 3, ifaCaseNo: 'IFA/2024/003', lprWoNo: 'LPR/2024/002', section: 'SRD', component: 'Brake Assembly', issueDate: '25/01/2024', status: 'Resolved', remarks: 'Issue resolved' },
+                              { sNo: 4, ifaCaseNo: 'IFA/2024/004', lprWoNo: 'WO/2024/002', section: 'ETD', component: 'Transmission Gear', issueDate: '01/02/2024', status: 'Pending', remarks: '' },
+                              { sNo: 5, ifaCaseNo: 'IFA/2024/005', lprWoNo: 'LPR/2024/003', section: 'ARMT', component: 'Clutch Plate', issueDate: '05/02/2024', status: 'In Progress', remarks: 'Investigation ongoing' },
+                              { sNo: 6, ifaCaseNo: 'IFA/2024/006', lprWoNo: 'WO/2024/003', section: 'T&R', component: 'Suspension Spring', issueDate: '10/02/2024', status: 'Resolved', remarks: 'Closed' },
+                              { sNo: 7, ifaCaseNo: 'IFA/2024/007', lprWoNo: 'LPR/2024/004', section: 'ENG', component: 'Cylinder Head', issueDate: '15/02/2024', status: 'Pending', remarks: '' },
+                              { sNo: 8, ifaCaseNo: 'IFA/2024/008', lprWoNo: 'WO/2024/004', section: 'INST', component: 'Electrical Harness', issueDate: '20/02/2024', status: 'In Progress', remarks: 'Awaiting parts' },
+                              { sNo: 9, ifaCaseNo: 'IFA/2024/009', lprWoNo: 'LPR/2024/005', section: 'VRD', component: 'Oil Filter', issueDate: '25/02/2024', status: 'Resolved', remarks: 'Issue fixed' },
+                              { sNo: 10, ifaCaseNo: 'IFA/2024/010', lprWoNo: 'WO/2024/005', section: 'ARD', component: 'Water Pump', issueDate: '01/03/2024', status: 'Pending', remarks: 'Follow up required' }
+                            ];
+                            
+                            const statusCounts = ifaTableData.reduce((acc: any, item) => {
+                              acc[item.status] = (acc[item.status] || 0) + 1;
+                              return acc;
+                            }, {});
+                            
+                            const statusData = [
+                              { status: 'Pending', count: statusCounts['Pending'] || 0, color: '#eab308' },
+                              { status: 'In Progress', count: statusCounts['In Progress'] || 0, color: '#3b82f6' },
+                              { status: 'Resolved', count: statusCounts['Resolved'] || 0, color: '#22c55e' }
+                            ];
+                            
+                            const totalStatusCount = statusData.reduce((sum, item) => sum + item.count, 0);
+                            const percentages = statusData.map(item => totalStatusCount > 0 ? (item.count / totalStatusCount) * 100 : 0);
+                            
+                            return (
+                              <>
+                                <div className="relative w-80 h-80">
+                                  <svg viewBox="0 0 200 200" className="w-full h-full">
+                                    {(() => {
+                                      let currentAngle = 0;
+                                      return percentages.map((percentage, index) => {
+                                        if (percentage === 0) return null;
+                                        const angle = (percentage / 100) * 360;
+                                        const startAngle = currentAngle;
+                                        const endAngle = currentAngle + angle;
+                                        const startRad = (startAngle - 90) * (Math.PI / 180);
+                                        const endRad = (endAngle - 90) * (Math.PI / 180);
+                                        const x1 = 100 + 90 * Math.cos(startRad);
+                                        const y1 = 100 + 90 * Math.sin(startRad);
+                                        const x2 = 100 + 90 * Math.cos(endRad);
+                                        const y2 = 100 + 90 * Math.sin(endRad);
+                                        const largeArcFlag = angle > 180 ? 1 : 0;
+                                        const pathData = [
+                                          `M 100 100`,
+                                          `L ${x1} ${y1}`,
+                                          `A 90 90 0 ${largeArcFlag} 1 ${x2} ${y2}`,
+                                          'Z'
+                                        ].join(' ');
+                                        currentAngle = endAngle;
+                                        return (
+                                          <path
+                                            key={index}
+                                            d={pathData}
+                                            fill={statusData[index].color}
+                                            stroke="white"
+                                            strokeWidth="2"
+                                          />
+                                        );
+                                      });
+                                    })()}
+                                    <circle cx="100" cy="100" r="50" fill="white" />
+                                    <text x="100" y="95" textAnchor="middle" className="text-2xl font-bold fill-gray-900">
+                                      {totalStatusCount}
+                                    </text>
+                                    <text x="100" y="110" textAnchor="middle" className="text-sm fill-gray-600">
+                                      Total Cases
+                                    </text>
+                                  </svg>
+                                </div>
+                                <div className="mt-6 flex flex-wrap justify-center gap-6">
+                                  {statusData.map((item, index) => (
+                                    <div key={index} className="flex items-center gap-2">
+                                      <div className="w-4 h-4 rounded" style={{ backgroundColor: item.color }}></div>
+                                      <div className="text-sm">
+                                        <span className="font-semibold">{item.status}</span>
+                                        <span className="text-gray-600 ml-1">({item.count})</span>
+                                        <span className="text-gray-500 ml-1">
+                                          ({totalStatusCount > 0 ? ((item.count / totalStatusCount) * 100).toFixed(1) : 0}%)
+                                        </span>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </>
+                            );
+                          })()}
                         </div>
                       </div>
                     </>
@@ -2258,6 +3376,19 @@ export default function GMWKSLogin() {
             </div>
           ) : selectedCard === 'dr-summary' ? (
             <div className="space-y-8">
+              {/* Back Button */}
+              <div className="mb-4">
+                <button
+                  onClick={handleBack}
+                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-semibold transition-colors flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                  </svg>
+                  Back to Dashboards
+                </button>
+              </div>
+              
               {/* DR Summary Content */}
               {(() => {
                 // Quarterly DR Data
@@ -2366,6 +3497,11 @@ export default function GMWKSLogin() {
                                       fill={colors[index % colors.length]}
                                       stroke="white"
                                       strokeWidth="2"
+                                      className="cursor-pointer hover:opacity-80 transition-opacity"
+                                      onClick={() => {
+                                        setSelectedSectionForSrb(data.section);
+                                        setShowSrbPopup(true);
+                                      }}
                                     />
                                   );
                                 });
@@ -2378,7 +3514,14 @@ export default function GMWKSLogin() {
                           {sectionDrData.map((data, index) => {
                             const colors = ['bg-blue-500', 'bg-green-500', 'bg-yellow-500', 'bg-red-500', 'bg-purple-500', 'bg-pink-500'];
                             return (
-                              <div key={data.section} className="border-l-4 border-gray-300 pl-4">
+                              <div 
+                                key={data.section} 
+                                className="border-l-4 border-gray-300 pl-4 cursor-pointer hover:bg-gray-50 transition-colors rounded-lg p-2"
+                                onClick={() => {
+                                  setSelectedSectionForSrb(data.section);
+                                  setShowSrbPopup(true);
+                                }}
+                              >
                                 <div className="flex items-center justify-between mb-2">
                                   <h4 className="font-bold text-lg">{data.section}</h4>
                                   <span className="text-2xl font-bold text-gray-700">{data.count}</span>
@@ -2461,9 +3604,461 @@ export default function GMWKSLogin() {
                         </table>
                       </div>
                     </div>
+
+                    {/* SRB Popup Modal */}
+                    {showSrbPopup && selectedSectionForSrb && (
+                      <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                        <div className="bg-white rounded-xl shadow-2xl max-w-7xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+                          {/* Header */}
+                          <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 flex items-center justify-between shadow-lg">
+              <div>
+                              <h3 className="text-2xl font-bold">SRB Data - {selectedSectionForSrb} Section</h3>
+                              <p className="text-blue-100 text-sm mt-1">Spares Requirement Book for {selectedSectionForSrb}</p>
+                  </div>
+                            <button
+                              onClick={() => {
+                                setShowSrbPopup(false);
+                                setSelectedSectionForSrb('');
+                              }}
+                              className="text-white hover:text-blue-200 transition-colors p-2 rounded-full hover:bg-white hover:bg-opacity-20"
+                            >
+                              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                  </div>
+
+                          {/* SRB Table Content */}
+                          <div className="flex-1 overflow-y-auto p-6">
+                            {(() => {
+                              // Generate SRB data for the selected section
+                              const sectionSrbData = [
+                                {
+                                  serNo: 1, ohsNo: 1, partNo: '5330-390235 (675-10-29-01)', nomenclature: 'SEAL PLAIN', aU: 'Nos', noOff: 1, scale: 80,
+                                  ohOutput: 59, depthReqd: 48,
+                                  virUnsv: 0, virDefi: 0, virRepairable: 0, virSer: 0, virTotal: 0,
+                                  newOrdRange: 0, newOrdDepth: 0,
+                                  newLPRange: 0, newLPDepth: 0,
+                                  newLMRange: 0, newLMDepth: 0,
+                                  newLRCRange: 0, newLRCDepth: 0,
+                                  retrievedRange: 0, retrievedDepth: 0,
+                                  repairedRange: 0, repairedDepth: 0,
+                                  reclaimedRange: 0, reclaimedDepth: 0,
+                                  rolloverRange: 0, rolloverDepth: 0,
+                                  totalRange: 48, totalDepth: 48,
+                                  reqmtVsIssue: 0,
+                                  percIncrDecr: 0,
+                                  changeInScaleAuth: 'No Change',
+                                  remarks: '-'
+                                },
+                                {
+                                  serNo: 2, ohsNo: 2, partNo: '5330-390228 (675-10-20-03)', nomenclature: 'RETAINER PACKING', aU: 'Nos', noOff: 1, scale: 80,
+                                  ohOutput: 59, depthReqd: 48,
+                                  virUnsv: 0, virDefi: 0, virRepairable: 0, virSer: 0, virTotal: 0,
+                                  newOrdRange: 0, newOrdDepth: 0,
+                                  newLPRange: 0, newLPDepth: 0,
+                                  newLMRange: 0, newLMDepth: 0,
+                                  newLRCRange: 0, newLRCDepth: 0,
+                                  retrievedRange: 0, retrievedDepth: 0,
+                                  repairedRange: 0, repairedDepth: 0,
+                                  reclaimedRange: 0, reclaimedDepth: 0,
+                                  rolloverRange: 0, rolloverDepth: 0,
+                                  totalRange: 48, totalDepth: 48,
+                                  reqmtVsIssue: 0,
+                                  percIncrDecr: 0,
+                                  changeInScaleAuth: 'No Change',
+                                  remarks: '-'
+                                },
+                                {
+                                  serNo: 3, ohsNo: 3, partNo: '4730-079089 (675-10-27)', nomenclature: 'ADAPTOR BUSHING', aU: 'Nos', noOff: 1, scale: 50,
+                                  ohOutput: 59, depthReqd: 30,
+                                  virUnsv: 0, virDefi: 0, virRepairable: 0, virSer: 0, virTotal: 0,
+                                  newOrdRange: 0, newOrdDepth: 0,
+                                  newLPRange: 12, newLPDepth: 12,
+                                  newLMRange: 0, newLMDepth: 0,
+                                  newLRCRange: 0, newLRCDepth: 0,
+                                  retrievedRange: 0, retrievedDepth: 0,
+                                  repairedRange: 0, repairedDepth: 0,
+                                  reclaimedRange: 0, reclaimedDepth: 0,
+                                  rolloverRange: 0, rolloverDepth: 0,
+                                  totalRange: 30, totalDepth: 30,
+                                  reqmtVsIssue: 0,
+                                  percIncrDecr: 0,
+                                  changeInScaleAuth: 'No Change',
+                                  remarks: '-'
+                                }
+                              ];
+
+                              return (
+                                <div className="overflow-x-auto">
+                                  <div className="mb-4">
+                                    <div className="text-center font-bold text-lg mb-2">Spares Requirement Book</div>
+                                    <div className="text-sm text-gray-600 mb-4 text-center">OH Output (59) : PY 2024-25 - {selectedSectionForSrb} SEC</div>
+                  </div>
+                                  <table className="w-full border-collapse text-xs">
+                                    <thead>
+                                      {/* First Row - Main Headers */}
+                                      <tr className="bg-gray-200">
+                                        <th className="border border-gray-400 px-1 py-2 font-semibold" rowSpan={3}>Ser<br/>No</th>
+                                        <th className="border border-gray-400 px-1 py-2 font-semibold" rowSpan={3}>OHS<br/>No</th>
+                                        <th className="border border-gray-400 px-1 py-2 font-semibold" rowSpan={3}>Part<br/>No</th>
+                                        <th className="border border-gray-400 px-1 py-2 font-semibold" rowSpan={3}>Nomenclature</th>
+                                        <th className="border border-gray-400 px-1 py-2 font-semibold" rowSpan={3}>A/U</th>
+                                        <th className="border border-gray-400 px-1 py-2 font-semibold" rowSpan={3}>No<br/>off</th>
+                                        <th className="border border-gray-400 px-1 py-2 font-semibold" rowSpan={3}>Scale</th>
+                                        <th className="border border-gray-400 px-1 py-2 font-semibold" rowSpan={3}>OH Output<br/>(No of VEHS<br/>OH in PY)</th>
+                                        <th className="border border-gray-400 px-1 py-2 font-semibold" rowSpan={3}>Depth reqd<br/>for Tgt as<br/>per Scale</th>
+                                        <th className="border border-gray-400 px-1 py-2 font-semibold" colSpan={5}>VIR</th>
+                                        <th className="border border-gray-400 px-1 py-2 font-semibold" colSpan={18}>Issue Detl</th>
+                                        <th className="border border-gray-400 px-1 py-2 font-semibold" colSpan={3}>Revised Scale<br/>Recommendation</th>
+                                        <th className="border border-gray-400 px-1 py-2 font-semibold" rowSpan={3}>Remarks</th>
+                                      </tr>
+                                      {/* Second Row - VIR and Issue Detl Sub-headers */}
+                                      <tr className="bg-gray-100">
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Unsv</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Defi</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Repairable</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Ser</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Total</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs" colSpan={2}>New(Ord)</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs" colSpan={2}>New(LP)</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs" colSpan={2}>New(LM)</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs" colSpan={2}>New(LRC)</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs" colSpan={2}>Retrieved &<br/>Cannibalised</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs" colSpan={2}>Repaired</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs" colSpan={2}>Reclaimed</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs" colSpan={2}>Rollover</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs" colSpan={2}>Total</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Reqmt Vs<br/>Issue Details</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">% Incr/Decr<br/>in Scale= AF/H *100</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Change in<br/>Scale Auth</th>
+                                      </tr>
+                                      {/* Third Row - Range/Depth sub-columns */}
+                                      <tr className="bg-gray-100">
+                                        <th className="border border-gray-400 px-1 py-1"></th>
+                                        <th className="border border-gray-400 px-1 py-1"></th>
+                                        <th className="border border-gray-400 px-1 py-1"></th>
+                                        <th className="border border-gray-400 px-1 py-1"></th>
+                                        <th className="border border-gray-400 px-1 py-1"></th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Range</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Depth</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Range</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Depth</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Range</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Depth</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Range</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Depth</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Range</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Depth</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Range</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Depth</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Range</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Depth</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Range</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Depth</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Range</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Depth</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Range</th>
+                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Depth</th>
+                                        <th className="border border-gray-400 px-1 py-1"></th>
+                                        <th className="border border-gray-400 px-1 py-1"></th>
+                                        <th className="border border-gray-400 px-1 py-1"></th>
+                                        <th className="border border-gray-400 px-1 py-1"></th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {sectionSrbData.map((item, index) => (
+                                        <tr 
+                                          key={item.serNo}
+                                          className={`${index % 2 === 0 ? 'bg-gray-50' : 'bg-white'} hover:bg-blue-50 transition-colors`}
+                                        >
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.serNo}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.ohsNo}</td>
+                                          <td className="border border-gray-300 px-1 py-1 font-mono text-xs">{item.partNo}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-xs">{item.nomenclature}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.aU}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.noOff}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.scale}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.ohOutput}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.depthReqd}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.virUnsv}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.virDefi}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.virRepairable}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.virSer}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.virTotal}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.newOrdRange}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.newOrdDepth}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.newLPRange}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.newLPDepth}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.newLMRange}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.newLMDepth}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.newLRCRange}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.newLRCDepth}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.retrievedRange}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.retrievedDepth}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.repairedRange}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.repairedDepth}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.reclaimedRange}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.reclaimedDepth}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.rolloverRange}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.rolloverDepth}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.totalRange}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.totalDepth}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.reqmtVsIssue}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.percIncrDecr}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-xs">{item.changeInScaleAuth}</td>
+                                          <td className="border border-gray-300 px-1 py-1 text-xs">{item.remarks}</td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                  </div>
+                              );
+                            })()}
+                </div>
+                        </div>
+                      </div>
+                    )}
                   </>
                 );
               })()}
+            </div>
+          ) : selectedCard === 'abc-analysis' ? (
+            <div className="space-y-8">
+              {/* Back Button */}
+              <div className="mb-4">
+                <button
+                  onClick={handleBack}
+                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-semibold transition-colors flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                  </svg>
+                  Back to Dashboards
+                </button>
+              </div>
+
+              {/* ABC Analysis MT Grant 2024-25 */}
+              <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
+                <h2 className="text-3xl font-bold text-gray-900 mb-6">ABC ANALYSIS MT GRANT 2024-25</h2>
+                
+                {/* Table */}
+                <div className="mb-8 overflow-x-auto">
+                  <table className="w-full border-collapse text-sm">
+                    <thead>
+                      <tr className="bg-gray-200">
+                        <th className="border border-gray-400 px-4 py-3 font-semibold text-left">TYPES OF ITEMS</th>
+                        <th className="border border-gray-400 px-4 py-3 font-semibold text-left">EXP (IN LAKHS)</th>
+                        <th className="border border-gray-400 px-4 py-3 font-semibold text-left">RANGE OF ITEMS</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr className="hover:bg-gray-50">
+                        <td className="border border-gray-300 px-4 py-2 font-semibold">A ITEMS (70%)</td>
+                        <td className="border border-gray-300 px-4 py-2 text-right">144.22</td>
+                        <td className="border border-gray-300 px-4 py-2 text-right">29</td>
+                      </tr>
+                      <tr className="hover:bg-gray-50 bg-gray-50">
+                        <td className="border border-gray-300 px-4 py-2 font-semibold">B ITEMS (20%)</td>
+                        <td className="border border-gray-300 px-4 py-2 text-right">41.13</td>
+                        <td className="border border-gray-300 px-4 py-2 text-right">47</td>
+                      </tr>
+                      <tr className="hover:bg-gray-50">
+                        <td className="border border-gray-300 px-4 py-2 font-semibold">C ITEMS (10%)</td>
+                        <td className="border border-gray-300 px-4 py-2 text-right">20.33</td>
+                        <td className="border border-gray-300 px-4 py-2 text-right">153</td>
+                      </tr>
+                      <tr className="bg-gray-200 font-bold">
+                        <td className="border border-gray-400 px-4 py-2">TOTAL</td>
+                        <td className="border border-gray-400 px-4 py-2 text-right">205.68</td>
+                        <td className="border border-gray-400 px-4 py-2 text-right">229</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Grouped Bar Chart */}
+                <div className="mt-8">
+                  <h3 className="text-xl font-bold text-gray-900 mb-6">ABC Analysis Chart - MT Grant 2024-25</h3>
+                  <div className="flex items-end justify-around h-96 border-l-2 border-b-2 border-gray-400 pl-4 pb-4 gap-4">
+                    {(() => {
+                      const mtGrantData = [
+                        { type: 'A ITEMS (70%)', exp: 144.22, range: 29 },
+                        { type: 'B ITEMS (20%)', exp: 41.13, range: 47 },
+                        { type: 'C ITEMS (10%)', exp: 20.33, range: 153 }
+                      ];
+                      const maxValue = Math.max(...mtGrantData.flatMap(d => [d.exp, d.range]), 1);
+                      
+                      return (
+                        <>
+                          {mtGrantData.map((data, index) => (
+                            <div key={index} className="flex flex-col items-center gap-2 flex-1">
+                              <div className="flex items-end gap-2 w-full justify-center">
+                                {/* EXP (IN LAKHS) Bar */}
+                                <div className="flex flex-col items-center gap-1 flex-1">
+                                  <div
+                                    className="w-full bg-gradient-to-t from-gray-700 to-gray-600 flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg hover:from-gray-800 hover:to-gray-700 transition-all"
+                                    style={{ height: `${(data.exp / maxValue) * 350}px`, minHeight: '30px' }}
+                                    title={`EXP (IN LAKHS): ${data.exp}`}
+                                  >
+                                    {data.exp}
+                                  </div>
+                                </div>
+                                {/* RANGE OF ITEMS Bar */}
+                                <div className="flex flex-col items-center gap-1 flex-1">
+                                  <div
+                                    className="w-full bg-gradient-to-t from-gray-500 to-gray-400 flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg hover:from-gray-600 hover:to-gray-500 transition-all"
+                                    style={{ height: `${(data.range / maxValue) * 350}px`, minHeight: '30px' }}
+                                    title={`RANGE OF ITEMS: ${data.range}`}
+                                  >
+                                    {data.range}
+                                  </div>
+                                </div>
+                              </div>
+                              <span className="text-xs font-semibold text-gray-700 mt-2 text-center break-words">{data.type}</span>
+                            </div>
+                          ))}
+                        </>
+                      );
+                    })()}
+                  </div>
+                  {/* Legend */}
+                  <div className="mt-6 flex justify-center gap-6">
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 bg-gray-700 rounded"></div>
+                      <span className="text-sm font-semibold text-gray-700">EXP (IN LAKHS)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 bg-gray-500 rounded"></div>
+                      <span className="text-sm font-semibold text-gray-700">RANGE OF ITEMS</span>
+                    </div>
+                  </div>
+                </div>
+                  </div>
+
+              {/* ABC Analysis ORD Grant 2024-25 */}
+              <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
+                <h2 className="text-3xl font-bold text-gray-900 mb-6">ABC ANALYSIS ORD GRANT 2024-25</h2>
+                
+                {/* Table */}
+                <div className="mb-8 overflow-x-auto">
+                  <table className="w-full border-collapse text-sm">
+                    <thead>
+                      <tr className="bg-gray-200">
+                        <th className="border border-gray-400 px-4 py-3 font-semibold text-left">TYPES OF ITEMS</th>
+                        <th className="border border-gray-400 px-4 py-3 font-semibold text-left">EXP (IN LAKHS)</th>
+                        <th className="border border-gray-400 px-4 py-3 font-semibold text-left">RANGE OF ITEMS</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr className="hover:bg-gray-50">
+                        <td className="border border-gray-300 px-4 py-2 font-semibold">A ITEMS (70%)</td>
+                        <td className="border border-gray-300 px-4 py-2 text-right">157.09</td>
+                        <td className="border border-gray-300 px-4 py-2 text-right">91</td>
+                      </tr>
+                      <tr className="hover:bg-gray-50 bg-gray-50">
+                        <td className="border border-gray-300 px-4 py-2 font-semibold">B ITEMS (20%)</td>
+                        <td className="border border-gray-300 px-4 py-2 text-right">44.85</td>
+                        <td className="border border-gray-300 px-4 py-2 text-right">142</td>
+                      </tr>
+                      <tr className="hover:bg-gray-50">
+                        <td className="border border-gray-300 px-4 py-2 font-semibold">C ITEMS (10%)</td>
+                        <td className="border border-gray-300 px-4 py-2 text-right">22.06</td>
+                        <td className="border border-gray-300 px-4 py-2 text-right">465</td>
+                      </tr>
+                      <tr className="bg-gray-200 font-bold">
+                        <td className="border border-gray-400 px-4 py-2">TOTAL</td>
+                        <td className="border border-gray-400 px-4 py-2 text-right">224.00</td>
+                        <td className="border border-gray-400 px-4 py-2 text-right">698</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Grouped Bar Chart */}
+                <div className="mt-8">
+                  <h3 className="text-xl font-bold text-gray-900 mb-6">ABC Analysis Chart - ORD Grant 2024-25</h3>
+                  <div className="flex items-end justify-around h-96 border-l-2 border-b-2 border-gray-400 pl-4 pb-4 gap-4">
+                    {(() => {
+                      const ordGrantData = [
+                        { type: 'A ITEMS (70%)', exp: 157.09, range: 91 },
+                        { type: 'B ITEMS (20%)', exp: 44.85, range: 142 },
+                        { type: 'C ITEMS (10%)', exp: 22.06, range: 465 }
+                      ];
+                      const maxValue = Math.max(...ordGrantData.flatMap(d => [d.exp, d.range]), 1);
+                      
+                      return (
+                        <>
+                          {ordGrantData.map((data, index) => (
+                            <div key={index} className="flex flex-col items-center gap-2 flex-1">
+                              <div className="flex items-end gap-2 w-full justify-center">
+                                {/* EXP (IN LAKHS) Bar */}
+                                <div className="flex flex-col items-center gap-1 flex-1">
+                                  <div
+                                    className="w-full bg-gradient-to-t from-gray-700 to-gray-600 flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg hover:from-gray-800 hover:to-gray-700 transition-all"
+                                    style={{ height: `${(data.exp / maxValue) * 350}px`, minHeight: '30px' }}
+                                    title={`EXP (IN LAKHS): ${data.exp}`}
+                                  >
+                                    {data.exp}
+                      </div>
+                                </div>
+                                {/* RANGE OF ITEMS Bar */}
+                                <div className="flex flex-col items-center gap-1 flex-1">
+                                  <div
+                                    className="w-full bg-gradient-to-t from-gray-500 to-gray-400 flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg hover:from-gray-600 hover:to-gray-500 transition-all"
+                                    style={{ height: `${(data.range / maxValue) * 350}px`, minHeight: '30px' }}
+                                    title={`RANGE OF ITEMS: ${data.range}`}
+                                  >
+                                    {data.range}
+                                  </div>
+                                </div>
+                              </div>
+                              <span className="text-xs font-semibold text-gray-700 mt-2 text-center break-words">{data.type}</span>
+                    </div>
+                  ))}
+                        </>
+                      );
+                    })()}
+                </div>
+                  {/* Legend */}
+                  <div className="mt-6 flex justify-center gap-6">
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 bg-gray-700 rounded"></div>
+                      <span className="text-sm font-semibold text-gray-700">EXP (IN LAKHS)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 bg-gray-500 rounded"></div>
+                      <span className="text-sm font-semibold text-gray-700">RANGE OF ITEMS</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : selectedCard === 'misc' ? (
+            <div className="space-y-8">
+              {/* Back Button */}
+              <div className="mb-4">
+                <button
+                  onClick={handleBack}
+                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-semibold transition-colors flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                  </svg>
+                  Back to Dashboards
+                </button>
+              </div>
+              
+              {/* MISC Content */}
+              <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
+                <h2 className="text-3xl font-bold text-gray-900 mb-6">MISC - Miscellaneous</h2>
+                <p className="text-gray-600 mb-6">
+                  Miscellaneous items and information will be displayed here.
+                </p>
+                <div className="border-t pt-6">
+                  <p className="text-gray-500 italic">MISC content coming soon...</p>
+                </div>
+              </div>
             </div>
           ) : (
             <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
@@ -2480,12 +4075,353 @@ export default function GMWKSLogin() {
           )}
         </div>
       </div>
+
+      {/* Floating Action Buttons Container */}
+      <div className="fixed bottom-6 right-6 z-40 flex flex-col gap-4">
+        {/* Notification Button */}
+        <button
+          onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+          className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white rounded-full p-4 shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:scale-110 flex items-center justify-center group relative"
+          aria-label="View notifications"
+        >
+          <svg className="w-6 h-6 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+          </svg>
+          {lprNotifications.length > 0 && (
+            <span className="absolute -top-1 -right-1 bg-yellow-400 text-red-900 text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center animate-pulse">
+              {lprNotifications.length}
+            </span>
+          )}
+        </button>
+
+        {/* Chatbot Floating Button */}
+        {!isChatbotOpen && (
+          <button
+            onClick={() => setIsChatbotOpen(true)}
+            className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-full p-4 shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:scale-110 flex items-center justify-center group"
+            aria-label="Open chatbot"
+          >
+            <svg className="w-6 h-6 group-hover:rotate-12 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+          </button>
+        )}
+      </div>
+
+      {/* Notification Panel */}
+      {isNotificationOpen && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black bg-opacity-30 z-40 transition-opacity"
+            onClick={() => setIsNotificationOpen(false)}
+          ></div>
+          
+          {/* Notification Panel */}
+          <div className="fixed right-6 bottom-24 w-full sm:w-96 bg-white shadow-2xl z-50 rounded-xl overflow-hidden transform transition-all duration-300 ease-in-out max-h-[600px] flex flex-col">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-red-600 to-red-700 text-white p-6 flex items-center justify-between shadow-lg">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg">Alerts & Notifications</h3>
+                  <p className="text-xs text-red-100">
+                    {lprNotifications.length > 0 ? `${lprNotifications.length} active alert${lprNotifications.length > 1 ? 's' : ''}` : 'No alerts'}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsNotificationOpen(false)}
+                className="text-white hover:text-red-200 transition-colors p-1 rounded-full hover:bg-white hover:bg-opacity-20"
+                aria-label="Close notifications"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Notifications Container */}
+            <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
+              {lprNotifications.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-center px-4 py-12">
+                  <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mb-4">
+                    <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                    </svg>
+                  </div>
+                  <h4 className="text-lg font-semibold text-gray-800 mb-2">No Alerts</h4>
+                  <p className="text-sm text-gray-600">You're all caught up! No pending alerts.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {lprNotifications.map((notification, index) => (
+                    <div key={index} className="bg-white border-l-4 border-red-500 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="bg-red-100 rounded-full p-1.5">
+                              <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                              </svg>
+                            </div>
+                            <p className="font-bold text-gray-900">
+                              LPR: <span className="text-red-600">{notification.originatorNo}</span>
+                            </p>
+                          </div>
+                          <p className="text-sm text-gray-700 mb-2">
+                            This LPR has been pending for <span className="font-bold text-red-600">{notification.totalDays} days</span>, exceeding the 90-day threshold.
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            Alert: {new Date(notification.date).toLocaleString()}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => {
+                            handleDismissNotification(notification.originatorNo);
+                            if (lprNotifications.length === 1) {
+                              setIsNotificationOpen(false);
+                            }
+                          }}
+                          className="ml-2 text-gray-400 hover:text-red-600 transition-colors p-1"
+                          title="Dismiss this notification"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Footer Actions */}
+            {lprNotifications.length > 0 && (
+              <div className="border-t border-gray-200 bg-white p-4">
+                <button
+                  onClick={() => {
+                    handleDismissAllNotifications();
+                    setIsNotificationOpen(false);
+                  }}
+                  className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-colors text-sm flex items-center justify-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  Dismiss All Alerts
+                </button>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* Chatbot Side Panel */}
+      {isChatbotOpen && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black bg-opacity-30 z-40 transition-opacity"
+            onClick={() => setIsChatbotOpen(false)}
+          ></div>
+          
+          {/* Side Panel */}
+          <div className={`fixed right-0 top-0 h-full w-full sm:w-96 bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out ${
+            isChatbotOpen ? 'translate-x-0' : 'translate-x-full'
+          } flex flex-col`}>
+            {/* Header */}
+            <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 flex items-center justify-between shadow-lg">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg">Dashboard Assistant</h3>
+                  <p className="text-xs text-blue-100">GM WKS MTRL Support</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsChatbotOpen(false)}
+                className="text-white hover:text-blue-200 transition-colors p-1 rounded-full hover:bg-white hover:bg-opacity-20"
+                aria-label="Close chatbot"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Messages Container */}
+            <div className="flex-1 overflow-y-auto p-4 bg-gray-50 space-y-4">
+              {chatMessages.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-center px-4">
+                  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                    <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                  </div>
+                  <h4 className="text-lg font-semibold text-gray-800 mb-2">Welcome to Dashboard Assistant</h4>
+                  <p className="text-sm text-gray-600 mb-4">I'm here to help you navigate the GM WKS MTRL dashboard. Ask me anything!</p>
+                  <div className="space-y-2 w-full">
+                    <button
+                      onClick={() => {
+                        setChatInput("How do I view LP Status?");
+                        setTimeout(() => handleSendMessage(), 100);
+                      }}
+                      className="w-full text-left px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-colors text-sm text-gray-700"
+                    >
+                      💡 How do I view LP Status?
+                    </button>
+                    <button
+                      onClick={() => {
+                        setChatInput("What is the Fund State?");
+                        setTimeout(() => handleSendMessage(), 100);
+                      }}
+                      className="w-full text-left px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-colors text-sm text-gray-700"
+                    >
+                      💰 What is the Fund State?
+                    </button>
+                    <button
+                      onClick={() => {
+                        setChatInput("How to check Critical Items?");
+                        setTimeout(() => handleSendMessage(), 100);
+                      }}
+                      className="w-full text-left px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-colors text-sm text-gray-700"
+                    >
+                      ⚠️ How to check Critical Items?
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                chatMessages.map((message) => (
+                  <div
+                    key={message.id}
+                    className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div
+                      className={`max-w-[80%] rounded-2xl px-4 py-2 ${
+                        message.sender === 'user'
+                          ? 'bg-blue-600 text-white rounded-br-sm'
+                          : 'bg-white text-gray-800 border border-gray-200 rounded-bl-sm shadow-sm'
+                      }`}
+                    >
+                      <p className="text-sm leading-relaxed">{message.text}</p>
+                      <p className={`text-xs mt-1 ${
+                        message.sender === 'user' ? 'text-blue-100' : 'text-gray-400'
+                      }`}>
+                        {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Input Area */}
+            <div className="border-t border-gray-200 bg-white p-4">
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="Type your message..."
+                  className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm"
+                />
+                <button
+                  onClick={handleSendMessage}
+                  disabled={chatInput.trim() === ''}
+                  className="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
+                  aria-label="Send message"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+      </React.Fragment>
     )
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 p-8">
       <div className="max-w-7xl mx-auto">
+        {/* LPR Notification Popup - Top Right */}
+        {showNotification && lprNotifications.length > 0 && (
+          <div className="fixed top-4 right-4 z-50 max-w-md w-full mx-4">
+            <div className="bg-white rounded-xl shadow-2xl border-2 border-red-500 p-6 animate-slide-in">
+              <div className="flex justify-between items-start mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="bg-red-100 rounded-full p-2">
+                    <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-bold text-red-600">LPR Alert</h3>
+                </div>
+                <button
+                  onClick={handleDismissAllNotifications}
+                  className="text-gray-400 hover:text-gray-600 transition"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {lprNotifications.map((notification, index) => (
+                  <div key={index} className="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <p className="font-semibold text-gray-900 mb-1">
+                          LPR: <span className="text-red-600">{notification.originatorNo}</span>
+                        </p>
+                        <p className="text-sm text-gray-700">
+                          This LPR has been pending for <span className="font-bold text-red-600">{notification.totalDays} days</span>, exceeding the 90-day threshold.
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Alert generated: {new Date(notification.date).toLocaleString()}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => handleDismissNotification(notification.originatorNo)}
+                        className="ml-2 text-gray-400 hover:text-gray-600 transition"
+                        title="Dismiss this notification"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {lprNotifications.length > 1 && (
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <button
+                    onClick={handleDismissAllNotifications}
+                    className="w-full px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-semibold transition-colors text-sm"
+                  >
+                    Dismiss All
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Back Button */}
         <div className="mb-6">
           <button
@@ -2523,6 +4459,282 @@ export default function GMWKSLogin() {
           ))}
         </div>
       </div>
+
+      {/* Floating Action Buttons Container */}
+      <div className="fixed bottom-6 right-6 z-40 flex flex-col gap-4">
+        {/* Notification Button */}
+        <button
+          onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+          className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white rounded-full p-4 shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:scale-110 flex items-center justify-center group relative"
+          aria-label="View notifications"
+        >
+          <svg className="w-6 h-6 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+          </svg>
+          {lprNotifications.length > 0 && (
+            <span className="absolute -top-1 -right-1 bg-yellow-400 text-red-900 text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center animate-pulse">
+              {lprNotifications.length}
+            </span>
+          )}
+        </button>
+
+        {/* Chatbot Floating Button */}
+        {!isChatbotOpen && (
+          <button
+            onClick={() => setIsChatbotOpen(true)}
+            className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-full p-4 shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:scale-110 flex items-center justify-center group"
+            aria-label="Open chatbot"
+          >
+            <svg className="w-6 h-6 group-hover:rotate-12 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+          </button>
+        )}
+      </div>
+
+      {/* Notification Panel */}
+      {isNotificationOpen && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black bg-opacity-30 z-40 transition-opacity"
+            onClick={() => setIsNotificationOpen(false)}
+          ></div>
+          
+          {/* Notification Panel */}
+          <div className="fixed right-6 bottom-24 w-full sm:w-96 bg-white shadow-2xl z-50 rounded-xl overflow-hidden transform transition-all duration-300 ease-in-out max-h-[600px] flex flex-col">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-red-600 to-red-700 text-white p-6 flex items-center justify-between shadow-lg">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg">Alerts & Notifications</h3>
+                  <p className="text-xs text-red-100">
+                    {lprNotifications.length > 0 ? `${lprNotifications.length} active alert${lprNotifications.length > 1 ? 's' : ''}` : 'No alerts'}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsNotificationOpen(false)}
+                className="text-white hover:text-red-200 transition-colors p-1 rounded-full hover:bg-white hover:bg-opacity-20"
+                aria-label="Close notifications"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Notifications Container */}
+            <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
+              {lprNotifications.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-center px-4 py-12">
+                  <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mb-4">
+                    <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                    </svg>
+                  </div>
+                  <h4 className="text-lg font-semibold text-gray-800 mb-2">No Alerts</h4>
+                  <p className="text-sm text-gray-600">You're all caught up! No pending alerts.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {lprNotifications.map((notification, index) => (
+                    <div key={index} className="bg-white border-l-4 border-red-500 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="bg-red-100 rounded-full p-1.5">
+                              <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                              </svg>
+                            </div>
+                            <p className="font-bold text-gray-900">
+                              LPR: <span className="text-red-600">{notification.originatorNo}</span>
+                            </p>
+                          </div>
+                          <p className="text-sm text-gray-700 mb-2">
+                            This LPR has been pending for <span className="font-bold text-red-600">{notification.totalDays} days</span>, exceeding the 90-day threshold.
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            Alert: {new Date(notification.date).toLocaleString()}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => {
+                            handleDismissNotification(notification.originatorNo);
+                            if (lprNotifications.length === 1) {
+                              setIsNotificationOpen(false);
+                            }
+                          }}
+                          className="ml-2 text-gray-400 hover:text-red-600 transition-colors p-1"
+                          title="Dismiss this notification"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Footer Actions */}
+            {lprNotifications.length > 0 && (
+              <div className="border-t border-gray-200 bg-white p-4">
+                <button
+                  onClick={() => {
+                    handleDismissAllNotifications();
+                    setIsNotificationOpen(false);
+                  }}
+                  className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-colors text-sm flex items-center justify-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  Dismiss All Alerts
+                </button>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* Chatbot Side Panel */}
+      {isChatbotOpen && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black bg-opacity-30 z-40 transition-opacity"
+            onClick={() => setIsChatbotOpen(false)}
+          ></div>
+          
+          {/* Side Panel */}
+          <div className={`fixed right-0 top-0 h-full w-full sm:w-96 bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out ${
+            isChatbotOpen ? 'translate-x-0' : 'translate-x-full'
+          } flex flex-col`}>
+            {/* Header */}
+            <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 flex items-center justify-between shadow-lg">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg">Dashboard Assistant</h3>
+                  <p className="text-xs text-blue-100">GM WKS MTRL Support</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsChatbotOpen(false)}
+                className="text-white hover:text-blue-200 transition-colors p-1 rounded-full hover:bg-white hover:bg-opacity-20"
+                aria-label="Close chatbot"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Messages Container */}
+            <div className="flex-1 overflow-y-auto p-4 bg-gray-50 space-y-4">
+              {chatMessages.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-center px-4">
+                  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                    <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                  </div>
+                  <h4 className="text-lg font-semibold text-gray-800 mb-2">Welcome to Dashboard Assistant</h4>
+                  <p className="text-sm text-gray-600 mb-4">I'm here to help you navigate the GM WKS MTRL dashboard. Ask me anything!</p>
+                  <div className="space-y-2 w-full">
+                    <button
+                      onClick={() => {
+                        setChatInput("How do I view LP Status?");
+                        setTimeout(() => handleSendMessage(), 100);
+                      }}
+                      className="w-full text-left px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-colors text-sm text-gray-700"
+                    >
+                      💡 How do I view LP Status?
+                    </button>
+                    <button
+                      onClick={() => {
+                        setChatInput("What is the Fund State?");
+                        setTimeout(() => handleSendMessage(), 100);
+                      }}
+                      className="w-full text-left px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-colors text-sm text-gray-700"
+                    >
+                      💰 What is the Fund State?
+                    </button>
+                    <button
+                      onClick={() => {
+                        setChatInput("How to check Critical Items?");
+                        setTimeout(() => handleSendMessage(), 100);
+                      }}
+                      className="w-full text-left px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-colors text-sm text-gray-700"
+                    >
+                      ⚠️ How to check Critical Items?
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                chatMessages.map((message) => (
+                  <div
+                    key={message.id}
+                    className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div
+                      className={`max-w-[80%] rounded-2xl px-4 py-2 ${
+                        message.sender === 'user'
+                          ? 'bg-blue-600 text-white rounded-br-sm'
+                          : 'bg-white text-gray-800 border border-gray-200 rounded-bl-sm shadow-sm'
+                      }`}
+                    >
+                      <p className="text-sm leading-relaxed">{message.text}</p>
+                      <p className={`text-xs mt-1 ${
+                        message.sender === 'user' ? 'text-blue-100' : 'text-gray-400'
+                      }`}>
+                        {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Input Area */}
+            <div className="border-t border-gray-200 bg-white p-4">
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="Type your message..."
+                  className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm"
+                />
+                <button
+                  onClick={handleSendMessage}
+                  disabled={chatInput.trim() === ''}
+                  className="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
+                  aria-label="Send message"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }

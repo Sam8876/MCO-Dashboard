@@ -6,6 +6,8 @@ export default function DGMProdLogin() {
   const navigate = useNavigate()
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [selectedCard, setSelectedCard] = useState<string | null>(null)
+  const [lpStatusTab, setLpStatusTab] = useState<'scaled' | 'non-scaled'>('scaled')
+  const [lmStatusTab, setLmStatusTab] = useState<'scaled' | 'non-scaled'>('scaled')
 
   if (!isLoggedIn) {
     return (
@@ -20,9 +22,10 @@ export default function DGMProdLogin() {
   const cards = [
     { id: 'stock-issued', title: 'Stock Issued', description: 'View stock issuance records and details', color: 'bg-blue-500' },
     { id: 'urgency', title: 'Urgency', description: 'Urgent items and priority tracking', color: 'bg-pink-500' },
-    { id: 'lp-items', title: 'LP Items', description: 'Local Purchase items tracking', color: 'bg-indigo-500' },
-    { id: 'lm-items', title: 'LM Items', description: 'Local Manufacture items tracking', color: 'bg-purple-500' },
-    { id: 'dr-summary', title: 'DR Summary', description: 'Defect Report summary and analysis', color: 'bg-amber-500' }
+    { id: 'lp-items', title: 'LP Status', description: 'Local Purchase status tracking', color: 'bg-indigo-500' },
+    { id: 'lm-items', title: 'LM Status', description: 'Local Manufacture status tracking', color: 'bg-purple-500' },
+    { id: 'dr-summary', title: 'DR Summary', description: 'Defect Report summary and analysis', color: 'bg-amber-500' },
+    { id: 'misc', title: 'MISC', description: 'Miscellaneous items and information', color: 'bg-gray-500' }
   ]
 
   const handleAccess = (cardId: string) => {
@@ -366,6 +369,7 @@ export default function DGMProdLogin() {
             </div>
           ) : selectedCard === 'lp-items' ? (
             <div className="space-y-8">
+              {/* Back Button */}
               <div className="mb-4">
                 <button
                   onClick={handleBack}
@@ -377,185 +381,310 @@ export default function DGMProdLogin() {
                   Back to Dashboards
                 </button>
               </div>
-              {(() => {
-                const lpItemsData = [
-                  { serialNo: 1, component: 'Valve, Flow Control', soNumber: 'SO-2024-001', expectedDateOfArrival: '15/03/2024', billPaymentStatus: 'Paid', supplyOrderDate: '01/02/2024' },
-                  { serialNo: 2, component: 'Manifold Airline', soNumber: 'SO-2024-002', expectedDateOfArrival: '22/03/2024', billPaymentStatus: 'Pending', supplyOrderDate: '05/02/2024' },
-                  { serialNo: 3, component: 'Gear Spur', soNumber: 'SO-2024-003', expectedDateOfArrival: '18/03/2024', billPaymentStatus: 'Paid', supplyOrderDate: '08/02/2024' },
-                  { serialNo: 4, component: 'Gear Assembly', soNumber: 'SO-2024-004', expectedDateOfArrival: '25/03/2024', billPaymentStatus: 'In Process', supplyOrderDate: '10/02/2024' },
-                  { serialNo: 5, component: 'Pedal Control', soNumber: 'SO-2024-005', expectedDateOfArrival: '20/03/2024', billPaymentStatus: 'Paid', supplyOrderDate: '12/02/2024' },
-                  { serialNo: 6, component: 'Hydraulic Cylinder', soNumber: 'SO-2024-006', expectedDateOfArrival: '28/03/2024', billPaymentStatus: 'Pending', supplyOrderDate: '15/02/2024' },
-                  { serialNo: 7, component: 'Control Valve', soNumber: 'SO-2024-007', expectedDateOfArrival: '16/03/2024', billPaymentStatus: 'Paid', supplyOrderDate: '18/02/2024' },
-                  { serialNo: 8, component: 'Bearing Assembly', soNumber: 'SO-2024-008', expectedDateOfArrival: '24/03/2024', billPaymentStatus: 'In Process', supplyOrderDate: '20/02/2024' }
-                ];
 
-                // Payment Status Summary
-                const paidCount = lpItemsData.filter(item => item.billPaymentStatus === 'Paid').length;
-                const pendingCount = lpItemsData.filter(item => item.billPaymentStatus === 'Pending').length;
-                const inProcessCount = lpItemsData.filter(item => item.billPaymentStatus === 'In Process').length;
-                const totalCount = lpItemsData.length;
-                const paidPercentage = (paidCount / totalCount) * 100;
-                const pendingPercentage = (pendingCount / totalCount) * 100;
-                const inProcessPercentage = (inProcessCount / totalCount) * 100;
+              {/* Title */}
+              <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
+                <h2 className="text-3xl font-bold text-gray-900 mb-6">DETLS OF LPR's :2025-26</h2>
 
-                // Expected arrivals per month
-                const monthlyArrivals = [
-                  { month: 'Mar 2024', count: 5 },
-                  { month: 'Apr 2024', count: 2 },
-                  { month: 'May 2024', count: 1 }
-                ];
-                const maxMonthlyArrivals = Math.max(...monthlyArrivals.map(m => m.count));
+                {/* Tabs */}
+                <div className="flex border-b border-gray-300 mb-6">
+                  <button
+                    onClick={() => setLpStatusTab('scaled')}
+                    className={`px-6 py-3 font-semibold text-sm transition-all ${
+                      lpStatusTab === 'scaled'
+                        ? 'text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                    }`}
+                  >
+                    Scaled
+                  </button>
+                  <button
+                    onClick={() => setLpStatusTab('non-scaled')}
+                    className={`px-6 py-3 font-semibold text-sm transition-all ${
+                      lpStatusTab === 'non-scaled'
+                        ? 'text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                    }`}
+                  >
+                    Non Scaled
+                  </button>
+                </div>
 
-                return (
-                  <>
-                    {/* Summary Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                      <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 border-2 border-indigo-200 rounded-lg p-6 shadow-sm hover:shadow-md transition">
-                        <div className="text-indigo-700 text-sm mb-1 font-semibold">Total LP Items</div>
-                        <div className="text-3xl font-bold text-indigo-600">{totalCount}</div>
-                      </div>
-                      <div className="bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-200 rounded-lg p-6 shadow-sm hover:shadow-md transition">
-                        <div className="text-green-700 text-sm mb-1 font-semibold">Paid</div>
-                        <div className="text-3xl font-bold text-green-600">{paidCount}</div>
-                        <div className="text-sm text-green-500 mt-1">{paidPercentage.toFixed(1)}%</div>
-                      </div>
-                      <div className="bg-gradient-to-br from-orange-50 to-orange-100 border-2 border-orange-200 rounded-lg p-6 shadow-sm hover:shadow-md transition">
-                        <div className="text-orange-700 text-sm mb-1 font-semibold">Pending</div>
-                        <div className="text-3xl font-bold text-orange-600">{pendingCount}</div>
-                        <div className="text-sm text-orange-500 mt-1">{pendingPercentage.toFixed(1)}%</div>
-                      </div>
-                      <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 border-2 border-yellow-200 rounded-lg p-6 shadow-sm hover:shadow-md transition">
-                        <div className="text-yellow-700 text-sm mb-1 font-semibold">In Process</div>
-                        <div className="text-3xl font-bold text-yellow-600">{inProcessCount}</div>
-                        <div className="text-sm text-yellow-500 mt-1">{inProcessPercentage.toFixed(1)}%</div>
-                      </div>
-                    </div>
+                {/* Scaled Tab Content */}
+                {lpStatusTab === 'scaled' && (
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-4">SCALED LPR's 2025-26 STATUS (15/10/25)</h3>
+                    
+                    {/* Scaled Table Data */}
+                    {(() => {
+                      const scaledData = [
+                        { sec: 'ARD', awtMtrl: 7, can: 3, comp: 5, hold: 0, ifaCase: 2, oss: 4, soPlaced: 2, storeRecd: 0, grandTotal: 23 },
+                        { sec: 'ARMT', awtMtrl: 6, can: 2, comp: 2, hold: 0, ifaCase: 0, oss: 0, soPlaced: 0, storeRecd: 0, grandTotal: 10 },
+                        { sec: 'ENG', awtMtrl: 0, can: 2, comp: 1, hold: 2, ifaCase: 2, oss: 0, soPlaced: 1, storeRecd: 2, grandTotal: 10 },
+                        { sec: 'ETD', awtMtrl: 4, can: 3, comp: 0, hold: 0, ifaCase: 2, oss: 1, soPlaced: 1, storeRecd: 0, grandTotal: 11 },
+                        { sec: 'INST', awtMtrl: 0, can: 1, comp: 1, hold: 1, ifaCase: 0, oss: 0, soPlaced: 1, storeRecd: 1, grandTotal: 5 },
+                        { sec: 'SRD', awtMtrl: 1, can: 1, comp: 2, hold: 0, ifaCase: 0, oss: 7, soPlaced: 3, storeRecd: 0, grandTotal: 14 },
+                        { sec: 'T&R', awtMtrl: 2, can: 0, comp: 1, hold: 0, ifaCase: 0, oss: 9, soPlaced: 0, storeRecd: 0, grandTotal: 12 },
+                        { sec: 'VRD', awtMtrl: 1, can: 1, comp: 3, hold: 0, ifaCase: 1, oss: 1, soPlaced: 5, storeRecd: 0, grandTotal: 12 }
+                      ];
 
-                    {/* Pie Chart - Payment Status Distribution */}
-                    <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
-                      <h3 className="text-2xl font-bold text-gray-900 mb-6">Bill Payment Status Distribution</h3>
-                      <div className="flex flex-col items-center">
-                        <div className="relative w-80 h-80">
-                          <svg viewBox="0 0 200 200" className="w-full h-full">
-                            {(() => {
-                              const colors = ['#22c55e', '#f97316', '#eab308']; // Green for Paid, Orange for Pending, Yellow for In Process
-                              const percentages = [paidPercentage, pendingPercentage, inProcessPercentage];
-                              let currentAngle = 0;
-                              
-                              return percentages.map((percentage, index) => {
-                                const angle = (percentage / 100) * 360;
-                                const startAngle = currentAngle;
-                                const endAngle = currentAngle + angle;
-                                const startRad = (startAngle - 90) * (Math.PI / 180);
-                                const endRad = (endAngle - 90) * (Math.PI / 180);
-                                const x1 = 100 + 90 * Math.cos(startRad);
-                                const y1 = 100 + 90 * Math.sin(startRad);
-                                const x2 = 100 + 90 * Math.cos(endRad);
-                                const y2 = 100 + 90 * Math.sin(endRad);
-                                const largeArcFlag = angle > 180 ? 1 : 0;
-                                const pathData = [
-                                  `M 100 100`,
-                                  `L ${x1} ${y1}`,
-                                  `A 90 90 0 ${largeArcFlag} 1 ${x2} ${y2}`,
-                                  'Z'
-                                ].join(' ');
-                                currentAngle = endAngle;
-                                return (
-                                  <path
-                                    key={index}
-                                    d={pathData}
-                                    fill={colors[index]}
-                                    stroke="white"
-                                    strokeWidth="2"
-                                  />
-                                );
-                              })
-                            })()}
-                            <circle cx="100" cy="100" r="50" fill="white" />
-                          </svg>
-                        </div>
-                        <div className="mt-6 flex gap-8">
-                          <div className="flex items-center gap-2">
-                            <div className="w-4 h-4 bg-green-500 rounded"></div>
-                            <div className="text-sm font-semibold">Paid: {paidCount} ({paidPercentage.toFixed(1)}%)</div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <div className="w-4 h-4 bg-orange-500 rounded"></div>
-                            <div className="text-sm font-semibold">Pending: {pendingCount} ({pendingPercentage.toFixed(1)}%)</div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <div className="w-4 h-4 bg-yellow-500 rounded"></div>
-                            <div className="text-sm font-semibold">In Process: {inProcessCount} ({inProcessPercentage.toFixed(1)}%)</div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                      const grandTotals = {
+                        awtMtrl: 17,
+                        can: 14,
+                        comp: 18,
+                        hold: 3,
+                        ifaCase: 7,
+                        oss: 22,
+                        soPlaced: 13,
+                        storeRecd: 3,
+                        grandTotal: 97
+                      };
 
-                    {/* Graph: Expected Arrivals per Month */}
-                    <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
-                      <h3 className="text-2xl font-bold text-gray-900 mb-6">Expected Arrivals per Month</h3>
-                      <div className="flex items-end justify-around h-96 border-l-2 border-b-2 border-gray-400 pl-4 pb-4">
-                        {monthlyArrivals.map((data) => (
-                          <div key={data.month} className="flex flex-col items-center gap-2 flex-1">
-                            <div
-                              className="w-full bg-gradient-to-t from-indigo-600 to-indigo-400 flex items-start justify-center text-white font-bold text-sm pt-2 rounded-t-lg hover:from-indigo-700 hover:to-indigo-500 transition-all"
-                              style={{ height: `${(data.count / maxMonthlyArrivals) * 350}px`, minHeight: '30px' }}
-                            >
-                              {data.count}
-                            </div>
-                            <span className="text-sm font-semibold text-gray-700 mt-2 text-center">{data.month}</span>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="mt-6 text-center">
-                        <p className="text-xs text-gray-500">Y-axis: Number of Items | X-axis: Months</p>
-                      </div>
-                    </div>
-
-                    {/* LP Items Table */}
-                    <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
-                      <h2 className="text-3xl font-bold text-gray-900 mb-6">LP Items</h2>
-                      <div className="overflow-x-auto">
-                        <table className="w-full border-collapse text-xs">
-                          <thead>
-                            <tr className="bg-gray-200">
-                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Serial Number</th>
-                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Component</th>
-                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">SO Number</th>
-                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Expected Date of Arrival</th>
-                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Bill Payment Status</th>
-                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Supply Order Date</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {lpItemsData.map((item, index) => (
-                              <tr key={item.serialNo} className={`${index % 2 === 0 ? 'bg-gray-50' : 'bg-white'} hover:bg-blue-50 transition-colors`}>
-                                <td className="border border-gray-300 px-3 py-2 text-center">{item.serialNo}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-xs">{item.component}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-center font-mono font-semibold">{item.soNumber}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-center">{item.expectedDateOfArrival}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-center">
-                                  <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                                    item.billPaymentStatus === 'Paid' ? 'bg-green-100 text-green-800' :
-                                    item.billPaymentStatus === 'Pending' ? 'bg-orange-100 text-orange-800' :
-                                    'bg-yellow-100 text-yellow-800'
-                                  }`}>
-                                    {item.billPaymentStatus}
-                                  </span>
-                                </td>
-                                <td className="border border-gray-300 px-3 py-2 text-center">{item.supplyOrderDate}</td>
+                      return (
+                        <div className="overflow-x-auto">
+                          <table className="w-full border-collapse text-sm">
+                            <thead>
+                              <tr className="bg-gray-200">
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Sec</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Awt Spare</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Can</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Comp</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">IFA Case</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">OSS</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">SO Placed</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Store Recd</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Grand Total</th>
                               </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
+                            </thead>
+                            <tbody>
+                              {scaledData.map((row, index) => (
+                                <tr key={row.sec} className={`${index % 2 === 0 ? 'bg-gray-50' : 'bg-white'} hover:bg-blue-50 transition-colors`}>
+                                  <td className="border border-gray-300 px-3 py-2 font-semibold">{row.sec}</td>
+                                  <td className="border border-gray-300 px-3 py-2 text-center">{row.awtMtrl || ''}</td>
+                                  <td className="border border-gray-300 px-3 py-2 text-center">{row.can || ''}</td>
+                                  <td className="border border-gray-300 px-3 py-2 text-center">{row.comp || ''}</td>
+                                  <td className="border border-gray-300 px-3 py-2 text-center">{row.ifaCase || ''}</td>
+                                  <td className="border border-gray-300 px-3 py-2 text-center">{row.oss || ''}</td>
+                                  <td className="border border-gray-300 px-3 py-2 text-center">{row.soPlaced || ''}</td>
+                                  <td className="border border-gray-300 px-3 py-2 text-center">{row.storeRecd || ''}</td>
+                                  <td className="border border-gray-300 px-3 py-2 text-center font-semibold">{row.grandTotal}</td>
+                                </tr>
+                              ))}
+                              <tr className="bg-gray-300 font-bold">
+                                <td className="border border-gray-400 px-3 py-2">Grand Total</td>
+                                <td className="border border-gray-400 px-3 py-2 text-center">{grandTotals.awtMtrl}</td>
+                                <td className="border border-gray-400 px-3 py-2 text-center">{grandTotals.can}</td>
+                                <td className="border border-gray-400 px-3 py-2 text-center">{grandTotals.comp}</td>
+                                <td className="border border-gray-400 px-3 py-2 text-center">{grandTotals.ifaCase}</td>
+                                <td className="border border-gray-400 px-3 py-2 text-center">{grandTotals.oss}</td>
+                                <td className="border border-gray-400 px-3 py-2 text-center">{grandTotals.soPlaced}</td>
+                                <td className="border border-gray-400 px-3 py-2 text-center">{grandTotals.storeRecd}</td>
+                                <td className="border border-gray-400 px-3 py-2 text-center">{grandTotals.grandTotal}</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+
+                {/* Non Scaled Tab Content */}
+                {lpStatusTab === 'non-scaled' && (
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-4">NON SCALED LPR's 2025-26 STATUS (15/10/2025)</h3>
+                    
+                    {/* Non Scaled Table Data */}
+                    {(() => {
+                      const nonScaledData = [
+                        { sec: 'ARD', awtMtrl: 3, can: 0, comp: 11, ifaCase: 2, partIssued: 0, soPlaced: 8, grandTotal: 24 },
+                        { sec: 'ARMT', awtMtrl: 1, can: 2, comp: 6, ifaCase: 0, partIssued: 0, soPlaced: 1, grandTotal: 10 },
+                        { sec: 'ENG', awtMtrl: 0, can: 0, comp: 3, ifaCase: 1, partIssued: 2, soPlaced: 14, grandTotal: 20 },
+                        { sec: 'ETD', awtMtrl: 49, can: 15, comp: 15, ifaCase: 8, partIssued: 0, soPlaced: 11, grandTotal: 98 },
+                        { sec: 'INST', awtMtrl: 0, can: 0, comp: 4, ifaCase: 11, partIssued: 0, soPlaced: 4, grandTotal: 19 },
+                        { sec: 'SRD', awtMtrl: 2, can: 0, comp: 15, ifaCase: 1, partIssued: 0, soPlaced: 0, grandTotal: 18 },
+                        { sec: 'T&R', awtMtrl: 0, can: 0, comp: 2, ifaCase: 0, partIssued: 0, soPlaced: 1, grandTotal: 3 },
+                        { sec: 'VRD', awtMtrl: 13, can: 2, comp: 2, ifaCase: 0, partIssued: 0, soPlaced: 17, grandTotal: 34 }
+                      ];
+
+                      const grandTotals = {
+                        awtMtrl: 68,
+                        can: 19,
+                        comp: 58,
+                        ifaCase: 23,
+                        partIssued: 2,
+                        soPlaced: 56,
+                        grandTotal: 226
+                      };
+
+                      return (
+                        <div className="overflow-x-auto">
+                          <table className="w-full border-collapse text-sm">
+                            <thead>
+                              <tr className="bg-gray-200">
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Sec</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Awt Mtrl</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Can</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Comp</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">IFA Case</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Part Issued</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">So Placed</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Grand Total</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {nonScaledData.map((row, index) => (
+                                <tr key={row.sec} className={`${index % 2 === 0 ? 'bg-gray-50' : 'bg-white'} hover:bg-blue-50 transition-colors`}>
+                                  <td className="border border-gray-300 px-3 py-2 font-semibold">{row.sec}</td>
+                                  <td className="border border-gray-300 px-3 py-2 text-center">{row.awtMtrl || ''}</td>
+                                  <td className="border border-gray-300 px-3 py-2 text-center">{row.can || ''}</td>
+                                  <td className="border border-gray-300 px-3 py-2 text-center">{row.comp || ''}</td>
+                                  <td className="border border-gray-300 px-3 py-2 text-center">{row.ifaCase || ''}</td>
+                                  <td className="border border-gray-300 px-3 py-2 text-center">{row.partIssued || ''}</td>
+                                  <td className="border border-gray-300 px-3 py-2 text-center">{row.soPlaced || ''}</td>
+                                  <td className="border border-gray-300 px-3 py-2 text-center font-semibold">{row.grandTotal}</td>
+                                </tr>
+                              ))}
+                              <tr className="bg-gray-300 font-bold">
+                                <td className="border border-gray-400 px-3 py-2">Grand Total</td>
+                                <td className="border border-gray-400 px-3 py-2 text-center">{grandTotals.awtMtrl}</td>
+                                <td className="border border-gray-400 px-3 py-2 text-center">{grandTotals.can}</td>
+                                <td className="border border-gray-400 px-3 py-2 text-center">{grandTotals.comp}</td>
+                                <td className="border border-gray-400 px-3 py-2 text-center">{grandTotals.ifaCase}</td>
+                                <td className="border border-gray-400 px-3 py-2 text-center">{grandTotals.partIssued}</td>
+                                <td className="border border-gray-400 px-3 py-2 text-center">{grandTotals.soPlaced}</td>
+                                <td className="border border-gray-400 px-3 py-2 text-center">{grandTotals.grandTotal}</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+
+                {/* Summary Cards for LP Status */}
+                <div className="mt-6 grid grid-cols-3 gap-4">
+                  <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+                    <div className="text-blue-700 text-sm font-semibold mb-1">AWT MTRL</div>
+                    <div className="text-2xl font-bold text-blue-600">
+                      {lpStatusTab === 'scaled' ? 17 : 68}
                     </div>
-                  </>
-                );
-              })()}
+                  </div>
+                  <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4">
+                    <div className="text-green-700 text-sm font-semibold mb-1">SO PLACED</div>
+                    <div className="text-2xl font-bold text-green-600">
+                      {lpStatusTab === 'scaled' ? 13 : 56}
+                    </div>
+                  </div>
+                  <div className="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-4">
+                    <div className="text-yellow-700 text-sm font-semibold mb-1">ENQ/U/ENQ</div>
+                    <div className="text-2xl font-bold text-yellow-600">
+                      {lpStatusTab === 'scaled' ? 36 : 19}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Summary Cards Bar Graph */}
+                <div className="mt-8 bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+                  <h4 className="text-xl font-bold text-gray-900 mb-10">Summary Cards Visualization</h4>
+                  <div className="flex items-end justify-around h-80 border-l-2 border-b-2 border-gray-400 pl-4 pb-4 gap-4 mt-6">
+                    {(() => {
+                      const awtMtrl = lpStatusTab === 'scaled' ? 17 : 68;
+                      const soPlaced = lpStatusTab === 'scaled' ? 13 : 56;
+                      const enq = lpStatusTab === 'scaled' ? 36 : 19;
+                      const maxValue = Math.max(awtMtrl, soPlaced, enq, 1);
+                      
+                      return (
+                        <>
+                          <div className="flex flex-col items-center gap-2 flex-1">
+                            <div
+                              className="w-full bg-gradient-to-t from-blue-600 to-blue-400 flex items-start justify-center text-white font-bold text-sm pt-2 rounded-t-lg hover:from-blue-700 hover:to-blue-500 transition-all"
+                              style={{ height: `${(awtMtrl / maxValue) * 300}px`, minHeight: '30px' }}
+                              title={`AWT MTRL: ${awtMtrl}`}
+                            >
+                              {awtMtrl}
+                            </div>
+                            <span className="text-xs font-semibold text-gray-700 mt-2 text-center">AWT MTRL</span>
+                          </div>
+                          <div className="flex flex-col items-center gap-2 flex-1">
+                            <div
+                              className="w-full bg-gradient-to-t from-green-600 to-green-400 flex items-start justify-center text-white font-bold text-sm pt-2 rounded-t-lg hover:from-green-700 hover:to-green-500 transition-all"
+                              style={{ height: `${(soPlaced / maxValue) * 300}px`, minHeight: '30px' }}
+                              title={`SO PLACED: ${soPlaced}`}
+                            >
+                              {soPlaced}
+                            </div>
+                            <span className="text-xs font-semibold text-gray-700 mt-2 text-center">SO PLACED</span>
+                          </div>
+                          <div className="flex flex-col items-center gap-2 flex-1">
+                            <div
+                              className="w-full bg-gradient-to-t from-yellow-600 to-yellow-400 flex items-start justify-center text-white font-bold text-sm pt-2 rounded-t-lg hover:from-yellow-700 hover:to-yellow-500 transition-all"
+                              style={{ height: `${(enq / maxValue) * 300}px`, minHeight: '30px' }}
+                              title={`ENQ/U/ENQ: ${enq}`}
+                            >
+                              {enq}
+                            </div>
+                            <span className="text-xs font-semibold text-gray-700 mt-2 text-center">ENQ/U/ENQ</span>
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+                </div>
+
+                {/* Graph - Section-wise Distribution */}
+                <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 mt-8">
+                  <h3 className="text-2xl font-bold text-gray-900 mb-6">Section-wise Grand Total Distribution</h3>
+                  <div className="flex items-end justify-around h-96 border-l-2 border-b-2 border-gray-400 pl-4 pb-4 mt-4">
+                    {(() => {
+                      const scaledData = [
+                        { sec: 'ARD', grandTotal: 23 },
+                        { sec: 'ARMT', grandTotal: 10 },
+                        { sec: 'ENG', grandTotal: 10 },
+                        { sec: 'ETD', grandTotal: 11 },
+                        { sec: 'INST', grandTotal: 5 },
+                        { sec: 'SRD', grandTotal: 14 },
+                        { sec: 'T&R', grandTotal: 12 },
+                        { sec: 'VRD', grandTotal: 12 }
+                      ];
+                      const nonScaledData = [
+                        { sec: 'ARD', grandTotal: 24 },
+                        { sec: 'ARMT', grandTotal: 10 },
+                        { sec: 'ENG', grandTotal: 20 },
+                        { sec: 'ETD', grandTotal: 98 },
+                        { sec: 'INST', grandTotal: 19 },
+                        { sec: 'SRD', grandTotal: 18 },
+                        { sec: 'T&R', grandTotal: 3 },
+                        { sec: 'VRD', grandTotal: 34 }
+                      ];
+                      const data = lpStatusTab === 'scaled' ? scaledData : nonScaledData;
+                      const maxValue = Math.max(...data.map(d => d.grandTotal));
+                      const colors = ['bg-indigo-500', 'bg-blue-500', 'bg-green-500', 'bg-orange-500', 'bg-pink-500', 'bg-cyan-500', 'bg-yellow-500', 'bg-red-500'];
+                      
+                      return data.map((row, index) => {
+                        const height = (row.grandTotal / maxValue) * 320;
+                        return (
+                          <div key={row.sec} className="flex flex-col items-center gap-2">
+                            <div
+                              className={`w-16 ${colors[index % colors.length]} flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg hover:opacity-80 transition-all`}
+                              style={{ height: `${height}px`, minHeight: '30px' }}
+                              title={`${row.sec}: ${row.grandTotal}`}
+                            >
+                              {row.grandTotal}
+                            </div>
+                            <span className="text-xs font-semibold text-gray-700 mt-2 text-center">{row.sec}</span>
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+                </div>
+              </div>
             </div>
           ) : selectedCard === 'lm-items' ? (
             <div className="space-y-8">
+              {/* Back Button */}
               <div className="mb-4">
                 <button
                   onClick={handleBack}
@@ -567,181 +696,407 @@ export default function DGMProdLogin() {
                   Back to Dashboards
                 </button>
               </div>
-              {(() => {
-                const lmItemsData = [
-                  { serialNo: 1, component: 'Gear Assembly', woNumber: 'WO-2024-001', expectedDateOfCompletion: '15/04/2024', status: 'In Progress', workOrderDate: '01/03/2024' },
-                  { serialNo: 2, component: 'Hydraulic Pump', woNumber: 'WO-2024-002', expectedDateOfCompletion: '22/04/2024', status: 'Completed', workOrderDate: '05/03/2024' },
-                  { serialNo: 3, component: 'Brake Pad Set', woNumber: 'WO-2024-003', expectedDateOfCompletion: '18/04/2024', status: 'In Progress', workOrderDate: '08/03/2024' },
-                  { serialNo: 4, component: 'Engine Gasket', woNumber: 'WO-2024-004', expectedDateOfCompletion: '25/04/2024', status: 'Pending', workOrderDate: '10/03/2024' },
-                  { serialNo: 5, component: 'Control Valve', woNumber: 'WO-2024-005', expectedDateOfCompletion: '20/04/2024', status: 'In Progress', workOrderDate: '12/03/2024' },
-                  { serialNo: 6, component: 'Clutch Plate', woNumber: 'WO-2024-006', expectedDateOfCompletion: '28/04/2024', status: 'Completed', workOrderDate: '15/03/2024' },
-                  { serialNo: 7, component: 'Radiator Core', woNumber: 'WO-2024-007', expectedDateOfCompletion: '16/04/2024', status: 'In Progress', workOrderDate: '18/03/2024' },
-                  { serialNo: 8, component: 'Alternator Assembly', woNumber: 'WO-2024-008', expectedDateOfCompletion: '24/04/2024', status: 'Pending', workOrderDate: '20/03/2024' }
-                ];
 
-                // Status Summary
-                const completedCount = lmItemsData.filter(item => item.status === 'Completed').length;
-                const inProgressCount = lmItemsData.filter(item => item.status === 'In Progress').length;
-                const pendingCount = lmItemsData.filter(item => item.status === 'Pending').length;
-                const totalCount = lmItemsData.length;
-                const completedPercentage = (completedCount / totalCount) * 100;
-                const inProgressPercentage = (inProgressCount / totalCount) * 100;
-                const pendingPercentage = (pendingCount / totalCount) * 100;
+              {/* Title */}
+              <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
+                <h2 className="text-3xl font-bold text-gray-900 mb-6">DETLS OF LM WK ORDERS :2025-26</h2>
 
-                // Expected completions per month
-                const monthlyCompletions = [
-                  { month: 'Apr 2024', count: 6 },
-                  { month: 'May 2024', count: 2 }
-                ];
-                const maxMonthlyCompletions = Math.max(...monthlyCompletions.map(m => m.count));
+                {/* Tabs */}
+                <div className="flex border-b border-gray-300 mb-6">
+                  <button
+                    onClick={() => setLmStatusTab('scaled')}
+                    className={`px-6 py-3 font-semibold text-sm transition-all ${
+                      lmStatusTab === 'scaled'
+                        ? 'text-purple-600 border-b-2 border-purple-600 bg-purple-50'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                    }`}
+                  >
+                    Scaled
+                  </button>
+                  <button
+                    onClick={() => setLmStatusTab('non-scaled')}
+                    className={`px-6 py-3 font-semibold text-sm transition-all ${
+                      lmStatusTab === 'non-scaled'
+                        ? 'text-purple-600 border-b-2 border-purple-600 bg-purple-50'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                    }`}
+                  >
+                    Non Scaled
+                  </button>
+                </div>
 
-                return (
-                  <>
-                    {/* Summary Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                      <div className="bg-gradient-to-br from-purple-50 to-purple-100 border-2 border-purple-200 rounded-lg p-6 shadow-sm hover:shadow-md transition">
-                        <div className="text-purple-700 text-sm mb-1 font-semibold">Total LM Items</div>
-                        <div className="text-3xl font-bold text-purple-600">{totalCount}</div>
-                      </div>
-                      <div className="bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-200 rounded-lg p-6 shadow-sm hover:shadow-md transition">
-                        <div className="text-green-700 text-sm mb-1 font-semibold">Completed</div>
-                        <div className="text-3xl font-bold text-green-600">{completedCount}</div>
-                        <div className="text-sm text-green-500 mt-1">{completedPercentage.toFixed(1)}%</div>
-                      </div>
-                      <div className="bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 rounded-lg p-6 shadow-sm hover:shadow-md transition">
-                        <div className="text-blue-700 text-sm mb-1 font-semibold">In Progress</div>
-                        <div className="text-3xl font-bold text-blue-600">{inProgressCount}</div>
-                        <div className="text-sm text-blue-500 mt-1">{inProgressPercentage.toFixed(1)}%</div>
-                      </div>
-                      <div className="bg-gradient-to-br from-orange-50 to-orange-100 border-2 border-orange-200 rounded-lg p-6 shadow-sm hover:shadow-md transition">
-                        <div className="text-orange-700 text-sm mb-1 font-semibold">Pending</div>
-                        <div className="text-3xl font-bold text-orange-600">{pendingCount}</div>
-                        <div className="text-sm text-orange-500 mt-1">{pendingPercentage.toFixed(1)}%</div>
-                      </div>
-                    </div>
+                {/* Scaled Tab Content */}
+                {lmStatusTab === 'scaled' && (
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-4">Status</h3>
+                    
+                    {/* Scaled Table Data */}
+                    {(() => {
+                      const scaledData = [
+                        { sec: 'ARD', awtMtrl: 5, can: 12, comp: 0, oss: 0, woRel: 20, meCell: 0, grandTotal: 37 },
+                        { sec: 'ARMT', awtMtrl: 14, can: 5, comp: 1, oss: 3, woRel: 10, meCell: 5, grandTotal: 38 },
+                        { sec: 'ETD', awtMtrl: 0, can: 0, comp: 2, oss: 0, woRel: 0, meCell: 0, grandTotal: 2 },
+                        { sec: 'SRD', awtMtrl: 41, can: 2, comp: 1, oss: 0, woRel: 15, meCell: 1, grandTotal: 60 },
+                        { sec: 'T&R', awtMtrl: 4, can: 1, comp: 5, oss: 0, woRel: 4, meCell: 0, grandTotal: 14 },
+                        { sec: 'VRD', awtMtrl: 4, can: 8, comp: 0, oss: 0, woRel: 18, meCell: 0, grandTotal: 30 }
+                      ];
 
-                    {/* Pie Chart - Work Order Status Distribution */}
-                    <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
-                      <h3 className="text-2xl font-bold text-gray-900 mb-6">Work Order Status Distribution</h3>
-                      <div className="flex flex-col items-center">
-                        <div className="relative w-80 h-80">
-                          <svg viewBox="0 0 200 200" className="w-full h-full">
-                            {(() => {
-                              const colors = ['#22c55e', '#3b82f6', '#f97316']; // Green for Completed, Blue for In Progress, Orange for Pending
-                              const percentages = [completedPercentage, inProgressPercentage, pendingPercentage];
-                              let currentAngle = 0;
-                              
-                              return percentages.map((percentage, index) => {
-                                const angle = (percentage / 100) * 360;
-                                const startAngle = currentAngle;
-                                const endAngle = currentAngle + angle;
-                                const startRad = (startAngle - 90) * (Math.PI / 180);
-                                const endRad = (endAngle - 90) * (Math.PI / 180);
-                                const x1 = 100 + 90 * Math.cos(startRad);
-                                const y1 = 100 + 90 * Math.sin(startRad);
-                                const x2 = 100 + 90 * Math.cos(endRad);
-                                const y2 = 100 + 90 * Math.sin(endRad);
-                                const largeArcFlag = angle > 180 ? 1 : 0;
-                                const pathData = [
-                                  `M 100 100`,
-                                  `L ${x1} ${y1}`,
-                                  `A 90 90 0 ${largeArcFlag} 1 ${x2} ${y2}`,
-                                  'Z'
-                                ].join(' ');
-                                currentAngle = endAngle;
-                                return (
-                                  <path
-                                    key={index}
-                                    d={pathData}
-                                    fill={colors[index]}
-                                    stroke="white"
-                                    strokeWidth="2"
-                                  />
-                                );
-                              })
-                            })()}
-                            <circle cx="100" cy="100" r="50" fill="white" />
-                          </svg>
-                        </div>
-                        <div className="mt-6 flex gap-8">
-                          <div className="flex items-center gap-2">
-                            <div className="w-4 h-4 bg-green-500 rounded"></div>
-                            <div className="text-sm font-semibold">Completed: {completedCount} ({completedPercentage.toFixed(1)}%)</div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <div className="w-4 h-4 bg-blue-500 rounded"></div>
-                            <div className="text-sm font-semibold">In Progress: {inProgressCount} ({inProgressPercentage.toFixed(1)}%)</div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <div className="w-4 h-4 bg-orange-500 rounded"></div>
-                            <div className="text-sm font-semibold">Pending: {pendingCount} ({pendingPercentage.toFixed(1)}%)</div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                      const grandTotals = {
+                        awtMtrl: 68,
+                        can: 28,
+                        comp: 9,
+                        oss: 3,
+                        woRel: 67,
+                        meCell: 6,
+                        grandTotal: 181
+                      };
 
-                    {/* Graph: Expected Completions per Month */}
-                    <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
-                      <h3 className="text-2xl font-bold text-gray-900 mb-6">Expected Completions per Month</h3>
-                      <div className="flex items-end justify-around h-96 border-l-2 border-b-2 border-gray-400 pl-4 pb-4">
-                        {monthlyCompletions.map((data) => (
-                          <div key={data.month} className="flex flex-col items-center gap-2 flex-1">
-                            <div
-                              className="w-full bg-gradient-to-t from-purple-600 to-purple-400 flex items-start justify-center text-white font-bold text-sm pt-2 rounded-t-lg hover:from-purple-700 hover:to-purple-500 transition-all"
-                              style={{ height: `${(data.count / maxMonthlyCompletions) * 350}px`, minHeight: '30px' }}
-                            >
-                              {data.count}
-                            </div>
-                            <span className="text-sm font-semibold text-gray-700 mt-2 text-center">{data.month}</span>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="mt-6 text-center">
-                        <p className="text-xs text-gray-500">Y-axis: Number of Items | X-axis: Months</p>
-                      </div>
-                    </div>
-
-                    {/* LM Items Table */}
-                    <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
-                      <h2 className="text-3xl font-bold text-gray-900 mb-6">LM Items</h2>
-                      <div className="overflow-x-auto">
-                        <table className="w-full border-collapse text-xs">
-                          <thead>
-                            <tr className="bg-gray-200">
-                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Serial Number</th>
-                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Component</th>
-                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">WO Number</th>
-                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Expected Date of Completion</th>
-                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Status</th>
-                              <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Work Order Date</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {lmItemsData.map((item, index) => (
-                              <tr key={item.serialNo} className={`${index % 2 === 0 ? 'bg-gray-50' : 'bg-white'} hover:bg-blue-50 transition-colors`}>
-                                <td className="border border-gray-300 px-3 py-2 text-center">{item.serialNo}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-xs">{item.component}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-center font-mono font-semibold">{item.woNumber}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-center">{item.expectedDateOfCompletion}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-center">
-                                  <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                                    item.status === 'Completed' ? 'bg-green-100 text-green-800' :
-                                    item.status === 'In Progress' ? 'bg-blue-100 text-blue-800' :
-                                    'bg-orange-100 text-orange-800'
-                                  }`}>
-                                    {item.status}
-                                  </span>
-                                </td>
-                                <td className="border border-gray-300 px-3 py-2 text-center">{item.workOrderDate}</td>
+                      return (
+                        <div className="overflow-x-auto">
+                          <table className="w-full border-collapse text-sm">
+                            <thead>
+                              <tr className="bg-gray-200">
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Sec</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Awt Mtrl</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Can</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Comp</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">OSS</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">WO Rel</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">ME Cell</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Grand Total</th>
                               </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  </>
-                );
-              })()}
+                            </thead>
+                            <tbody>
+                              {scaledData.map((row, index) => (
+                                <tr key={row.sec} className={`${index % 2 === 0 ? 'bg-gray-50' : 'bg-white'} hover:bg-blue-50 transition-colors`}>
+                                  <td className="border border-gray-300 px-3 py-2 font-semibold">{row.sec}</td>
+                                  <td className="border border-gray-300 px-3 py-2 text-center">{row.awtMtrl || ''}</td>
+                                  <td className="border border-gray-300 px-3 py-2 text-center">{row.can || ''}</td>
+                                  <td className="border border-gray-300 px-3 py-2 text-center">{row.comp || ''}</td>
+                                  <td className="border border-gray-300 px-3 py-2 text-center">{row.oss || ''}</td>
+                                  <td className="border border-gray-300 px-3 py-2 text-center">{row.woRel || ''}</td>
+                                  <td className="border border-gray-300 px-3 py-2 text-center">{row.meCell || ''}</td>
+                                  <td className="border border-gray-300 px-3 py-2 text-center font-semibold">{row.grandTotal}</td>
+                                </tr>
+                              ))}
+                              <tr className="bg-gray-300 font-bold">
+                                <td className="border border-gray-400 px-3 py-2">Grand Total</td>
+                                <td className="border border-gray-400 px-3 py-2 text-center">{grandTotals.awtMtrl}</td>
+                                <td className="border border-gray-400 px-3 py-2 text-center">{grandTotals.can}</td>
+                                <td className="border border-gray-400 px-3 py-2 text-center">{grandTotals.comp}</td>
+                                <td className="border border-gray-400 px-3 py-2 text-center">{grandTotals.oss}</td>
+                                <td className="border border-gray-400 px-3 py-2 text-center">{grandTotals.woRel}</td>
+                                <td className="border border-gray-400 px-3 py-2 text-center">{grandTotals.meCell}</td>
+                                <td className="border border-gray-400 px-3 py-2 text-center">{grandTotals.grandTotal}</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                          
+                          {/* Summary below table */}
+                          <div className="mt-6 grid grid-cols-3 gap-4">
+                            <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+                              <div className="text-blue-700 text-sm font-semibold mb-1">AWT MTRL</div>
+                              <div className="text-2xl font-bold text-blue-600">68</div>
+                            </div>
+                            <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4">
+                              <div className="text-green-700 text-sm font-semibold mb-1">SO PLACED</div>
+                              <div className="text-2xl font-bold text-green-600">40</div>
+                            </div>
+                            <div className="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-4">
+                              <div className="text-yellow-700 text-sm font-semibold mb-1">ENQ</div>
+                              <div className="text-2xl font-bold text-yellow-600">28</div>
+                            </div>
+                          </div>
+
+                          {/* Summary Cards Bar Graph */}
+                          <div className="mt-8 bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+                            <h4 className="text-xl font-bold text-gray-900 mb-8">Summary Cards Visualization</h4>
+                            <div className="flex items-end justify-around h-80 border-l-2 border-b-2 border-gray-400 pl-4 pb-4 gap-2 mt-6">
+                              {(() => {
+                                const maxValue = Math.max(grandTotals.awtMtrl, grandTotals.can, grandTotals.comp, grandTotals.oss, grandTotals.woRel, grandTotals.meCell, 1);
+                                return (
+                                  <>
+                                    <div className="flex flex-col items-center gap-2 flex-1">
+                                      <div
+                                        className="w-full bg-gradient-to-t from-blue-600 to-blue-400 flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg hover:from-blue-700 hover:to-blue-500 transition-all"
+                                        style={{ height: `${(grandTotals.awtMtrl / maxValue) * 300}px`, minHeight: '30px' }}
+                                        title={`Awt Mtrl: ${grandTotals.awtMtrl}`}
+                                      >
+                                        {grandTotals.awtMtrl}
+                                      </div>
+                                      <span className="text-xs font-semibold text-gray-700 mt-2 text-center">Awt Mtrl</span>
+                                    </div>
+                                    <div className="flex flex-col items-center gap-2 flex-1">
+                                      <div
+                                        className="w-full bg-gradient-to-t from-green-600 to-green-400 flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg hover:from-green-700 hover:to-green-500 transition-all"
+                                        style={{ height: `${(grandTotals.can / maxValue) * 300}px`, minHeight: '30px' }}
+                                        title={`Can: ${grandTotals.can}`}
+                                      >
+                                        {grandTotals.can}
+                                      </div>
+                                      <span className="text-xs font-semibold text-gray-700 mt-2 text-center">Can</span>
+                                    </div>
+                                    <div className="flex flex-col items-center gap-2 flex-1">
+                                      <div
+                                        className="w-full bg-gradient-to-t from-purple-600 to-purple-400 flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg hover:from-purple-700 hover:to-purple-500 transition-all"
+                                        style={{ height: `${(grandTotals.comp / maxValue) * 300}px`, minHeight: '30px' }}
+                                        title={`Comp: ${grandTotals.comp}`}
+                                      >
+                                        {grandTotals.comp}
+                                      </div>
+                                      <span className="text-xs font-semibold text-gray-700 mt-2 text-center">Comp</span>
+                                    </div>
+                                    <div className="flex flex-col items-center gap-2 flex-1">
+                                      <div
+                                        className="w-full bg-gradient-to-t from-orange-600 to-orange-400 flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg hover:from-orange-700 hover:to-orange-500 transition-all"
+                                        style={{ height: `${(grandTotals.oss / maxValue) * 300}px`, minHeight: '30px' }}
+                                        title={`OSS: ${grandTotals.oss}`}
+                                      >
+                                        {grandTotals.oss}
+                                      </div>
+                                      <span className="text-xs font-semibold text-gray-700 mt-2 text-center">OSS</span>
+                                    </div>
+                                    <div className="flex flex-col items-center gap-2 flex-1">
+                                      <div
+                                        className="w-full bg-gradient-to-t from-teal-600 to-teal-400 flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg hover:from-teal-700 hover:to-teal-500 transition-all"
+                                        style={{ height: `${(grandTotals.woRel / maxValue) * 300}px`, minHeight: '30px' }}
+                                        title={`WO Rel: ${grandTotals.woRel}`}
+                                      >
+                                        {grandTotals.woRel}
+                                      </div>
+                                      <span className="text-xs font-semibold text-gray-700 mt-2 text-center">WO Rel</span>
+                                    </div>
+                                    <div className="flex flex-col items-center gap-2 flex-1">
+                                      <div
+                                        className="w-full bg-gradient-to-t from-pink-600 to-pink-400 flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg hover:from-pink-700 hover:to-pink-500 transition-all"
+                                        style={{ height: `${(grandTotals.meCell / maxValue) * 300}px`, minHeight: '30px' }}
+                                        title={`ME Cell: ${grandTotals.meCell}`}
+                                      >
+                                        {grandTotals.meCell}
+                                      </div>
+                                      <span className="text-xs font-semibold text-gray-700 mt-2 text-center">ME Cell</span>
+                                    </div>
+                                  </>
+                                );
+                              })()}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+
+                {/* Non Scaled Tab Content */}
+                {lmStatusTab === 'non-scaled' && (
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-4">Status</h3>
+                    
+                    {/* Non Scaled Table Data */}
+                    {(() => {
+                      const nonScaledData = [
+                        { sec: 'ARD', awtMtrl: 0, can: 3, comp: 0, ess: 0, meCell: 0, woRel: 2, grandTotal: 5 },
+                        { sec: 'ARMT', awtMtrl: 1, can: 0, comp: 1, ess: 0, meCell: 2, woRel: 1, grandTotal: 5 },
+                        { sec: 'ENG', awtMtrl: 13, can: 0, comp: 0, ess: 0, meCell: 4, woRel: 0, grandTotal: 17 },
+                        { sec: 'ETD', awtMtrl: 2, can: 0, comp: 2, ess: 3, meCell: 0, woRel: 43, grandTotal: 50 },
+                        { sec: 'INST', awtMtrl: 2, can: 1, comp: 1, ess: 0, meCell: 0, woRel: 14, grandTotal: 18 },
+                        { sec: 'SRD', awtMtrl: 18, can: 0, comp: 6, ess: 1, meCell: 0, woRel: 21, grandTotal: 46 },
+                        { sec: 'T&R', awtMtrl: 1, can: 0, comp: 2, ess: 0, meCell: 3, woRel: 2, grandTotal: 8 },
+                        { sec: 'VRD', awtMtrl: 7, can: 0, comp: 1, ess: 0, meCell: 3, woRel: 15, grandTotal: 26 }
+                      ];
+
+                      const grandTotals = {
+                        awtMtrl: 44,
+                        can: 4,
+                        comp: 13,
+                        ess: 4,
+                        meCell: 12,
+                        woRel: 98,
+                        grandTotal: 175
+                      };
+
+                      return (
+                        <div className="overflow-x-auto">
+                          <table className="w-full border-collapse text-sm">
+                            <thead>
+                              <tr className="bg-gray-200">
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Sec</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Awt Mtrl</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Can</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Comp</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">ESS</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">ME Cell</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">WO Rel</th>
+                                <th className="border border-gray-400 px-3 py-2 font-semibold text-left">Grand Total</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {nonScaledData.map((row, index) => (
+                                <tr key={row.sec} className={`${index % 2 === 0 ? 'bg-gray-50' : 'bg-white'} hover:bg-blue-50 transition-colors`}>
+                                  <td className="border border-gray-300 px-3 py-2 font-semibold">{row.sec}</td>
+                                  <td className="border border-gray-300 px-3 py-2 text-center">{row.awtMtrl || ''}</td>
+                                  <td className="border border-gray-300 px-3 py-2 text-center">{row.can || ''}</td>
+                                  <td className="border border-gray-300 px-3 py-2 text-center">{row.comp || ''}</td>
+                                  <td className="border border-gray-300 px-3 py-2 text-center">{row.ess || ''}</td>
+                                  <td className="border border-gray-300 px-3 py-2 text-center">{row.meCell || ''}</td>
+                                  <td className="border border-gray-300 px-3 py-2 text-center">{row.woRel || ''}</td>
+                                  <td className="border border-gray-300 px-3 py-2 text-center font-semibold">{row.grandTotal}</td>
+                                </tr>
+                              ))}
+                              <tr className="bg-gray-300 font-bold">
+                                <td className="border border-gray-400 px-3 py-2">Grand Total</td>
+                                <td className="border border-gray-400 px-3 py-2 text-center">{grandTotals.awtMtrl}</td>
+                                <td className="border border-gray-400 px-3 py-2 text-center">{grandTotals.can}</td>
+                                <td className="border border-gray-400 px-3 py-2 text-center">{grandTotals.comp}</td>
+                                <td className="border border-gray-400 px-3 py-2 text-center">{grandTotals.ess}</td>
+                                <td className="border border-gray-400 px-3 py-2 text-center">{grandTotals.meCell}</td>
+                                <td className="border border-gray-400 px-3 py-2 text-center">{grandTotals.woRel}</td>
+                                <td className="border border-gray-400 px-3 py-2 text-center">{grandTotals.grandTotal}</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                          
+                          {/* Summary below table */}
+                          <div className="mt-6 grid grid-cols-3 gap-4">
+                            <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+                              <div className="text-blue-700 text-sm font-semibold mb-1">AWT MTRL</div>
+                              <div className="text-2xl font-bold text-blue-600">44</div>
+                            </div>
+                            <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4">
+                              <div className="text-green-700 text-sm font-semibold mb-1">SO PLACED</div>
+                              <div className="text-2xl font-bold text-green-600">15</div>
+                            </div>
+                            <div className="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-4">
+                              <div className="text-yellow-700 text-sm font-semibold mb-1">U/ENQ</div>
+                              <div className="text-2xl font-bold text-yellow-600">29</div>
+                            </div>
+                          </div>
+
+                          {/* Summary Cards Bar Graph */}
+                          <div className="mt-8 bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+                            <h4 className="text-xl font-bold text-gray-900 mb-8">Summary Cards Visualization</h4>
+                            <div className="flex items-end justify-around h-80 border-l-2 border-b-2 border-gray-400 pl-4 pb-4 gap-2 mt-6">
+                              {(() => {
+                                const maxValue = Math.max(grandTotals.awtMtrl, grandTotals.can, grandTotals.comp, grandTotals.ess, grandTotals.woRel, grandTotals.meCell, 1);
+                                return (
+                                  <>
+                                    <div className="flex flex-col items-center gap-2 flex-1">
+                                      <div
+                                        className="w-full bg-gradient-to-t from-blue-600 to-blue-400 flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg hover:from-blue-700 hover:to-blue-500 transition-all"
+                                        style={{ height: `${(grandTotals.awtMtrl / maxValue) * 300}px`, minHeight: '30px' }}
+                                        title={`Awt Mtrl: ${grandTotals.awtMtrl}`}
+                                      >
+                                        {grandTotals.awtMtrl}
+                                      </div>
+                                      <span className="text-xs font-semibold text-gray-700 mt-2 text-center">Awt Mtrl</span>
+                                    </div>
+                                    <div className="flex flex-col items-center gap-2 flex-1">
+                                      <div
+                                        className="w-full bg-gradient-to-t from-green-600 to-green-400 flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg hover:from-green-700 hover:to-green-500 transition-all"
+                                        style={{ height: `${(grandTotals.can / maxValue) * 300}px`, minHeight: '30px' }}
+                                        title={`Can: ${grandTotals.can}`}
+                                      >
+                                        {grandTotals.can}
+                                      </div>
+                                      <span className="text-xs font-semibold text-gray-700 mt-2 text-center">Can</span>
+                                    </div>
+                                    <div className="flex flex-col items-center gap-2 flex-1">
+                                      <div
+                                        className="w-full bg-gradient-to-t from-purple-600 to-purple-400 flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg hover:from-purple-700 hover:to-purple-500 transition-all"
+                                        style={{ height: `${(grandTotals.comp / maxValue) * 300}px`, minHeight: '30px' }}
+                                        title={`Comp: ${grandTotals.comp}`}
+                                      >
+                                        {grandTotals.comp}
+                                      </div>
+                                      <span className="text-xs font-semibold text-gray-700 mt-2 text-center">Comp</span>
+                                    </div>
+                                    <div className="flex flex-col items-center gap-2 flex-1">
+                                      <div
+                                        className="w-full bg-gradient-to-t from-orange-600 to-orange-400 flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg hover:from-orange-700 hover:to-orange-500 transition-all"
+                                        style={{ height: `${(grandTotals.ess / maxValue) * 300}px`, minHeight: '30px' }}
+                                        title={`ESS: ${grandTotals.ess}`}
+                                      >
+                                        {grandTotals.ess}
+                                      </div>
+                                      <span className="text-xs font-semibold text-gray-700 mt-2 text-center">ESS</span>
+                                    </div>
+                                    <div className="flex flex-col items-center gap-2 flex-1">
+                                      <div
+                                        className="w-full bg-gradient-to-t from-teal-600 to-teal-400 flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg hover:from-teal-700 hover:to-teal-500 transition-all"
+                                        style={{ height: `${(grandTotals.woRel / maxValue) * 300}px`, minHeight: '30px' }}
+                                        title={`WO Rel: ${grandTotals.woRel}`}
+                                      >
+                                        {grandTotals.woRel}
+                                      </div>
+                                      <span className="text-xs font-semibold text-gray-700 mt-2 text-center">WO Rel</span>
+                                    </div>
+                                    <div className="flex flex-col items-center gap-2 flex-1">
+                                      <div
+                                        className="w-full bg-gradient-to-t from-pink-600 to-pink-400 flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg hover:from-pink-700 hover:to-pink-500 transition-all"
+                                        style={{ height: `${(grandTotals.meCell / maxValue) * 300}px`, minHeight: '30px' }}
+                                        title={`ME Cell: ${grandTotals.meCell}`}
+                                      >
+                                        {grandTotals.meCell}
+                                      </div>
+                                      <span className="text-xs font-semibold text-gray-700 mt-2 text-center">ME Cell</span>
+                                    </div>
+                                  </>
+                                );
+                              })()}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+
+                {/* Graph - Section-wise Distribution */}
+                <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 mt-8">
+                  <h3 className="text-2xl font-bold text-gray-900 mb-6">Section-wise Grand Total Distribution</h3>
+                  <div className="flex items-end justify-around h-96 border-l-2 border-b-2 border-gray-400 pl-4 pb-4 mt-4">
+                    {(() => {
+                      const scaledData = [
+                        { sec: 'ARD', grandTotal: 37 },
+                        { sec: 'ARMT', grandTotal: 38 },
+                        { sec: 'ETD', grandTotal: 2 },
+                        { sec: 'SRD', grandTotal: 60 },
+                        { sec: 'T&R', grandTotal: 14 },
+                        { sec: 'VRD', grandTotal: 30 }
+                      ];
+                      const nonScaledData = [
+                        { sec: 'ARD', grandTotal: 5 },
+                        { sec: 'ARMT', grandTotal: 5 },
+                        { sec: 'ENG', grandTotal: 17 },
+                        { sec: 'ETD', grandTotal: 50 },
+                        { sec: 'INST', grandTotal: 18 },
+                        { sec: 'SRD', grandTotal: 46 },
+                        { sec: 'T&R', grandTotal: 8 },
+                        { sec: 'VRD', grandTotal: 26 }
+                      ];
+                      const data = lmStatusTab === 'scaled' ? scaledData : nonScaledData;
+                      const maxValue = Math.max(...data.map(d => d.grandTotal));
+                      const colors = ['bg-purple-500', 'bg-blue-500', 'bg-green-500', 'bg-orange-500', 'bg-pink-500', 'bg-cyan-500', 'bg-yellow-500', 'bg-red-500'];
+                      
+                      return data.map((row, index) => {
+                        const height = (row.grandTotal / maxValue) * 320;
+                        return (
+                          <div key={row.sec} className="flex flex-col items-center gap-2">
+                            <div
+                              className={`w-16 ${colors[index % colors.length]} flex items-start justify-center text-white font-bold text-xs pt-2 rounded-t-lg hover:opacity-80 transition-all`}
+                              style={{ height: `${height}px`, minHeight: '30px' }}
+                              title={`${row.sec}: ${row.grandTotal}`}
+                            >
+                              {row.grandTotal}
+                            </div>
+                            <span className="text-xs font-semibold text-gray-700 mt-2 text-center">{row.sec}</span>
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+                </div>
+              </div>
             </div>
           ) : selectedCard === 'dr-summary' ? (
             <div className="space-y-8">
