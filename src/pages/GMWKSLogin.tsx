@@ -2,15 +2,18 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 interface LPRNotification {
-  originatorNo: string
-  totalDays: number
+  originatorNo?: string
+  totalDays?: number
   date: string
+  type?: 'lpr' | 'dr-summary'
+  section?: string
+  message?: string
 }
 
 export default function GMWKSLogin() {
   const navigate = useNavigate()
   const [selectedCard, setSelectedCard] = useState<string | null>(null)
-  const [selectedYear, setSelectedYear] = useState<string>('PY-2024-25')
+  const [selectedYear, setSelectedYear] = useState<string>('PY-2025-26')
   const [lmStatusTab, setLmStatusTab] = useState<'scaled' | 'non-scaled'>('scaled')
   const [lpStatusTab, setLpStatusTab] = useState<'scaled' | 'non-scaled'>('scaled')
   const [criticalItemsActions, setCriticalItemsActions] = useState<Record<number, string>>({});
@@ -25,12 +28,24 @@ export default function GMWKSLogin() {
   const [selectedNotificationSerial, setSelectedNotificationSerial] = useState<number | null>(null);
   const [selectedRecipient, setSelectedRecipient] = useState<string>('');
   const [notificationMessage, setNotificationMessage] = useState<string>('');
-  const [showSrbPopup, setShowSrbPopup] = useState(false);
-  const [selectedSectionForSrb, setSelectedSectionForSrb] = useState<string>('');
+  const [showSrdPopup, setShowSrdPopup] = useState(false);
+  const [selectedSectionForSrd, setSelectedSectionForSrd] = useState<string>('');
 
   // Check for LPR notifications on component mount
   useEffect(() => {
     const notifications = JSON.parse(localStorage.getItem('lprNotifications') || '[]');
+    // Add dummy DR Summary notification for SRD if not already present
+    const hasSrdNotification = notifications.some((n: LPRNotification) => n.type === 'dr-summary' && n.section === 'SRD');
+    if (!hasSrdNotification) {
+      const srdNotification: LPRNotification = {
+        type: 'dr-summary',
+        section: 'SRD',
+        message: 'High number of defect reports detected in SRD section. Please review DR Summary.',
+        date: new Date().toISOString()
+      };
+      notifications.push(srdNotification);
+      localStorage.setItem('lprNotifications', JSON.stringify(notifications));
+    }
     if (notifications.length > 0) {
       setLprNotifications(notifications);
       setShowNotification(true);
@@ -61,8 +76,14 @@ export default function GMWKSLogin() {
     setSelectedCard(null)
   }
 
-  const handleDismissNotification = (originatorNo: string) => {
-    const updatedNotifications = lprNotifications.filter(n => n.originatorNo !== originatorNo);
+  const handleDismissNotification = (identifier: string) => {
+    const updatedNotifications = lprNotifications.filter(n => {
+      if (n.type === 'dr-summary') {
+        return n.section !== identifier;
+      } else {
+        return n.originatorNo !== identifier;
+      }
+    });
     setLprNotifications(updatedNotifications);
     localStorage.setItem('lprNotifications', JSON.stringify(updatedNotifications));
     if (updatedNotifications.length === 0) {
@@ -3486,8 +3507,8 @@ export default function GMWKSLogin() {
                                       strokeWidth="2"
                                       className="cursor-pointer hover:opacity-80 transition-opacity"
                                       onClick={() => {
-                                        setSelectedSectionForSrb(data.section);
-                                        setShowSrbPopup(true);
+                                        setSelectedSectionForSrd(data.section);
+                                        setShowSrdPopup(true);
                                       }}
                                     />
                                   );
@@ -3505,8 +3526,8 @@ export default function GMWKSLogin() {
                                 key={data.section} 
                                 className="border-l-4 border-gray-300 pl-4 cursor-pointer hover:bg-gray-50 transition-colors rounded-lg p-2"
                                 onClick={() => {
-                                  setSelectedSectionForSrb(data.section);
-                                  setShowSrbPopup(true);
+                                  setSelectedSectionForSrd(data.section);
+                                  setShowSrdPopup(true);
                                 }}
                               >
                                 <div className="flex items-center justify-between mb-2">
@@ -3592,20 +3613,20 @@ export default function GMWKSLogin() {
                       </div>
                     </div>
 
-                    {/* SRB Popup Modal */}
-                    {showSrbPopup && selectedSectionForSrb && (
+                    {/* SRD DR Summary Popup Modal */}
+                    {showSrdPopup && selectedSectionForSrd && (
                       <div className="fixed inset-0 bg-black bg-opacity-40 z-50 flex items-center justify-center p-4">
                         <div className="bg-white rounded-xl shadow-2xl max-w-7xl w-full max-h-[90vh] overflow-hidden flex flex-col">
                           {/* Header */}
                           <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 flex items-center justify-between shadow-lg">
-              <div>
-                              <h3 className="text-2xl font-bold">SRB Data - {selectedSectionForSrb} Section</h3>
-                              <p className="text-blue-100 text-sm mt-1">Spares Requirement Book for {selectedSectionForSrb}</p>
-                  </div>
+                            <div>
+                              <h3 className="text-2xl font-bold">DR Summary - {selectedSectionForSrd} Section</h3>
+                              <p className="text-blue-100 text-sm mt-1">Defect Report Summary for {selectedSectionForSrd}</p>
+                            </div>
                             <button
                               onClick={() => {
-                                setShowSrbPopup(false);
-                                setSelectedSectionForSrb('');
+                                setShowSrdPopup(false);
+                                setSelectedSectionForSrd('');
                               }}
                               className="text-white hover:text-blue-200 transition-colors p-2 rounded-full hover:bg-white hover:bg-opacity-20"
                             >
@@ -3613,196 +3634,110 @@ export default function GMWKSLogin() {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                               </svg>
                             </button>
-                  </div>
+                          </div>
 
-                          {/* SRB Table Content */}
+                          {/* SRD DR Summary Table Content */}
                           <div className="flex-1 overflow-y-auto p-6">
                             {(() => {
-                              // Generate SRB data for the selected section
-                              const sectionSrbData = [
-                                {
-                                  serNo: 1, ohsNo: 1, partNo: '5330-390235 (675-10-29-01)', nomenclature: 'SEAL PLAIN', aU: 'Nos', noOff: 1, scale: 80,
-                                  ohOutput: 59, depthReqd: 48,
-                                  virUnsv: 0, virDefi: 0, virRepairable: 0, virSer: 0, virTotal: 0,
-                                  newOrdRange: 0, newOrdDepth: 0,
-                                  newLPRange: 0, newLPDepth: 0,
-                                  newLMRange: 0, newLMDepth: 0,
-                                  newLRCRange: 0, newLRCDepth: 0,
-                                  retrievedRange: 0, retrievedDepth: 0,
-                                  repairedRange: 0, repairedDepth: 0,
-                                  reclaimedRange: 0, reclaimedDepth: 0,
-                                  rolloverRange: 0, rolloverDepth: 0,
-                                  totalRange: 48, totalDepth: 48,
-                                  reqmtVsIssue: 0,
-                                  percIncrDecr: 0,
-                                  changeInScaleAuth: 'No Change',
-                                  remarks: '-'
-                                },
-                                {
-                                  serNo: 2, ohsNo: 2, partNo: '5330-390228 (675-10-20-03)', nomenclature: 'RETAINER PACKING', aU: 'Nos', noOff: 1, scale: 80,
-                                  ohOutput: 59, depthReqd: 48,
-                                  virUnsv: 0, virDefi: 0, virRepairable: 0, virSer: 0, virTotal: 0,
-                                  newOrdRange: 0, newOrdDepth: 0,
-                                  newLPRange: 0, newLPDepth: 0,
-                                  newLMRange: 0, newLMDepth: 0,
-                                  newLRCRange: 0, newLRCDepth: 0,
-                                  retrievedRange: 0, retrievedDepth: 0,
-                                  repairedRange: 0, repairedDepth: 0,
-                                  reclaimedRange: 0, reclaimedDepth: 0,
-                                  rolloverRange: 0, rolloverDepth: 0,
-                                  totalRange: 48, totalDepth: 48,
-                                  reqmtVsIssue: 0,
-                                  percIncrDecr: 0,
-                                  changeInScaleAuth: 'No Change',
-                                  remarks: '-'
-                                },
-                                {
-                                  serNo: 3, ohsNo: 3, partNo: '4730-079089 (675-10-27)', nomenclature: 'ADAPTOR BUSHING', aU: 'Nos', noOff: 1, scale: 50,
-                                  ohOutput: 59, depthReqd: 30,
-                                  virUnsv: 0, virDefi: 0, virRepairable: 0, virSer: 0, virTotal: 0,
-                                  newOrdRange: 0, newOrdDepth: 0,
-                                  newLPRange: 12, newLPDepth: 12,
-                                  newLMRange: 0, newLMDepth: 0,
-                                  newLRCRange: 0, newLRCDepth: 0,
-                                  retrievedRange: 0, retrievedDepth: 0,
-                                  repairedRange: 0, repairedDepth: 0,
-                                  reclaimedRange: 0, reclaimedDepth: 0,
-                                  rolloverRange: 0, rolloverDepth: 0,
-                                  totalRange: 30, totalDepth: 30,
-                                  reqmtVsIssue: 0,
-                                  percIncrDecr: 0,
-                                  changeInScaleAuth: 'No Change',
-                                  remarks: '-'
-                                }
+                              // DR Table Data for SRD DR Summary
+                              const drTableDataForSrd = [
+                                { serNo: 1, drNumber: 'DR/2024/001', nomenclature: 'Hydraulic Pump Assembly', typeOfDefect: 'Mechanical Failure', remarks: 'Seal leakage detected' },
+                                { serNo: 2, drNumber: 'DR/2024/002', nomenclature: 'Engine Gasket Set', typeOfDefect: 'Material Defect', remarks: 'Gasket quality issue' },
+                                { serNo: 3, drNumber: 'DR/2024/003', nomenclature: 'Brake Pad Assembly', typeOfDefect: 'Wear & Tear', remarks: 'Premature wear observed' },
+                                { serNo: 4, drNumber: 'DR/2024/004', nomenclature: 'Oil Filter Element', typeOfDefect: 'Material Defect', remarks: 'Filter efficiency below standard' },
+                                { serNo: 5, drNumber: 'DR/2024/005', nomenclature: 'Clutch Plate Set', typeOfDefect: 'Mechanical Failure', remarks: 'Slipping detected' },
+                                { serNo: 6, drNumber: 'DR/2024/006', nomenclature: 'Radiator Core', typeOfDefect: 'Corrosion', remarks: 'Corrosion in cooling fins' },
+                                { serNo: 7, drNumber: 'DR/2024/007', nomenclature: 'Fuel Injection Pump', typeOfDefect: 'Mechanical Failure', remarks: 'Pressure irregularity' },
+                                { serNo: 8, drNumber: 'DR/2024/008', nomenclature: 'Alternator Assembly', typeOfDefect: 'Electrical Issue', remarks: 'Voltage regulation problem' },
+                                { serNo: 9, drNumber: 'DR/2024/009', nomenclature: 'Steering Box Assembly', typeOfDefect: 'Mechanical Failure', remarks: 'Play in steering mechanism' },
+                                { serNo: 10, drNumber: 'DR/2024/010', nomenclature: 'Water Pump', typeOfDefect: 'Mechanical Failure', remarks: 'Bearing failure' }
                               ];
+
+                              // Generate SRD DR Summary data for the selected section based on existing DR table
+                              const sectionDrSummaryData = drTableDataForSrd.filter((_, index) => {
+                                // Filter data based on section - for SRD section, show items that match SRD pattern
+                                // For demo, we'll show a subset of DR data
+                                if (selectedSectionForSrd === 'SRD') {
+                                  return index < 5; // Show first 5 items for SRD
+                                } else if (selectedSectionForSrd === 'ARD') {
+                                  return index >= 1 && index < 4; // Show items 1-3 for ARD
+                                } else if (selectedSectionForSrd === 'VRD') {
+                                  return index >= 0 && index < 3; // Show items 0-2 for VRD
+                                } else if (selectedSectionForSrd === 'ETD') {
+                                  return index >= 2 && index < 6; // Show items 2-5 for ETD
+                                } else if (selectedSectionForSrd === 'T&R') {
+                                  return index >= 4 && index < 7; // Show items 4-6 for T&R
+                                } else {
+                                  return index >= 7; // Show remaining items for Others
+                                }
+                              }).map((dr, index) => ({
+                                serNo: index + 1,
+                                drNumber: dr.drNumber,
+                                nomenclature: dr.nomenclature,
+                                typeOfDefect: dr.typeOfDefect,
+                                dateReported: `2024-${String(Math.floor(Math.random() * 12) + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 28) + 1).padStart(2, '0')}`,
+                                status: ['Open', 'In Progress', 'Resolved', 'Closed'][Math.floor(Math.random() * 4)],
+                                priority: ['High', 'Medium', 'Low'][Math.floor(Math.random() * 3)],
+                                remarks: dr.remarks
+                              }));
 
                               return (
                                 <div className="overflow-x-auto">
                                   <div className="mb-4">
-                                    <div className="text-center font-bold text-lg mb-2">Spares Requirement Book</div>
-                                    <div className="text-sm text-gray-600 mb-4 text-center">OH Output (59) : PY 2024-25 - {selectedSectionForSrb} SEC</div>
-                  </div>
-                                  <table className="w-full border-collapse text-xs">
+                                    <div className="text-center font-bold text-lg mb-2">Defect Report Summary</div>
+                                    <div className="text-sm text-gray-600 mb-4 text-center">PY 2024-25 - {selectedSectionForSrd} Section</div>
+                                  </div>
+                                  <table className="w-full border-collapse text-sm">
                                     <thead>
-                                      {/* First Row - Main Headers */}
                                       <tr className="bg-gray-200">
-                                        <th className="border border-gray-400 px-1 py-2 font-semibold" rowSpan={3}>Ser<br/>No</th>
-                                        <th className="border border-gray-400 px-1 py-2 font-semibold" rowSpan={3}>OHS<br/>No</th>
-                                        <th className="border border-gray-400 px-1 py-2 font-semibold" rowSpan={3}>Part<br/>No</th>
-                                        <th className="border border-gray-400 px-1 py-2 font-semibold" rowSpan={3}>Nomenclature</th>
-                                        <th className="border border-gray-400 px-1 py-2 font-semibold" rowSpan={3}>A/U</th>
-                                        <th className="border border-gray-400 px-1 py-2 font-semibold" rowSpan={3}>No<br/>off</th>
-                                        <th className="border border-gray-400 px-1 py-2 font-semibold" rowSpan={3}>Scale</th>
-                                        <th className="border border-gray-400 px-1 py-2 font-semibold" rowSpan={3}>OH Output<br/>(No of VEHS<br/>OH in PY)</th>
-                                        <th className="border border-gray-400 px-1 py-2 font-semibold" rowSpan={3}>Depth reqd<br/>for Tgt as<br/>per Scale</th>
-                                        <th className="border border-gray-400 px-1 py-2 font-semibold" colSpan={5}>VIR</th>
-                                        <th className="border border-gray-400 px-1 py-2 font-semibold" colSpan={18}>Issue Detl</th>
-                                        <th className="border border-gray-400 px-1 py-2 font-semibold" colSpan={3}>Revised Scale<br/>Recommendation</th>
-                                        <th className="border border-gray-400 px-1 py-2 font-semibold" rowSpan={3}>Remarks</th>
-                                      </tr>
-                                      {/* Second Row - VIR and Issue Detl Sub-headers */}
-                                      <tr className="bg-gray-100">
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Unsv</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Defi</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Repairable</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Ser</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Total</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs" colSpan={2}>New(Ord)</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs" colSpan={2}>New(LP)</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs" colSpan={2}>New(LM)</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs" colSpan={2}>New(LRC)</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs" colSpan={2}>Retrieved &<br/>Cannibalised</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs" colSpan={2}>Repaired</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs" colSpan={2}>Reclaimed</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs" colSpan={2}>Rollover</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs" colSpan={2}>Total</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Reqmt Vs<br/>Issue Details</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">% Incr/Decr<br/>in Scale= AF/H *100</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Change in<br/>Scale Auth</th>
-                                      </tr>
-                                      {/* Third Row - Range/Depth sub-columns */}
-                                      <tr className="bg-gray-100">
-                                        <th className="border border-gray-400 px-1 py-1"></th>
-                                        <th className="border border-gray-400 px-1 py-1"></th>
-                                        <th className="border border-gray-400 px-1 py-1"></th>
-                                        <th className="border border-gray-400 px-1 py-1"></th>
-                                        <th className="border border-gray-400 px-1 py-1"></th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Range</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Depth</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Range</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Depth</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Range</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Depth</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Range</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Depth</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Range</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Depth</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Range</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Depth</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Range</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Depth</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Range</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Depth</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Range</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Depth</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Range</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Depth</th>
-                                        <th className="border border-gray-400 px-1 py-1"></th>
-                                        <th className="border border-gray-400 px-1 py-1"></th>
-                                        <th className="border border-gray-400 px-1 py-1"></th>
-                                        <th className="border border-gray-400 px-1 py-1"></th>
+                                        <th className="border border-gray-400 px-4 py-3 font-semibold text-left">Ser No</th>
+                                        <th className="border border-gray-400 px-4 py-3 font-semibold text-left">DR Number</th>
+                                        <th className="border border-gray-400 px-4 py-3 font-semibold text-left">Nomenclature</th>
+                                        <th className="border border-gray-400 px-4 py-3 font-semibold text-left">Type of Defect</th>
+                                        <th className="border border-gray-400 px-4 py-3 font-semibold text-left">Date Reported</th>
+                                        <th className="border border-gray-400 px-4 py-3 font-semibold text-left">Status</th>
+                                        <th className="border border-gray-400 px-4 py-3 font-semibold text-left">Priority</th>
+                                        <th className="border border-gray-400 px-4 py-3 font-semibold text-left">Remarks</th>
                                       </tr>
                                     </thead>
                                     <tbody>
-                                      {sectionSrbData.map((item, index) => (
+                                      {sectionDrSummaryData.map((item, index) => (
                                         <tr 
                                           key={item.serNo}
                                           className={`${index % 2 === 0 ? 'bg-gray-50' : 'bg-white'} hover:bg-blue-50 transition-colors`}
                                         >
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.serNo}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.ohsNo}</td>
-                                          <td className="border border-gray-300 px-1 py-1 font-mono text-xs">{item.partNo}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-xs">{item.nomenclature}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.aU}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.noOff}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.scale}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.ohOutput}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.depthReqd}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.virUnsv}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.virDefi}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.virRepairable}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.virSer}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.virTotal}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.newOrdRange}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.newOrdDepth}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.newLPRange}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.newLPDepth}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.newLMRange}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.newLMDepth}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.newLRCRange}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.newLRCDepth}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.retrievedRange}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.retrievedDepth}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.repairedRange}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.repairedDepth}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.reclaimedRange}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.reclaimedDepth}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.rolloverRange}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.rolloverDepth}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.totalRange}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.totalDepth}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.reqmtVsIssue}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.percIncrDecr}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-xs">{item.changeInScaleAuth}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-xs">{item.remarks}</td>
+                                          <td className="border border-gray-300 px-4 py-2 text-center">{item.serNo}</td>
+                                          <td className="border border-gray-300 px-4 py-2 font-mono text-xs">{item.drNumber}</td>
+                                          <td className="border border-gray-300 px-4 py-2">{item.nomenclature}</td>
+                                          <td className="border border-gray-300 px-4 py-2">{item.typeOfDefect}</td>
+                                          <td className="border border-gray-300 px-4 py-2">{item.dateReported}</td>
+                                          <td className="border border-gray-300 px-4 py-2">
+                                            <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                                              item.status === 'Resolved' || item.status === 'Closed' ? 'bg-green-100 text-green-800' :
+                                              item.status === 'In Progress' ? 'bg-yellow-100 text-yellow-800' :
+                                              'bg-red-100 text-red-800'
+                                            }`}>
+                                              {item.status}
+                                            </span>
+                                          </td>
+                                          <td className="border border-gray-300 px-4 py-2">
+                                            <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                                              item.priority === 'High' ? 'bg-red-100 text-red-800' :
+                                              item.priority === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
+                                              'bg-green-100 text-green-800'
+                                            }`}>
+                                              {item.priority}
+                                            </span>
+                                          </td>
+                                          <td className="border border-gray-300 px-4 py-2 text-xs">{item.remarks}</td>
                                         </tr>
                                       ))}
                                     </tbody>
                                   </table>
-                  </div>
+                                </div>
                               );
                             })()}
-                </div>
+                          </div>
                         </div>
                       </div>
                     )}
@@ -4412,21 +4347,33 @@ export default function GMWKSLogin() {
               ) : (
                 <div className="space-y-3">
                   {lprNotifications.map((notification, index) => (
-                    <div key={index} className="bg-white border-l-4 border-red-500 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
+                    <div key={index} className={`bg-white border-l-4 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow ${
+                      notification.type === 'dr-summary' ? 'border-orange-500' : 'border-red-500'
+                    }`}>
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
-                            <div className="bg-red-100 rounded-full p-1.5">
-                              <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div className={`rounded-full p-1.5 ${
+                              notification.type === 'dr-summary' ? 'bg-orange-100' : 'bg-red-100'
+                            }`}>
+                              <svg className={`w-4 h-4 ${notification.type === 'dr-summary' ? 'text-orange-600' : 'text-red-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                               </svg>
                             </div>
                             <p className="font-bold text-gray-900">
-                              LPR: <span className="text-red-600">{notification.originatorNo}</span>
+                              {notification.type === 'dr-summary' ? (
+                                <>DR Summary - <span className="text-orange-600">{notification.section}</span> Section</>
+                              ) : (
+                                <>LPR: <span className="text-red-600">{notification.originatorNo}</span></>
+                              )}
                             </p>
                           </div>
                           <p className="text-sm text-gray-700 mb-2">
-                            This LPR has been pending for <span className="font-bold text-red-600">{notification.totalDays} days</span>, exceeding the 90-day threshold.
+                            {notification.type === 'dr-summary' ? (
+                              notification.message
+                            ) : (
+                              <>This LPR has been pending for <span className="font-bold text-red-600">{notification.totalDays} days</span>, exceeding the 90-day threshold.</>
+                            )}
                           </p>
                           <p className="text-xs text-gray-500">
                             Alert: {new Date(notification.date).toLocaleString()}
@@ -4434,7 +4381,7 @@ export default function GMWKSLogin() {
                         </div>
                         <button
                           onClick={() => {
-                            handleDismissNotification(notification.originatorNo);
+                            handleDismissNotification(notification.type === 'dr-summary' ? (notification.section || String(index)) : (notification.originatorNo || String(index)));
                             if (lprNotifications.length === 1) {
                               setIsNotificationOpen(false);
                             }
@@ -4634,21 +4581,31 @@ export default function GMWKSLogin() {
               </div>
               <div className="space-y-3 max-h-96 overflow-y-auto">
                 {lprNotifications.map((notification, index) => (
-                  <div key={index} className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <div key={index} className={`border rounded-lg p-4 ${
+                    notification.type === 'dr-summary' ? 'bg-orange-50 border-orange-200' : 'bg-red-50 border-red-200'
+                  }`}>
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <p className="font-semibold text-gray-900 mb-1">
-                          LPR: <span className="text-red-600">{notification.originatorNo}</span>
+                          {notification.type === 'dr-summary' ? (
+                            <>DR Summary - <span className="text-orange-600">{notification.section}</span> Section</>
+                          ) : (
+                            <>LPR: <span className="text-red-600">{notification.originatorNo}</span></>
+                          )}
                         </p>
                         <p className="text-sm text-gray-700">
-                          This LPR has been pending for <span className="font-bold text-red-600">{notification.totalDays} days</span>, exceeding the 90-day threshold.
+                          {notification.type === 'dr-summary' ? (
+                            notification.message || 'DR Summary alert for section'
+                          ) : (
+                            <>This LPR has been pending for <span className="font-bold text-red-600">{notification.totalDays} days</span>, exceeding the 90-day threshold.</>
+                          )}
                         </p>
                         <p className="text-xs text-gray-500 mt-1">
                           Alert generated: {new Date(notification.date).toLocaleString()}
                         </p>
                       </div>
                       <button
-                        onClick={() => handleDismissNotification(notification.originatorNo)}
+                        onClick={() => handleDismissNotification(notification.type === 'dr-summary' ? (notification.section || String(index)) : (notification.originatorNo || String(index)))}
                         className="ml-2 text-gray-400 hover:text-gray-600 transition"
                         title="Dismiss this notification"
                       >
@@ -4799,21 +4756,33 @@ export default function GMWKSLogin() {
               ) : (
                 <div className="space-y-3">
                   {lprNotifications.map((notification, index) => (
-                    <div key={index} className="bg-white border-l-4 border-red-500 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
+                    <div key={index} className={`bg-white border-l-4 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow ${
+                      notification.type === 'dr-summary' ? 'border-orange-500' : 'border-red-500'
+                    }`}>
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
-                            <div className="bg-red-100 rounded-full p-1.5">
-                              <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div className={`rounded-full p-1.5 ${
+                              notification.type === 'dr-summary' ? 'bg-orange-100' : 'bg-red-100'
+                            }`}>
+                              <svg className={`w-4 h-4 ${notification.type === 'dr-summary' ? 'text-orange-600' : 'text-red-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                               </svg>
                             </div>
                             <p className="font-bold text-gray-900">
-                              LPR: <span className="text-red-600">{notification.originatorNo}</span>
+                              {notification.type === 'dr-summary' ? (
+                                <>DR Summary - <span className="text-orange-600">{notification.section}</span> Section</>
+                              ) : (
+                                <>LPR: <span className="text-red-600">{notification.originatorNo}</span></>
+                              )}
                             </p>
                           </div>
                           <p className="text-sm text-gray-700 mb-2">
-                            This LPR has been pending for <span className="font-bold text-red-600">{notification.totalDays} days</span>, exceeding the 90-day threshold.
+                            {notification.type === 'dr-summary' ? (
+                              notification.message
+                            ) : (
+                              <>This LPR has been pending for <span className="font-bold text-red-600">{notification.totalDays} days</span>, exceeding the 90-day threshold.</>
+                            )}
                           </p>
                           <p className="text-xs text-gray-500">
                             Alert: {new Date(notification.date).toLocaleString()}
@@ -4821,7 +4790,7 @@ export default function GMWKSLogin() {
                         </div>
                         <button
                           onClick={() => {
-                            handleDismissNotification(notification.originatorNo);
+                            handleDismissNotification(notification.type === 'dr-summary' ? (notification.section || String(index)) : (notification.originatorNo || String(index)));
                             if (lprNotifications.length === 1) {
                               setIsNotificationOpen(false);
                             }

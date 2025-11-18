@@ -49,7 +49,7 @@ export default function ComdtMDDashboard() {
       title: 'GM WKS MTRL',
       subtitle: 'General Manager Workshop Material',
       gradient: 'bg-gradient-to-br from-emerald-600 to-emerald-800',
-      loginRoute: '/login/gm-wks-mtrl'
+      loginRoute: '/sections-dashboard'
     },
     {
       title: 'GM WKS (Tech)',

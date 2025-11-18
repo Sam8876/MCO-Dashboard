@@ -19,14 +19,17 @@ export default function DGMMTRLLogin() {
   const [lpSoPlacedTab, setLpSoPlacedTab] = useState<'scaled' | 'non-scaled'>('scaled')
   const [vendorSearchTerm, setVendorSearchTerm] = useState<string>('')
   const [selectedPeriod, setSelectedPeriod] = useState<string>('PY-2023-24')
-  const [selectedYear, setSelectedYear] = useState<string>('')
+  const [selectedYear, setSelectedYear] = useState<string>('PY-2025-26')
   const [isChatbotOpen, setIsChatbotOpen] = useState(false)
   const [chatMessages, setChatMessages] = useState<Array<{ id: number; text: string; sender: 'user' | 'bot'; timestamp: Date }>>([])
   const [chatInput, setChatInput] = useState('')
   const [isNotificationOpen, setIsNotificationOpen] = useState(false)
   const [notifications, setNotifications] = useState<Notification[]>([])
-  const [showSrbPopup, setShowSrbPopup] = useState(false)
-  const [selectedSectionForSrb, setSelectedSectionForSrb] = useState<string>('')
+  const [showSrdPopup, setShowSrdPopup] = useState(false)
+  const [selectedSectionForSrd, setSelectedSectionForSrd] = useState<string>('')
+  const [showImportModal, setShowImportModal] = useState(false)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [importSection, setImportSection] = useState<string>('')
 
   // Load notifications on component mount
   useEffect(() => {
@@ -75,6 +78,34 @@ export default function DGMMTRLLogin() {
 
   const handleBack = () => {
     setSelectedCard(null)
+  }
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setSelectedFile(file)
+    }
+  }
+
+  const handleImport = () => {
+    if (selectedFile) {
+      console.log(`Importing file for ${importSection}:`, selectedFile.name)
+      alert(`File "${selectedFile.name}" imported successfully for ${importSection}!`)
+      setSelectedFile(null)
+      setShowImportModal(false)
+      setImportSection('')
+    }
+  }
+
+  const handleCancelImport = () => {
+    setSelectedFile(null)
+    setShowImportModal(false)
+    setImportSection('')
+  }
+
+  const handleImportClick = (section: string) => {
+    setImportSection(section)
+    setShowImportModal(true)
   }
 
   const handleSendMessage = () => {
@@ -240,8 +271,8 @@ export default function DGMMTRLLogin() {
         <div className="max-w-7xl mx-auto px-6 py-8">
           {selectedCard === 'ct-issue' ? (
             <div className="space-y-8">
-              {/* Back Button */}
-              <div className="mb-4">
+              {/* Back Button and Import Button */}
+              <div className="mb-4 flex justify-between items-center">
                 <button
                   onClick={handleBack}
                   className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-semibold transition-colors flex items-center gap-2"
@@ -250,6 +281,15 @@ export default function DGMMTRLLogin() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                   </svg>
                   Back to Dashboards
+                </button>
+                <button
+                  onClick={() => handleImportClick('CT Issue')}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold transition-colors flex items-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                  Import
                 </button>
               </div>
               
@@ -743,8 +783,8 @@ export default function DGMMTRLLogin() {
             </div>
           ) : selectedCard === 'target' ? (
             <div className="space-y-8">
-              {/* Back Button */}
-              <div className="mb-4">
+              {/* Back Button and Import Button */}
+              <div className="mb-4 flex justify-between items-center">
                 <button
                   onClick={handleBack}
                   className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-semibold transition-colors flex items-center gap-2"
@@ -753,6 +793,15 @@ export default function DGMMTRLLogin() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                   </svg>
                   Back to Dashboards
+                </button>
+                <button
+                  onClick={() => handleImportClick('Target')}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold transition-colors flex items-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                  Import
                 </button>
               </div>
               
@@ -1229,8 +1278,8 @@ export default function DGMMTRLLogin() {
             </div>
           ) : selectedCard === 'fund-state' ? (
             <div className="space-y-8">
-              {/* Back Button */}
-              <div className="mb-4">
+              {/* Back Button and Import Button */}
+              <div className="mb-4 flex justify-between items-center">
                 <button
                   onClick={handleBack}
                   className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-semibold transition-colors flex items-center gap-2"
@@ -1239,6 +1288,15 @@ export default function DGMMTRLLogin() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                   </svg>
                   Back to Dashboards
+                </button>
+                <button
+                  onClick={() => handleImportClick('Fund State')}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold transition-colors flex items-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                  Import
                 </button>
               </div>
               {/* Summary Cards */}
@@ -1416,8 +1474,8 @@ export default function DGMMTRLLogin() {
             </div>
           ) : selectedCard === 'ifa-case-progress' ? (
             <div className="space-y-8">
-              {/* Back Button */}
-              <div className="mb-4">
+              {/* Back Button and Import Button */}
+              <div className="mb-4 flex justify-between items-center">
                 <button
                   onClick={handleBack}
                   className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-semibold transition-colors flex items-center gap-2"
@@ -1426,6 +1484,15 @@ export default function DGMMTRLLogin() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                   </svg>
                   Back to Dashboards
+                </button>
+                <button
+                  onClick={() => handleImportClick('IFA Cases')}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold transition-colors flex items-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                  Import
                 </button>
               </div>
               {/* IFA Cases Count */}
@@ -1613,8 +1680,8 @@ export default function DGMMTRLLogin() {
             </div>
           ) : selectedCard === 'dr-summary' ? (
             <div className="space-y-8">
-              {/* Back Button */}
-              <div className="mb-4">
+              {/* Back Button and Import Button */}
+              <div className="mb-4 flex justify-between items-center">
                 <button
                   onClick={handleBack}
                   className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-semibold transition-colors flex items-center gap-2"
@@ -1623,6 +1690,15 @@ export default function DGMMTRLLogin() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                   </svg>
                   Back to Dashboards
+                </button>
+                <button
+                  onClick={() => handleImportClick('DR Summary')}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold transition-colors flex items-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                  Import
                 </button>
               </div>
               {/* DR Summary Content */}
@@ -1735,8 +1811,8 @@ export default function DGMMTRLLogin() {
                                       strokeWidth="2"
                                       className="cursor-pointer hover:opacity-80 transition-opacity"
                                       onClick={() => {
-                                        setSelectedSectionForSrb(data.section);
-                                        setShowSrbPopup(true);
+                                        setSelectedSectionForSrd(data.section);
+                                        setShowSrdPopup(true);
                                       }}
                                     />
                                   );
@@ -1754,8 +1830,8 @@ export default function DGMMTRLLogin() {
                                 key={data.section} 
                                 className="border-l-4 border-gray-300 pl-4 cursor-pointer hover:bg-gray-50 transition-colors rounded-lg p-2"
                                 onClick={() => {
-                                  setSelectedSectionForSrb(data.section);
-                                  setShowSrbPopup(true);
+                                  setSelectedSectionForSrd(data.section);
+                                  setShowSrdPopup(true);
                                 }}
                               >
                                 <div className="flex items-center justify-between mb-2">
@@ -1841,20 +1917,20 @@ export default function DGMMTRLLogin() {
                       </div>
                     </div>
 
-                    {/* SRB Popup Modal */}
-                    {showSrbPopup && selectedSectionForSrb && (
+                    {/* SRD DR Summary Popup Modal */}
+                    {showSrdPopup && selectedSectionForSrd && (
                       <div className="fixed inset-0 bg-black bg-opacity-40 z-50 flex items-center justify-center p-4">
                         <div className="bg-white rounded-xl shadow-2xl max-w-7xl w-full max-h-[90vh] overflow-hidden flex flex-col">
                           {/* Header */}
                           <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 flex items-center justify-between shadow-lg">
                             <div>
-                              <h3 className="text-2xl font-bold">SRB Data - {selectedSectionForSrb} Section</h3>
-                              <p className="text-blue-100 text-sm mt-1">Spares Requirement Book for {selectedSectionForSrb}</p>
+                              <h3 className="text-2xl font-bold">SRD DR Summary - {selectedSectionForSrd} Section</h3>
+                              <p className="text-blue-100 text-sm mt-1">Defect Report Summary for {selectedSectionForSrd}</p>
                             </div>
                             <button
                               onClick={() => {
-                                setShowSrbPopup(false);
-                                setSelectedSectionForSrb('');
+                                setShowSrdPopup(false);
+                                setSelectedSectionForSrd('');
                               }}
                               className="text-white hover:text-blue-200 transition-colors p-2 rounded-full hover:bg-white hover:bg-opacity-20"
                             >
@@ -1864,186 +1940,100 @@ export default function DGMMTRLLogin() {
                             </button>
                           </div>
 
-                          {/* SRB Table Content */}
+                          {/* SRD DR Summary Table Content */}
                           <div className="flex-1 overflow-y-auto p-6">
                             {(() => {
-                              // Generate SRB data for the selected section
-                              const sectionSrbData = [
-                                {
-                                  serNo: 1, ohsNo: 1, partNo: '5330-390235 (675-10-29-01)', nomenclature: 'SEAL PLAIN', aU: 'Nos', noOff: 1, scale: 80,
-                                  ohOutput: 59, depthReqd: 48,
-                                  virUnsv: 0, virDefi: 0, virRepairable: 0, virSer: 0, virTotal: 0,
-                                  newOrdRange: 0, newOrdDepth: 0,
-                                  newLPRange: 0, newLPDepth: 0,
-                                  newLMRange: 0, newLMDepth: 0,
-                                  newLRCRange: 0, newLRCDepth: 0,
-                                  retrievedRange: 0, retrievedDepth: 0,
-                                  repairedRange: 0, repairedDepth: 0,
-                                  reclaimedRange: 0, reclaimedDepth: 0,
-                                  rolloverRange: 0, rolloverDepth: 0,
-                                  totalRange: 48, totalDepth: 48,
-                                  reqmtVsIssue: 0,
-                                  percIncrDecr: 0,
-                                  changeInScaleAuth: 'No Change',
-                                  remarks: '-'
-                                },
-                                {
-                                  serNo: 2, ohsNo: 2, partNo: '5330-390228 (675-10-20-03)', nomenclature: 'RETAINER PACKING', aU: 'Nos', noOff: 1, scale: 80,
-                                  ohOutput: 59, depthReqd: 48,
-                                  virUnsv: 0, virDefi: 0, virRepairable: 0, virSer: 0, virTotal: 0,
-                                  newOrdRange: 0, newOrdDepth: 0,
-                                  newLPRange: 0, newLPDepth: 0,
-                                  newLMRange: 0, newLMDepth: 0,
-                                  newLRCRange: 0, newLRCDepth: 0,
-                                  retrievedRange: 0, retrievedDepth: 0,
-                                  repairedRange: 0, repairedDepth: 0,
-                                  reclaimedRange: 0, reclaimedDepth: 0,
-                                  rolloverRange: 0, rolloverDepth: 0,
-                                  totalRange: 48, totalDepth: 48,
-                                  reqmtVsIssue: 0,
-                                  percIncrDecr: 0,
-                                  changeInScaleAuth: 'No Change',
-                                  remarks: '-'
-                                },
-                                {
-                                  serNo: 3, ohsNo: 3, partNo: '4730-079089 (675-10-27)', nomenclature: 'ADAPTOR BUSHING', aU: 'Nos', noOff: 1, scale: 50,
-                                  ohOutput: 59, depthReqd: 30,
-                                  virUnsv: 0, virDefi: 0, virRepairable: 0, virSer: 0, virTotal: 0,
-                                  newOrdRange: 0, newOrdDepth: 0,
-                                  newLPRange: 12, newLPDepth: 12,
-                                  newLMRange: 0, newLMDepth: 0,
-                                  newLRCRange: 0, newLRCDepth: 0,
-                                  retrievedRange: 0, retrievedDepth: 0,
-                                  repairedRange: 0, repairedDepth: 0,
-                                  reclaimedRange: 0, reclaimedDepth: 0,
-                                  rolloverRange: 0, rolloverDepth: 0,
-                                  totalRange: 30, totalDepth: 30,
-                                  reqmtVsIssue: 0,
-                                  percIncrDecr: 0,
-                                  changeInScaleAuth: 'No Change',
-                                  remarks: '-'
-                                }
+                              // DR Table Data for SRD DR Summary
+                              const drTableDataForSrd = [
+                                { serNo: 1, drNumber: 'DR/2024/001', nomenclature: 'Hydraulic Pump Assembly', typeOfDefect: 'Mechanical Failure', remarks: 'Seal leakage detected' },
+                                { serNo: 2, drNumber: 'DR/2024/002', nomenclature: 'Engine Gasket Set', typeOfDefect: 'Material Defect', remarks: 'Gasket quality issue' },
+                                { serNo: 3, drNumber: 'DR/2024/003', nomenclature: 'Brake Pad Assembly', typeOfDefect: 'Wear & Tear', remarks: 'Premature wear observed' },
+                                { serNo: 4, drNumber: 'DR/2024/004', nomenclature: 'Oil Filter Element', typeOfDefect: 'Material Defect', remarks: 'Filter efficiency below standard' },
+                                { serNo: 5, drNumber: 'DR/2024/005', nomenclature: 'Clutch Plate Set', typeOfDefect: 'Mechanical Failure', remarks: 'Slipping detected' },
+                                { serNo: 6, drNumber: 'DR/2024/006', nomenclature: 'Radiator Core', typeOfDefect: 'Corrosion', remarks: 'Corrosion in cooling fins' },
+                                { serNo: 7, drNumber: 'DR/2024/007', nomenclature: 'Fuel Injection Pump', typeOfDefect: 'Mechanical Failure', remarks: 'Pressure irregularity' },
+                                { serNo: 8, drNumber: 'DR/2024/008', nomenclature: 'Alternator Assembly', typeOfDefect: 'Electrical Issue', remarks: 'Voltage regulation problem' },
+                                { serNo: 9, drNumber: 'DR/2024/009', nomenclature: 'Steering Box Assembly', typeOfDefect: 'Mechanical Failure', remarks: 'Play in steering mechanism' },
+                                { serNo: 10, drNumber: 'DR/2024/010', nomenclature: 'Water Pump', typeOfDefect: 'Mechanical Failure', remarks: 'Bearing failure' }
                               ];
+
+                              // Generate SRD DR Summary data for the selected section based on existing DR table
+                              const sectionDrSummaryData = drTableDataForSrd.filter((_, index) => {
+                                // Filter data based on section - for SRD section, show items that match SRD pattern
+                                // For demo, we'll show a subset of DR data
+                                if (selectedSectionForSrd === 'SRD') {
+                                  return index < 5; // Show first 5 items for SRD
+                                } else if (selectedSectionForSrd === 'ARD') {
+                                  return index >= 1 && index < 4; // Show items 1-3 for ARD
+                                } else if (selectedSectionForSrd === 'VRD') {
+                                  return index >= 0 && index < 3; // Show items 0-2 for VRD
+                                } else if (selectedSectionForSrd === 'ETD') {
+                                  return index >= 2 && index < 6; // Show items 2-5 for ETD
+                                } else if (selectedSectionForSrd === 'T&R') {
+                                  return index >= 4 && index < 7; // Show items 4-6 for T&R
+                                } else {
+                                  return index >= 7; // Show remaining items for Others
+                                }
+                              }).map((dr, index) => ({
+                                serNo: index + 1,
+                                drNumber: dr.drNumber,
+                                nomenclature: dr.nomenclature,
+                                typeOfDefect: dr.typeOfDefect,
+                                dateReported: `2024-${String(Math.floor(Math.random() * 12) + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 28) + 1).padStart(2, '0')}`,
+                                status: ['Open', 'In Progress', 'Resolved', 'Closed'][Math.floor(Math.random() * 4)],
+                                priority: ['High', 'Medium', 'Low'][Math.floor(Math.random() * 3)],
+                                remarks: dr.remarks
+                              }));
 
                               return (
                                 <div className="overflow-x-auto">
                                   <div className="mb-4">
-                                    <div className="text-center font-bold text-lg mb-2">Spares Requirement Book</div>
-                                    <div className="text-sm text-gray-600 mb-4 text-center">OH Output (59) : PY 2024-25 - {selectedSectionForSrb} SEC</div>
+                                    <div className="text-center font-bold text-lg mb-2">Defect Report Summary</div>
+                                    <div className="text-sm text-gray-600 mb-4 text-center">PY 2024-25 - {selectedSectionForSrd} Section</div>
                                   </div>
-                                  <table className="w-full border-collapse text-xs">
+                                  <table className="w-full border-collapse text-sm">
                                     <thead>
-                                      {/* First Row - Main Headers */}
                                       <tr className="bg-gray-200">
-                                        <th className="border border-gray-400 px-1 py-2 font-semibold" rowSpan={3}>Ser<br/>No</th>
-                                        <th className="border border-gray-400 px-1 py-2 font-semibold" rowSpan={3}>OHS<br/>No</th>
-                                        <th className="border border-gray-400 px-1 py-2 font-semibold" rowSpan={3}>Part<br/>No</th>
-                                        <th className="border border-gray-400 px-1 py-2 font-semibold" rowSpan={3}>Nomenclature</th>
-                                        <th className="border border-gray-400 px-1 py-2 font-semibold" rowSpan={3}>A/U</th>
-                                        <th className="border border-gray-400 px-1 py-2 font-semibold" rowSpan={3}>No<br/>off</th>
-                                        <th className="border border-gray-400 px-1 py-2 font-semibold" rowSpan={3}>Scale</th>
-                                        <th className="border border-gray-400 px-1 py-2 font-semibold" rowSpan={3}>OH Output<br/>(No of VEHS<br/>OH in PY)</th>
-                                        <th className="border border-gray-400 px-1 py-2 font-semibold" rowSpan={3}>Depth reqd<br/>for Tgt as<br/>per Scale</th>
-                                        <th className="border border-gray-400 px-1 py-2 font-semibold" colSpan={5}>VIR</th>
-                                        <th className="border border-gray-400 px-1 py-2 font-semibold" colSpan={18}>Issue Detl</th>
-                                        <th className="border border-gray-400 px-1 py-2 font-semibold" colSpan={3}>Revised Scale<br/>Recommendation</th>
-                                        <th className="border border-gray-400 px-1 py-2 font-semibold" rowSpan={3}>Remarks</th>
-                                      </tr>
-                                      {/* Second Row - VIR and Issue Detl Sub-headers */}
-                                      <tr className="bg-gray-100">
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Unsv</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Defi</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Repairable</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Ser</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Total</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs" colSpan={2}>New(Ord)</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs" colSpan={2}>New(LP)</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs" colSpan={2}>New(LM)</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs" colSpan={2}>New(LRC)</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs" colSpan={2}>Retrieved &<br/>Cannibalised</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs" colSpan={2}>Repaired</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs" colSpan={2}>Reclaimed</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs" colSpan={2}>Rollover</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs" colSpan={2}>Total</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Reqmt Vs<br/>Issue Details</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">% Incr/Decr<br/>in Scale= AF/H *100</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Change in<br/>Scale Auth</th>
-                                      </tr>
-                                      {/* Third Row - Range/Depth sub-columns */}
-                                      <tr className="bg-gray-100">
-                                        <th className="border border-gray-400 px-1 py-1"></th>
-                                        <th className="border border-gray-400 px-1 py-1"></th>
-                                        <th className="border border-gray-400 px-1 py-1"></th>
-                                        <th className="border border-gray-400 px-1 py-1"></th>
-                                        <th className="border border-gray-400 px-1 py-1"></th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Range</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Depth</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Range</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Depth</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Range</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Depth</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Range</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Depth</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Range</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Depth</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Range</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Depth</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Range</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Depth</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Range</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Depth</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Range</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Depth</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Range</th>
-                                        <th className="border border-gray-400 px-1 py-1 font-semibold text-xs">Depth</th>
-                                        <th className="border border-gray-400 px-1 py-1"></th>
-                                        <th className="border border-gray-400 px-1 py-1"></th>
-                                        <th className="border border-gray-400 px-1 py-1"></th>
-                                        <th className="border border-gray-400 px-1 py-1"></th>
+                                        <th className="border border-gray-400 px-4 py-3 font-semibold text-left">Ser No</th>
+                                        <th className="border border-gray-400 px-4 py-3 font-semibold text-left">DR Number</th>
+                                        <th className="border border-gray-400 px-4 py-3 font-semibold text-left">Nomenclature</th>
+                                        <th className="border border-gray-400 px-4 py-3 font-semibold text-left">Type of Defect</th>
+                                        <th className="border border-gray-400 px-4 py-3 font-semibold text-left">Date Reported</th>
+                                        <th className="border border-gray-400 px-4 py-3 font-semibold text-left">Status</th>
+                                        <th className="border border-gray-400 px-4 py-3 font-semibold text-left">Priority</th>
+                                        <th className="border border-gray-400 px-4 py-3 font-semibold text-left">Remarks</th>
                                       </tr>
                                     </thead>
                                     <tbody>
-                                      {sectionSrbData.map((item, index) => (
+                                      {sectionDrSummaryData.map((item, index) => (
                                         <tr 
                                           key={item.serNo}
                                           className={`${index % 2 === 0 ? 'bg-gray-50' : 'bg-white'} hover:bg-blue-50 transition-colors`}
                                         >
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.serNo}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.ohsNo}</td>
-                                          <td className="border border-gray-300 px-1 py-1 font-mono text-xs">{item.partNo}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-xs">{item.nomenclature}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.aU}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.noOff}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.scale}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.ohOutput}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.depthReqd}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.virUnsv}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.virDefi}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.virRepairable}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.virSer}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.virTotal}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.newOrdRange}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.newOrdDepth}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.newLPRange}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.newLPDepth}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.newLMRange}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.newLMDepth}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.newLRCRange}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.newLRCDepth}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.retrievedRange}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.retrievedDepth}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.repairedRange}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.repairedDepth}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.reclaimedRange}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.reclaimedDepth}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.rolloverRange}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.rolloverDepth}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.totalRange}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.totalDepth}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.reqmtVsIssue}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-center">{item.percIncrDecr}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-xs">{item.changeInScaleAuth}</td>
-                                          <td className="border border-gray-300 px-1 py-1 text-xs">{item.remarks}</td>
+                                          <td className="border border-gray-300 px-4 py-2 text-center">{item.serNo}</td>
+                                          <td className="border border-gray-300 px-4 py-2 font-mono text-xs">{item.drNumber}</td>
+                                          <td className="border border-gray-300 px-4 py-2">{item.nomenclature}</td>
+                                          <td className="border border-gray-300 px-4 py-2">{item.typeOfDefect}</td>
+                                          <td className="border border-gray-300 px-4 py-2">{item.dateReported}</td>
+                                          <td className="border border-gray-300 px-4 py-2">
+                                            <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                                              item.status === 'Resolved' || item.status === 'Closed' ? 'bg-green-100 text-green-800' :
+                                              item.status === 'In Progress' ? 'bg-yellow-100 text-yellow-800' :
+                                              'bg-red-100 text-red-800'
+                                            }`}>
+                                              {item.status}
+                                            </span>
+                                          </td>
+                                          <td className="border border-gray-300 px-4 py-2">
+                                            <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                                              item.priority === 'High' ? 'bg-red-100 text-red-800' :
+                                              item.priority === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
+                                              'bg-green-100 text-green-800'
+                                            }`}>
+                                              {item.priority}
+                                            </span>
+                                          </td>
+                                          <td className="border border-gray-300 px-4 py-2 text-xs">{item.remarks}</td>
                                         </tr>
                                       ))}
                                     </tbody>
@@ -2061,8 +2051,8 @@ export default function DGMMTRLLogin() {
             </div>
           ) : selectedCard === 'lm-wo-placed' ? (
             <div className="space-y-8">
-              {/* Back Button */}
-              <div className="mb-4">
+              {/* Back Button and Import Button */}
+              <div className="mb-4 flex justify-between items-center">
                 <button
                   onClick={handleBack}
                   className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-semibold transition-colors flex items-center gap-2"
@@ -2071,6 +2061,15 @@ export default function DGMMTRLLogin() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                   </svg>
                   Back to Dashboards
+                </button>
+                <button
+                  onClick={() => handleImportClick('LM Status')}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold transition-colors flex items-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                  Import
                 </button>
               </div>
 
@@ -2421,8 +2420,8 @@ export default function DGMMTRLLogin() {
             </div>
           ) : selectedCard === 'lp-so-placed' ? (
             <div className="space-y-8">
-              {/* Back Button */}
-              <div className="mb-4">
+              {/* Back Button and Import Button */}
+              <div className="mb-4 flex justify-between items-center">
                 <button
                   onClick={handleBack}
                   className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-semibold transition-colors flex items-center gap-2"
@@ -2431,6 +2430,15 @@ export default function DGMMTRLLogin() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                   </svg>
                   Back to Dashboards
+                </button>
+                <button
+                  onClick={() => handleImportClick('LP Status')}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold transition-colors flex items-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                  Import
                 </button>
               </div>
 
@@ -2736,8 +2744,8 @@ export default function DGMMTRLLogin() {
             </div>
           ) : selectedCard === 'pds-lapse-lp' ? (
             <div className="space-y-8">
-              {/* Back Button */}
-              <div className="mb-4">
+              {/* Back Button and Import Button */}
+              <div className="mb-4 flex justify-between items-center">
                 <button
                   onClick={handleBack}
                   className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-semibold transition-colors flex items-center gap-2"
@@ -2746,6 +2754,15 @@ export default function DGMMTRLLogin() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                   </svg>
                   Back to Dashboards
+                </button>
+                <button
+                  onClick={() => handleImportClick('PDS Lapse LP')}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold transition-colors flex items-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                  Import
                 </button>
               </div>
               {/* PDS Lapse LP Content */}
@@ -2914,8 +2931,8 @@ export default function DGMMTRLLogin() {
             </div>
           ) : selectedCard === 'pds-lapse-lm' ? (
             <div className="space-y-8">
-              {/* Back Button */}
-              <div className="mb-4">
+              {/* Back Button and Import Button */}
+              <div className="mb-4 flex justify-between items-center">
                 <button
                   onClick={handleBack}
                   className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-semibold transition-colors flex items-center gap-2"
@@ -2924,6 +2941,15 @@ export default function DGMMTRLLogin() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                   </svg>
                   Back to Dashboards
+                </button>
+                <button
+                  onClick={() => handleImportClick('PDS Lapse LM')}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold transition-colors flex items-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                  Import
                 </button>
               </div>
               {/* PDS Lapse LM Content */}
@@ -3052,8 +3078,8 @@ export default function DGMMTRLLogin() {
             </div>
           ) : selectedCard === 'urgency' ? (
             <div className="space-y-8">
-              {/* Back Button */}
-              <div className="mb-4">
+              {/* Back Button and Import Button */}
+              <div className="mb-4 flex justify-between items-center">
                 <button
                   onClick={handleBack}
                   className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-semibold transition-colors flex items-center gap-2"
@@ -3062,6 +3088,15 @@ export default function DGMMTRLLogin() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                   </svg>
                   Back to Dashboards
+                </button>
+                <button
+                  onClick={() => handleImportClick('Urgency Cases')}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold transition-colors flex items-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                  Import
                 </button>
               </div>
               {/* Urgency Cases Content */}
@@ -3360,8 +3395,8 @@ export default function DGMMTRLLogin() {
             </div>
           ) : selectedCard === 'vendor-rating-contact' ? (
             <div className="space-y-8">
-              {/* Back Button */}
-              <div className="mb-4">
+              {/* Back Button and Import Button */}
+              <div className="mb-4 flex justify-between items-center">
                 <button
                   onClick={handleBack}
                   className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-semibold transition-colors flex items-center gap-2"
@@ -3370,6 +3405,15 @@ export default function DGMMTRLLogin() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                   </svg>
                   Back to Dashboards
+                </button>
+                <button
+                  onClick={() => handleImportClick('Vendor Rating and Contact')}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold transition-colors flex items-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                  Import
                 </button>
               </div>
               {/* Vendor Rating and Contact Content */}
@@ -3553,8 +3597,8 @@ export default function DGMMTRLLogin() {
             </div>
           ) : selectedCard === 'abc-analysis' ? (
             <div className="space-y-8">
-              {/* Back Button */}
-              <div className="mb-4">
+              {/* Back Button and Import Button */}
+              <div className="mb-4 flex justify-between items-center">
                 <button
                   onClick={handleBack}
                   className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-semibold transition-colors flex items-center gap-2"
@@ -3563,6 +3607,15 @@ export default function DGMMTRLLogin() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                   </svg>
                   Back to Dashboards
+                </button>
+                <button
+                  onClick={() => handleImportClick('ABC Analysis')}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold transition-colors flex items-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                  Import
                 </button>
               </div>
 
@@ -3764,8 +3817,8 @@ export default function DGMMTRLLogin() {
             </div>
           ) : selectedCard === 'srb' ? (
             <div className="space-y-8">
-              {/* Back Button */}
-              <div className="mb-4">
+              {/* Back Button and Import Button */}
+              <div className="mb-4 flex justify-between items-center">
                 <button
                   onClick={handleBack}
                   className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-semibold transition-colors flex items-center gap-2"
@@ -3774,6 +3827,15 @@ export default function DGMMTRLLogin() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                   </svg>
                   Back to Dashboards
+                </button>
+                <button
+                  onClick={() => handleImportClick('SRB')}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold transition-colors flex items-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                  Import
                 </button>
               </div>
 
@@ -4414,6 +4476,46 @@ export default function DGMMTRLLogin() {
             </div>
           </div>
         </>
+      )}
+
+      {/* Import Modal */}
+      {showImportModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full mx-4">
+            <h3 className="text-2xl font-bold text-gray-900 mb-6">Import File - {importSection}</h3>
+            <div className="mb-6">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Select File to Upload
+              </label>
+              <input
+                type="file"
+                onChange={handleFileSelect}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                accept=".xlsx,.xls,.csv"
+              />
+              {selectedFile && (
+                <p className="mt-2 text-sm text-gray-600">
+                  Selected: <span className="font-semibold">{selectedFile.name}</span>
+                </p>
+              )}
+            </div>
+            <div className="flex gap-4 justify-end">
+              <button
+                onClick={handleCancelImport}
+                className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-semibold transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleImport}
+                disabled={!selectedFile}
+                className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg font-semibold transition-colors"
+              >
+                Import
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

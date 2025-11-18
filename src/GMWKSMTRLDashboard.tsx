@@ -67,7 +67,7 @@ export default function GMWKSMTRLDashboard() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <button
-                onClick={() => navigate('/comdt-md-dashboard')}
+                onClick={() => navigate('/sections-dashboard')}
                 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent hover:from-blue-700 hover:to-blue-900 transition-all"
               >
                 512 Army Base ERP
@@ -96,7 +96,7 @@ export default function GMWKSMTRLDashboard() {
         {/* Back Button */}
         <div className="mb-6">
           <button
-            onClick={() => navigate('/comdt-md-dashboard')}
+            onClick={() => navigate('/sections-dashboard')}
             className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

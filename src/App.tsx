@@ -2,6 +2,7 @@ import React from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import MasterDashboard from './MasterDashboard'
 import ComdtMDDashboard from './ComdtMDDashboard'
+import SectionsDashboard from './SectionsDashboard'
 import GMWKSMTRLDashboard from './GMWKSMTRLDashboard'
 import DGMWKSMTRLDashboard from './DGMWKSMTRLDashboard'
 import DGMPurchaseDashboard from './DGMPurchaseDashboard'
@@ -26,6 +27,7 @@ export default function App() {
         <Route path="/" element={<MasterDashboard />} />
         <Route path="/login/:loginType" element={<LoginPage />} />
         <Route path="/comdt-md-dashboard" element={<ComdtMDDashboard />} />
+        <Route path="/sections-dashboard" element={<SectionsDashboard />} />
         <Route path="/gm-wks-mtrl-dashboard" element={<GMWKSMTRLDashboard />} />
         <Route path="/dgm-wks-mtrl-dashboard" element={<DGMWKSMTRLDashboard />} />
         <Route path="/dgm-purchase-dashboard" element={<DGMPurchaseDashboard />} />

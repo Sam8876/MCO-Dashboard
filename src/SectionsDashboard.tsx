@@ -37,27 +37,39 @@ function DashboardCard({ title, subtitle, gradient, route }: DashboardCardProps)
   )
 }
 
-export default function DGMPurchaseDashboard() {
+export default function SectionsDashboard() {
   const navigate = useNavigate()
 
   const cards = [
     {
-      title: 'DGM Dashboard',
-      subtitle: 'Deputy General Manager Dashboard',
+      title: 'TT Cell',
+      subtitle: 'Tooling & Technology Cell',
+      gradient: 'bg-gradient-to-br from-blue-600 to-blue-800',
+      route: undefined
+    },
+    {
+      title: 'QA',
+      subtitle: 'Quality Assurance',
+      gradient: 'bg-gradient-to-br from-green-600 to-green-800',
+      route: undefined
+    },
+    {
+      title: 'MCO',
+      subtitle: 'Material Control Organization',
+      gradient: 'bg-gradient-to-br from-purple-600 to-purple-800',
+      route: '/gm-wks-mtrl-dashboard'
+    },
+    {
+      title: 'PP&C',
+      subtitle: 'Production Planning & Control',
       gradient: 'bg-gradient-to-br from-orange-600 to-orange-800',
-      route: '/dgm-purchase'
+      route: undefined
     },
     {
-      title: 'LPO',
-      subtitle: 'Local Purchase Order',
-      gradient: 'bg-gradient-to-br from-amber-600 to-amber-800',
-      route: '/lpo'
-    },
-    {
-      title: 'LPS',
-      subtitle: 'Local Purchase Section',
-      gradient: 'bg-gradient-to-br from-yellow-600 to-yellow-800',
-      route: '/lps'
+      title: 'ME Cell',
+      subtitle: 'Manufacturing Engineering Cell',
+      gradient: 'bg-gradient-to-br from-indigo-600 to-indigo-800',
+      route: undefined
     }
   ]
 
@@ -69,15 +81,15 @@ export default function DGMPurchaseDashboard() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <button
-                onClick={() => navigate('/gm-wks-mtrl-dashboard')}
+                onClick={() => navigate('/comdt-md-dashboard')}
                 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent hover:from-blue-700 hover:to-blue-900 transition-all"
               >
                 512 Army Base ERP
               </button>
               <div className="h-8 w-px bg-gray-300"></div>
               <div>
-                <div className="text-sm font-semibold text-gray-900">DGM PURCHASE</div>
-                <div className="text-xs text-gray-600">Deputy General Manager Purchase</div>
+                <div className="text-sm font-semibold text-gray-900">Sections</div>
+                <div className="text-xs text-gray-600">GM WKS MTRL Sections</div>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -98,7 +110,7 @@ export default function DGMPurchaseDashboard() {
         {/* Back Button */}
         <div className="mb-6">
           <button
-            onClick={() => navigate('/gm-wks-mtrl-dashboard')}
+            onClick={() => navigate('/comdt-md-dashboard')}
             className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -108,35 +120,22 @@ export default function DGMPurchaseDashboard() {
           </button>
         </div>
         <div className="mb-8">
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">Select Module</h2>
-          <p className="text-gray-600">Choose a module to access its dashboard</p>
+          <h2 className="text-3xl font-bold text-gray-900 mb-2">Select Section</h2>
+          <p className="text-gray-600">Choose a section to access its dashboard</p>
         </div>
 
-        {/* Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 auto-rows-fr">
-          {/* DGM Dashboard - Spans 2 columns on medium screens and up */}
-          <div className="md:col-span-2">
-            <DashboardCard
-              title={cards[0].title}
-              subtitle={cards[0].subtitle}
-              gradient={cards[0].gradient}
-              route={cards[0].route}
-            />
-          </div>
-
-          {/* LPO and LPS - Two cards side by side */}
-          <DashboardCard
-            title={cards[1].title}
-            subtitle={cards[1].subtitle}
-            gradient={cards[1].gradient}
-            route={cards[1].route}
-          />
-          <DashboardCard
-            title={cards[2].title}
-            subtitle={cards[2].subtitle}
-            gradient={cards[2].gradient}
-            route={cards[2].route}
-          />
+        {/* Cards Grid - 5 cards with equal height */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-fr">
+          {cards.map((card, index) => (
+            <div key={index} className="w-full">
+              <DashboardCard
+                title={card.title}
+                subtitle={card.subtitle}
+                gradient={card.gradient}
+                route={card.route}
+              />
+            </div>
+          ))}
         </div>
       </div>
     </div>

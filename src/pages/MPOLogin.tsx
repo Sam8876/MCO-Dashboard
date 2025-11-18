@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 export default function MPOLogin() {
   const navigate = useNavigate()
   const [selectedSection, setSelectedSection] = useState('target')
-  const [selectedTargetYear, setSelectedTargetYear] = useState('')
+  const [selectedTargetYear, setSelectedTargetYear] = useState('PY-2025-26')
   const [selectedCTCategory, setSelectedCTCategory] = useState('')
   const [selectedCTType, setSelectedCTType] = useState('')
 
@@ -863,6 +863,62 @@ export default function MPOLogin() {
                 </button>
               </div>
 
+              {/* Summary Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-blue-100 text-sm font-semibold mb-1">Total CTs</p>
+                      <p className="text-3xl font-bold">5</p>
+                    </div>
+                    <div className="bg-white bg-opacity-20 rounded-full p-3">
+                      <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-green-100 text-sm font-semibold mb-1">Total OHS Scale</p>
+                      <p className="text-3xl font-bold">3,860</p>
+                    </div>
+                    <div className="bg-white bg-opacity-20 rounded-full p-3">
+                      <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl shadow-lg p-6 text-white">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-orange-100 text-sm font-semibold mb-1">Total NA Items</p>
+                      <p className="text-3xl font-bold">223</p>
+                    </div>
+                    <div className="bg-white bg-opacity-20 rounded-full p-3">
+                      <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg p-6 text-white">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-purple-100 text-sm font-semibold mb-1">Total Available Items</p>
+                      <p className="text-3xl font-bold">3,637</p>
+                    </div>
+                    <div className="bg-white bg-opacity-20 rounded-full p-3">
+                      <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* CT Summary Table */}
               <div className="mb-8">
                 <h5 className="text-lg font-bold text-gray-900 mb-4">CT Summary</h5>
@@ -1239,12 +1295,75 @@ export default function MPOLogin() {
               }
             ];
 
+            // Calculate LM Summary statistics
+            const totalLMWOs = lmSummaryData.length;
+            const totalQty = lmSummaryData.reduce((sum, item) => sum + (item.qty || 0), 0);
+            const woRelCount = lmSummaryData.filter(item => item.status === 'WO REL').length;
+            const pendingCount = lmSummaryData.filter(item => item.status !== 'WO REL').length;
+
             return (
-              <div className="overflow-x-auto">
-                <div className="mb-4 text-center">
-                  <div className="font-bold text-lg mb-2">SCALED LM 2025-26 WITH CARRY FWD</div>
-          </div>
-                <table className="w-full border-collapse text-xs">
+              <>
+                {/* Summary Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                  <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-blue-100 text-sm font-semibold mb-1">Total LM WOs</p>
+                        <p className="text-3xl font-bold">{totalLMWOs}</p>
+                      </div>
+                      <div className="bg-white bg-opacity-20 rounded-full p-3">
+                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-green-100 text-sm font-semibold mb-1">Total Quantity</p>
+                        <p className="text-3xl font-bold">{totalQty}</p>
+                      </div>
+                      <div className="bg-white bg-opacity-20 rounded-full p-3">
+                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl shadow-lg p-6 text-white">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-orange-100 text-sm font-semibold mb-1">WO Released</p>
+                        <p className="text-3xl font-bold">{woRelCount}</p>
+                      </div>
+                      <div className="bg-white bg-opacity-20 rounded-full p-3">
+                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg p-6 text-white">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-purple-100 text-sm font-semibold mb-1">Pending</p>
+                        <p className="text-3xl font-bold">{pendingCount}</p>
+                      </div>
+                      <div className="bg-white bg-opacity-20 rounded-full p-3">
+                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <div className="mb-4 text-center">
+                    <div className="font-bold text-lg mb-2">SCALED LM 2025-26 WITH CARRY FWD</div>
+                  </div>
+                  <table className="w-full border-collapse text-xs">
                   <thead>
                     <tr className="bg-gray-200">
                       <th className="border border-gray-400 px-1 py-2 font-semibold text-left">SER<br/>NO</th>
@@ -1323,7 +1442,8 @@ export default function MPOLogin() {
                     ))}
                   </tbody>
                 </table>
-              </div>
+                </div>
+              </>
             );
           })()}
         </div>
@@ -1393,13 +1513,138 @@ export default function MPOLogin() {
               }
             ];
 
+            // Calculate summary statistics
+            const totalItems = srbData.length;
+            const totalDepthReqd = srbData.reduce((sum, item) => sum + item.depthReqd, 0);
+            const totalIssueDepth = srbData.reduce((sum, item) => sum + item.totalDepth, 0);
+            const totalVirItems = srbData.filter(item => item.virTotal > 0).length;
+            const totalNewLP = srbData.reduce((sum, item) => sum + item.newLPDepth, 0);
+            const totalNewLM = srbData.reduce((sum, item) => sum + item.newLMDepth, 0);
+            const totalRepaired = srbData.reduce((sum, item) => sum + item.repairedDepth, 0);
+            const totalReclaimed = srbData.reduce((sum, item) => sum + item.reclaimedDepth, 0);
+            const avgScale = totalItems > 0 ? Math.round(srbData.reduce((sum, item) => sum + item.scale, 0) / totalItems) : 0;
+
             return (
-              <div className="overflow-x-auto">
-                <div className="mb-4">
-                  <div className="text-center font-bold text-lg mb-2">Spares Requirement Book</div>
-                  <div className="text-sm text-gray-600 mb-4 text-center">OH Output (59) : PY 2024-25 - ARD SEC</div>
+              <>
+                {/* Summary Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                  <div className="bg-gradient-to-br from-rose-500 to-rose-600 rounded-xl shadow-lg p-6 text-white">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-rose-100 text-sm font-semibold mb-1">Total Items</p>
+                        <p className="text-3xl font-bold">{totalItems}</p>
+                      </div>
+                      <div className="bg-white bg-opacity-20 rounded-full p-3">
+                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-blue-100 text-sm font-semibold mb-1">Total Depth Required</p>
+                        <p className="text-3xl font-bold">{totalDepthReqd}</p>
+                      </div>
+                      <div className="bg-white bg-opacity-20 rounded-full p-3">
+                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-green-100 text-sm font-semibold mb-1">Total Issue Depth</p>
+                        <p className="text-3xl font-bold">{totalIssueDepth}</p>
+                      </div>
+                      <div className="bg-white bg-opacity-20 rounded-full p-3">
+                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg p-6 text-white">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-purple-100 text-sm font-semibold mb-1">Avg Scale</p>
+                        <p className="text-3xl font-bold">{avgScale}</p>
+                      </div>
+                      <div className="bg-white bg-opacity-20 rounded-full p-3">
+                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <table className="w-full border-collapse text-xs">
+
+                {/* Additional Summary Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                  <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl shadow-lg p-6 text-white">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-orange-100 text-sm font-semibold mb-1">Total VIR Items</p>
+                        <p className="text-3xl font-bold">{totalVirItems}</p>
+                      </div>
+                      <div className="bg-white bg-opacity-20 rounded-full p-3">
+                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-xl shadow-lg p-6 text-white">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-cyan-100 text-sm font-semibold mb-1">New LP Depth</p>
+                        <p className="text-3xl font-bold">{totalNewLP}</p>
+                      </div>
+                      <div className="bg-white bg-opacity-20 rounded-full p-3">
+                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-gradient-to-br from-teal-500 to-teal-600 rounded-xl shadow-lg p-6 text-white">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-teal-100 text-sm font-semibold mb-1">New LM Depth</p>
+                        <p className="text-3xl font-bold">{totalNewLM}</p>
+                      </div>
+                      <div className="bg-white bg-opacity-20 rounded-full p-3">
+                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl shadow-lg p-6 text-white">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-indigo-100 text-sm font-semibold mb-1">Repaired Depth</p>
+                        <p className="text-3xl font-bold">{totalRepaired}</p>
+                      </div>
+                      <div className="bg-white bg-opacity-20 rounded-full p-3">
+                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <div className="mb-4">
+                    <div className="text-center font-bold text-lg mb-2">Spares Requirement Book</div>
+                    <div className="text-sm text-gray-600 mb-4 text-center">OH Output (59) : PY 2024-25 - ARD SEC</div>
+                  </div>
+                  <table className="w-full border-collapse text-xs">
                   <thead>
                     {/* First Row - Main Headers */}
                     <tr className="bg-gray-200">
@@ -1516,7 +1761,8 @@ export default function MPOLogin() {
                     ))}
                   </tbody>
                 </table>
-          </div>
+                </div>
+              </>
             );
           })()}
         </div>
@@ -1526,9 +1772,85 @@ export default function MPOLogin() {
       {selectedSection === 'lp-summary' && (
         <div>
           <h4 className="text-xl font-bold text-gray-900 mb-6">LP Summary</h4>
-          <div className="overflow-x-auto">
-            <div className="mb-4 text-center font-semibold text-base">SCALED LPR's FOR PY : 2025-26</div>
-            <table className="w-full border-collapse text-xs">
+          
+          {/* LP Summary Data */}
+          {(() => {
+            // Sample LP Summary data for calculations
+            const lpSummaryData = [
+              { serNo: 1, qty: 14, status: 'Under AON' },
+              { serNo: 2, qty: 24, status: 'SO PLACED' },
+              { serNo: 3, qty: 23, status: 'Cancelled' },
+              { serNo: 4, qty: 5, status: 'Cancelled' },
+              { serNo: 5, qty: 43, status: 'IFA CASE' }
+            ];
+
+            // Calculate LP Summary statistics
+            const totalLPRs = lpSummaryData.length;
+            const totalQty = lpSummaryData.reduce((sum, item) => sum + (item.qty || 0), 0);
+            const soPlacedCount = lpSummaryData.filter(item => item.status === 'SO PLACED').length;
+            const pendingCount = lpSummaryData.filter(item => item.status !== 'SO PLACED' && item.status !== 'Cancelled').length;
+
+            return (
+              <>
+                {/* Summary Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                  <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-blue-100 text-sm font-semibold mb-1">Total LPRs</p>
+                        <p className="text-3xl font-bold">{totalLPRs}</p>
+                      </div>
+                      <div className="bg-white bg-opacity-20 rounded-full p-3">
+                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-green-100 text-sm font-semibold mb-1">Total Quantity</p>
+                        <p className="text-3xl font-bold">{totalQty}</p>
+                      </div>
+                      <div className="bg-white bg-opacity-20 rounded-full p-3">
+                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl shadow-lg p-6 text-white">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-orange-100 text-sm font-semibold mb-1">SO Placed</p>
+                        <p className="text-3xl font-bold">{soPlacedCount}</p>
+                      </div>
+                      <div className="bg-white bg-opacity-20 rounded-full p-3">
+                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg p-6 text-white">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-purple-100 text-sm font-semibold mb-1">Pending</p>
+                        <p className="text-3xl font-bold">{pendingCount}</p>
+                      </div>
+                      <div className="bg-white bg-opacity-20 rounded-full p-3">
+                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <div className="mb-4 text-center font-semibold text-base">SCALED LPR's FOR PY : 2025-26</div>
+                  <table className="w-full border-collapse text-xs">
               <thead>
                 <tr className="bg-gray-200">
                   <th className="border border-gray-400 px-2 py-2 font-semibold">Ser No</th>
@@ -1744,7 +2066,10 @@ export default function MPOLogin() {
                 </tr>
               </tbody>
             </table>
-          </div>
+                </div>
+              </>
+            );
+          })()}
         </div>
       )}
     </div>
