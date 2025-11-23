@@ -146,7 +146,7 @@ interface FormField {
     
     // Helper function to calculate days between dates
     const calculateDays = (dateString: string): number => {
-      // Parse date in format "DD-MMM-YYYY" (e.g., "15-Oct-2024")
+      // Parse date in format "DD-MMM-YYYY" (e.g., "15-Oct-2025")
       const [day, month, year] = dateString.split('-');
       const monthMap: Record<string, string> = {
         'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04',
@@ -192,12 +192,12 @@ interface FormField {
     const lprs = [
       {
         id: 1,
-        originatorNo: 'ORG/2024/001',
-        date: '15-Nov-2024',
-        ossControlNo: 'OSS/001/2024',
-        ossDate: '16-Nov-2024',
+        originatorNo: 'ORG/2025/001',
+        date: '15-Aug-2025',
+        ossControlNo: 'OSS/001/2025',
+        ossDate: '16-Sep-2025',
         status: 'ENQ',
-        statusDate: '18-Nov-2024', // Date when status changed to ENQ (about 60 days ago)
+        statusDate: '18-Nov-2025', // Date when status changed to ENQ (about 60 days ago)
         items: [
           {
             sNo: 1,
@@ -205,10 +205,10 @@ interface FormField {
             designation: 'BOLT ASSEMBLY',
             au: 'Nos',
             qtyReqd: '500',
-            demandNoDate: 'DEM/001 / 10-Nov-2024',
-            depotNANoDate: 'DEP/NA/001 / 12-Nov-2024',
+            demandNoDate: 'DEM/001 / 10-Nov-2025',
+            depotNANoDate: 'DEP/NA/001 / 12-Nov-2025',
             armyHQSrlNo: 'AHQ/SRL/001',
-            woNoJobNo: 'WO/2024/001',
+            woNoJobNo: 'WO/2025/001',
             remarks: 'Urgent'
           },
           {
@@ -217,22 +217,22 @@ interface FormField {
             designation: 'HYDRAULIC OIL',
             au: 'Ltr',
             qtyReqd: '1000',
-            demandNoDate: 'DEM/002 / 10-Nov-2024',
-            depotNANoDate: 'DEP/NA/002 / 12-Nov-2024',
+            demandNoDate: 'DEM/002 / 10-Nov-2025',
+            depotNANoDate: 'DEP/NA/002 / 12-Nov-2025',
             armyHQSrlNo: 'AHQ/SRL/002',
-            woNoJobNo: 'WO/2024/002',
+            woNoJobNo: 'WO/2025/002',
             remarks: ''
           }
         ]
       },
       {
         id: 2,
-        originatorNo: 'ORG/2024/002',
-        date: '20-Nov-2024',
-        ossControlNo: 'OSS/002/2024',
-        ossDate: '21-Nov-2024',
+        originatorNo: 'ORG/2025/002',
+        date: '20-Oct-2025',
+        ossControlNo: 'OSS/002/2025',
+        ossDate: '01-Nov-2025',
         status: 'CST',
-        statusDate: '25-Nov-2024', // Date when status changed to CST (about 55 days ago)
+        statusDate: '25-Nov-2025', // Date when status changed to CST (about 55 days ago)
         items: [
           {
             sNo: 1,
@@ -240,22 +240,22 @@ interface FormField {
             designation: 'WATER RADIATOR',
             au: 'Nos',
             qtyReqd: '50',
-            demandNoDate: 'DEM/003 / 18-Nov-2024',
-            depotNANoDate: 'DEP/NA/003 / 19-Nov-2024',
+            demandNoDate: 'DEM/003 / 18-Nov-2025',
+            depotNANoDate: 'DEP/NA/003 / 19-Nov-2025',
             armyHQSrlNo: 'AHQ/SRL/003',
-            woNoJobNo: 'WO/2024/003',
+            woNoJobNo: 'WO/2025/003',
             remarks: 'Priority'
           }
         ]
       },
       {
         id: 3,
-        originatorNo: 'ORG/2024/003',
-        date: '25-Nov-2024',
-        ossControlNo: 'OSS/003/2024',
-        ossDate: '26-Nov-2024',
+        originatorNo: 'ORG/2025/003',
+        date: '05-Nov-2025',
+        ossControlNo: 'OSS/003/2025',
+        ossDate: '26-Nov-2025',
         status: 'SANC',
-        statusDate: '28-Nov-2024', // Date when status changed to SANC (about 52 days ago)
+        statusDate: '28-Nov-2025', // Date when status changed to SANC (about 52 days ago)
         items: [
           {
             sNo: 1,
@@ -263,10 +263,10 @@ interface FormField {
             designation: 'GASKET SET',
             au: 'Sets',
             qtyReqd: '100',
-            demandNoDate: 'DEM/004 / 23-Nov-2024',
-            depotNANoDate: 'DEP/NA/004 / 24-Nov-2024',
+            demandNoDate: 'DEM/004 / 23-Nov-2025',
+            depotNANoDate: 'DEP/NA/004 / 24-Nov-2025',
             armyHQSrlNo: 'AHQ/SRL/004',
-            woNoJobNo: 'WO/2024/004',
+            woNoJobNo: 'WO/2025/004',
             remarks: ''
           },
           {
@@ -275,22 +275,22 @@ interface FormField {
             designation: 'SPRING HELICAL',
             au: 'Nos',
             qtyReqd: '300',
-            demandNoDate: 'DEM/005 / 23-Nov-2024',
-            depotNANoDate: 'DEP/NA/005 / 24-Nov-2024',
+            demandNoDate: 'DEM/005 / 23-Nov-2025',
+            depotNANoDate: 'DEP/NA/005 / 24-Nov-2025',
             armyHQSrlNo: 'AHQ/SRL/005',
-            woNoJobNo: 'WO/2024/005',
+            woNoJobNo: 'WO/2025/005',
             remarks: 'Bulk Order'
           }
         ]
       },
       {
         id: 4,
-        originatorNo: 'ORG/2024/004',
-        date: '01-Dec-2024',
-        ossControlNo: 'OSS/004/2024',
-        ossDate: '02-Dec-2024',
+        originatorNo: 'ORG/2025/004',
+        date: '01-Sept-2025',
+        ossControlNo: 'OSS/004/2025',
+        ossDate: '02-Sept-2025',
         status: 'SO NO',
-        statusDate: '05-Dec-2024', // Date when status changed to SO NO (about 45 days ago)
+        statusDate: '05-Nov-2025', // Date when status changed to SO NO (about 45 days ago)
         items: [
           {
             sNo: 1,
@@ -298,22 +298,22 @@ interface FormField {
             designation: 'FILTER ELEMENT',
             au: 'Nos',
             qtyReqd: '200',
-            demandNoDate: 'DEM/006 / 28-Nov-2024',
-            depotNANoDate: 'DEP/NA/006 / 29-Nov-2024',
+            demandNoDate: 'DEM/006 / 28-Nov-2025',
+            depotNANoDate: 'DEP/NA/006 / 29-Nov-2025',
             armyHQSrlNo: 'AHQ/SRL/006',
-            woNoJobNo: 'WO/2024/006',
+            woNoJobNo: 'WO/2025/006',
             remarks: ''
           }
         ]
       },
       {
         id: 5,
-        originatorNo: 'ORG/2024/005',
-        date: '05-Dec-2024',
-        ossControlNo: 'OSS/005/2024',
-        ossDate: '06-Dec-2024',
+        originatorNo: 'ORG/2025/005',
+        date: '05-Dec-2025',
+        ossControlNo: 'OSS/005/2025',
+        ossDate: '06-Dec-2025',
         status: 'SO Dt',
-        statusDate: '10-Dec-2024', // Date when status changed to SO Dt (about 40 days ago)
+        statusDate: '10-Dec-2025', // Date when status changed to SO Dt (about 40 days ago)
         items: [
           {
             sNo: 1,
@@ -321,22 +321,22 @@ interface FormField {
             designation: 'OIL SEAL',
             au: 'Nos',
             qtyReqd: '150',
-            demandNoDate: 'DEM/007 / 02-Dec-2024',
-            depotNANoDate: 'DEP/NA/007 / 03-Dec-2024',
+            demandNoDate: 'DEM/007 / 02-Dec-2025',
+            depotNANoDate: 'DEP/NA/007 / 03-Dec-2025',
             armyHQSrlNo: 'AHQ/SRL/007',
-            woNoJobNo: 'WO/2024/007',
+            woNoJobNo: 'WO/2025/007',
             remarks: ''
           }
         ]
       },
       {
         id: 6,
-        originatorNo: 'ORG/2024/006',
-        date: '10-Dec-2024',
-        ossControlNo: 'OSS/006/2024',
-        ossDate: '11-Dec-2024',
+        originatorNo: 'ORG/2025/006',
+        date: '10-Dec-2025',
+        ossControlNo: 'OSS/006/2025',
+        ossDate: '11-Dec-2025',
         status: 'PDS',
-        statusDate: '15-Dec-2024', // Date when status changed to PDS (about 35 days ago)
+        statusDate: '15-Dec-2025', // Date when status changed to PDS (about 35 days ago)
         items: [
           {
             sNo: 1,
@@ -344,22 +344,22 @@ interface FormField {
             designation: 'BEARING ASSEMBLY',
             au: 'Nos',
             qtyReqd: '75',
-            demandNoDate: 'DEM/008 / 08-Dec-2024',
-            depotNANoDate: 'DEP/NA/008 / 09-Dec-2024',
+            demandNoDate: 'DEM/008 / 08-Dec-2025',
+            depotNANoDate: 'DEP/NA/008 / 09-Dec-2025',
             armyHQSrlNo: 'AHQ/SRL/008',
-            woNoJobNo: 'WO/2024/008',
+            woNoJobNo: 'WO/2025/008',
             remarks: ''
           }
         ]
       },
       {
         id: 7,
-        originatorNo: 'ORG/2024/095',
-        date: '15-Oct-2024',
-        ossControlNo: 'OSS/095/2024',
-        ossDate: '16-Oct-2024',
+        originatorNo: 'ORG/2025/095',
+        date: '15-Oct-2025',
+        ossControlNo: 'OSS/095/2025',
+        ossDate: '16-Oct-2025',
         status: 'CST',
-        statusDate: '20-Oct-2024', // Date when status changed to CST (about 95 days ago - OVER 90)
+        statusDate: '20-Oct-2025', // Date when status changed to CST (about 95 days ago - OVER 90)
         items: [
           {
             sNo: 1,
@@ -367,22 +367,22 @@ interface FormField {
             designation: 'CRITICAL COMPONENT DELAYED',
             au: 'Nos',
             qtyReqd: '25',
-            demandNoDate: 'DEM/009 / 10-Oct-2024',
-            depotNANoDate: 'DEP/NA/009 / 12-Oct-2024',
+            demandNoDate: 'DEM/009 / 10-Oct-2025',
+            depotNANoDate: 'DEP/NA/009 / 12-Oct-2025',
             armyHQSrlNo: 'AHQ/SRL/009',
-            woNoJobNo: 'WO/2024/009',
+            woNoJobNo: 'WO/2025/009',
             remarks: 'Exceeds 90 days - Urgent Action Required'
           }
         ]
       },
       {
         id: 8,
-        originatorNo: 'ORG/2024/098',
-        date: '10-Oct-2024',
-        ossControlNo: 'OSS/098/2024',
-        ossDate: '11-Oct-2024',
+        originatorNo: 'ORG/2025/098',
+        date: '10-Oct-2025',
+        ossControlNo: 'OSS/098/2025',
+        ossDate: '11-Oct-2025',
         status: 'SANC',
-        statusDate: '15-Oct-2024', // Date when status changed to SANC (about 100 days ago - OVER 90)
+        statusDate: '15-Oct-2025', // Date when status changed to SANC (about 100 days ago - OVER 90)
         items: [
           {
             sNo: 1,
@@ -390,10 +390,10 @@ interface FormField {
             designation: 'OVERDUE COMPONENT',
             au: 'Nos',
             qtyReqd: '30',
-            demandNoDate: 'DEM/010 / 05-Oct-2024',
-            depotNANoDate: 'DEP/NA/010 / 07-Oct-2024',
+            demandNoDate: 'DEM/010 / 05-Oct-2025',
+            depotNANoDate: 'DEP/NA/010 / 07-Oct-2025',
             armyHQSrlNo: 'AHQ/SRL/010',
-            woNoJobNo: 'WO/2024/010',
+            woNoJobNo: 'WO/2025/010',
             remarks: 'Exceeds 90 days - Requires Immediate Attention'
           }
         ]

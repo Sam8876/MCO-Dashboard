@@ -4089,7 +4089,7 @@ export default function GMWKSLogin() {
                       <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg p-6 text-white">
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="text-purple-100 text-sm font-semibold mb-1">Avg Scale</p>
+                            <p className="text-purple-100 text-sm font-semibold mb-1">Ord Issue</p>
                             <p className="text-3xl font-bold">{avgScale}</p>
                           </div>
                           <div className="bg-white bg-opacity-20 rounded-full p-3">
